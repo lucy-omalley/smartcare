@@ -1,11 +1,15 @@
-'use client';
-
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import './globals.css';
+import { RootProvider } from "@/components/providers/root-provider";
 
 const inter = Inter({ subsets: ['latin'] });
+
+export const metadata = {
+  title: "SmartCare",
+  description: "Your AI-powered healthcare assistant",
+};
 
 export default function RootLayout({
   children,

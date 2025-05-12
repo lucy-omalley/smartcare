@@ -2,6 +2,7 @@ import { ChatInterface } from "@/components/chat/chat-interface";
 import { Bot, Clock, Heart, MapPin, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HomeNav } from "@/components/nav/home-nav";
 
 const features = [
   {
@@ -36,9 +37,11 @@ const features = [
   }
 ];
 
-export default function Home() {
+export default function HomePage() {
   return (
     <main className="min-h-screen">
+      <HomeNav />
+      
       {/* Hero Section */}
       <section className="relative bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4">
@@ -59,9 +62,8 @@ export default function Home() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 bg-background">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose MumBot SmartCare?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <Card key={index}>

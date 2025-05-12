@@ -5,10 +5,14 @@ alwaysApply: true
 ---
 组件库:shadcn
 
+<<<<<<< HEAD
+=======
 css库:tailwind
 
+>>>>>>> b0f58bcf75aa68726cbfabe2b515ed04d43d2227
 框架:nextjs
 
 状态管理:jotai
 
+数据库:vercle Neon
 
