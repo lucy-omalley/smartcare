@@ -1,27 +1,40 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+'use client';
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+import { Inter } from 'next/font/google';
+import { useAtom } from 'jotai';
+import { themeAtom } from '@/lib/store/theme';
+import { themes } from '@/lib/themes';
+import './globals.css';
 
-export const metadata: Metadata = {
-  title: "MumBot SmartCare",
-  description: "AI-driven childcare matching platform",
-};
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const [currentTheme] = useAtom(themeAtom);
+  const theme = themes[currentTheme];
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
-      </body>
+    <html lang="en" style={{ colorScheme: 'light' }}>
+      <head>
+        <style>{`
+          :root {
+            --background: ${theme.background};
+            --foreground: ${theme.foreground};
+            --primary: ${theme.primary};
+            --primary-foreground: ${theme.primaryForeground};
+            --secondary: ${theme.secondary};
+            --secondary-foreground: ${theme.secondaryForeground};
+            --accent: ${theme.accent};
+            --accent-foreground: ${theme.accentForeground};
+            --muted: ${theme.muted};
+            --muted-foreground: ${theme.mutedForeground};
+          }
+        `}</style>
+      </head>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
