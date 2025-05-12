@@ -1,5 +1,7 @@
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { Bot, Clock, Heart, MapPin, Shield, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const features = [
   {
@@ -49,12 +51,8 @@ export default function Home() {
               Europe's first AI-driven childcare matching platform connecting parents with both formal childcare facilities and temporary caregivers.
             </p>
             <div className="flex justify-center gap-4 pt-4">
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8">
-                Get Started
-              </button>
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
-                Learn More
-              </button>
+              <Button size="lg">Get Started</Button>
+              <Button size="lg" variant="outline">Learn More</Button>
             </div>
           </div>
         </div>
@@ -66,14 +64,15 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center mb-12">Why Choose MumBot SmartCare?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="mb-4 text-primary">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </div>
+              <Card key={index}>
+                <CardHeader>
+                  <div className="mb-2 text-primary">{feature.icon}</div>
+                  <CardTitle>{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
@@ -89,7 +88,11 @@ export default function Home() {
                 Start a conversation with our AI assistant to find the perfect childcare solution for your family.
               </p>
             </div>
-            <ChatInterface />
+            <Card>
+              <CardContent className="p-6">
+                <ChatInterface />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
