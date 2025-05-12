@@ -19,9 +19,9 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
   try {
     // Convert our chat messages to OpenAI format
     const openAIMessages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system' as const, content: SYSTEM_PROMPT },
       ...messages.map(msg => ({
-        role: msg.isUser ? 'user' : 'assistant',
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
         content: msg.content,
       })),
     ];
