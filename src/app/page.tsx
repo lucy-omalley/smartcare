@@ -1,5 +1,6 @@
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { Bot, Clock, Heart, MapPin, Shield, Users } from "lucide-react";
+import { HomeNav } from "@/components/nav/home-nav";
 
 const features = [
   {
@@ -34,9 +35,11 @@ const features = [
   }
 ];
 
-export default function Home() {
+export default function HomePage() {
   return (
     <main className="min-h-screen">
+      <HomeNav />
+      
       {/* Hero Section */}
       <section className="relative bg-gradient-to-b from-primary/10 to-background py-20">
         <div className="container mx-auto px-4">
@@ -50,7 +53,7 @@ export default function Home() {
             </p>
             <div className="flex justify-center gap-4 pt-4">
               <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8">
-                Get Started
+                Find Care
               </button>
               <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
                 Learn More
@@ -61,17 +64,13 @@ export default function Home() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 bg-background">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose MumBot SmartCare?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="mb-4 text-primary">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+              <div key={index} className="p-6 rounded-lg bg-white shadow-sm border border-neutral-200">
+                <div className="text-primary mb-4">{feature.icon}</div>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground">{feature.description}</p>
               </div>
             ))}
