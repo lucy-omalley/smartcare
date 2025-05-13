@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Provider {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String
+  type        String   // "creche" or "childminder"
+  address     String
+  description String
+  experience  String
+  status      String   @default("pending") // pending, approved, rejected
+  hourlyRate  Float    // Hourly rate in the local currency
+  availability Json    // Store availability as a JSON object
+  crecheCapacity Json? // Store creche capacity as a JSON object
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+} 

@@ -1,14 +1,14 @@
-import { Inter } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme/theme-provider';
-import { ThemeSelector } from '@/components/theme/theme-selector';
-import './globals.css';
-import { RootProvider } from "@/components/providers/root-provider";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "SmartCare",
-  description: "Your AI-powered healthcare assistant",
+export const metadata: Metadata = {
+  title: "SmartCare - Childcare Provider Registration",
+  description: "Register as a childcare provider with SmartCare",
 };
 
 export default function RootLayout({
@@ -18,17 +18,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <div className="absolute top-4 right-4 z-50">
-            <ThemeSelector />
-          </div>
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

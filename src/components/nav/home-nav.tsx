@@ -29,6 +29,12 @@ export function HomeNav() {
             >
               Try MumBot
             </Link>
+            <Link
+              href="/register"
+              className="text-sm font-medium text-primary hover:text-primary/90"
+            >
+              Register as Provider
+            </Link>
           </nav>
           <ThemeSelector />
         </div>
