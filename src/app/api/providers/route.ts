@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+
+const providerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  type: z.enum(["creche", "childminder"]),
+  address: z.string().min(5, "Address must be at least 5 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  experience: z.string().min(1, "Please select your experience level"),
+  hourlyRate: z.string().min(1, "Please enter your hourly rate"),
+  availability: z.record(z.string(), z.array(z.object({
+    startTime: z.string(),
+    endTime: z.string()
+  }))),
+  crecheCapacity: z.array(z.object({
+    minAge: z.number(),
+    maxAge: z.number(),
+    capacity: z.number()
+  })).optional()
+});
+
+const updateProviderSchema = z.object({
+  status: z.enum(["pending", "approved", "rejected"]),
+});
+
+export async function GET() {
+  try {
+    const providers = await prisma.provider.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ providers });
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Failed to fetch providers" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const validatedData = providerSchema.parse(body);
+
+    // Check if provider with email already exists
+    const existingProvider = await prisma.provider.findUnique({
+      where: { email: validatedData.email }
+    });
+
+    if (existingProvider) {
+      return NextResponse.json(
+        { message: "A provider with this email already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Create new provider
+    const provider = await prisma.provider.create({
+      data: {
+        name: validatedData.name,
+        email: validatedData.email,
+        phone: validatedData.phone,
+        type: validatedData.type,
+        address: validatedData.address,
+        description: validatedData.description,
+        experience: validatedData.experience,
+        hourlyRate: parseFloat(validatedData.hourlyRate),
+        availability: validatedData.availability,
+        crecheCapacity: validatedData.crecheCapacity,
+        status: "pending"
+      }
+    });
+
+    return NextResponse.json(
+      { message: "Provider registered successfully", provider },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { message: "Validation error", errors: error.errors },
+        { status: 400 }
+      );
+    }
+
+    console.error("Error registering provider:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+} 
