@@ -9,10 +9,11 @@ import { TypingIndicator } from './typing-indicator';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import { messagesAtom, type ChatMessage as ChatMessageType } from '@/lib/store/chat';
 import { cn } from '@/lib/utils';
+import { MatchingService } from '@/lib/services/matching';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
-  content: "Hello! I'm MumBot, your AI childcare assistant. I can help you find the perfect childcare solution in Ireland. What kind of care are you looking for?",
+  content: MatchingService.generateWelcomeMessage(),
   isUser: false,
   timestamp: new Date(),
 };

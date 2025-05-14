@@ -561,4 +561,16 @@ export class MatchingService {
 
     return formatted;
   }
+
+  /**
+   * Generate a welcome message for the chat interface
+   */
+  public static generateWelcomeMessage(): string {
+    return "👋 Hi! I'm MumBot, your AI childcare assistant. I can help you find the perfect childcare provider in Dublin. Just tell me what you're looking for!\n\n" +
+           "For example, you can ask me:\n" +
+           "• \"I need a creche in Rathmines for my 2-year-old\"\n" +
+           "• \"Find childminders in Clontarf under €15 per hour\"\n" +
+           "• \"Show me creches in Blackrock with availability Monday to Friday\"\n\n" +
+           "What kind of childcare are you looking for?";
+  }
 } 

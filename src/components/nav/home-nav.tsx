@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bot } from "lucide-react";
 import { ThemeSelector } from "@/components/theme/theme-selector";
+import { Button } from "@/components/ui/button";
 
 export function HomeNav() {
   return (
@@ -31,12 +32,20 @@ export function HomeNav() {
             </Link>
             <Link
               href="/register"
-              className="text-sm font-medium text-primary hover:text-primary/90"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
               Register as Provider
             </Link>
           </nav>
-          <ThemeSelector />
+          <div className="flex items-center gap-2">
+            <Link href="/auth/signin">
+              <Button variant="ghost">Sign In</Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button>Register</Button>
+            </Link>
+            <ThemeSelector />
+          </div>
         </div>
       </div>
     </nav>
