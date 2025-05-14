@@ -84,32 +84,57 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="lg:sticky lg:top-4">
-          <CardHeader>
-            <CardTitle>Select Date</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg">Select Date</CardTitle>
             <CardDescription>Choose a date to set your availability</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border"
-              modifiers={{
-                available: (date) => Object.keys(value).includes(format(date, "yyyy-MM-dd"))
-              }}
-              modifiersStyles={{
-                available: {
-                  backgroundColor: "hsl(var(--primary))",
-                  color: "hsl(var(--primary-foreground))",
-                }
-              }}
-            />
+          <CardContent className="p-4">
+            <div className="rounded-lg border bg-card p-3 shadow-sm">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="w-full"
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center",
+                  caption_label: "text-sm font-medium",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex",
+                  head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                  row: "flex w-full mt-2",
+                  cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                  day_range_end: "day-range-end",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  day_today: "bg-accent text-accent-foreground",
+                  day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+                  day_disabled: "text-muted-foreground opacity-50",
+                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                  day_hidden: "invisible",
+                }}
+                modifiers={{
+                  available: (date) => Object.keys(value).includes(format(date, "yyyy-MM-dd"))
+                }}
+                modifiersStyles={{
+                  available: {
+                    backgroundColor: "hsl(var(--primary))",
+                    color: "hsl(var(--primary-foreground))",
+                  }
+                }}
+              />
+            </div>
             {selectedDate && (
               <Button
                 onClick={() => addTimeSlot(selectedDate)}
-                className="w-full"
+                className="w-full mt-4"
                 variant="outline"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -120,8 +145,8 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg">
               {selectedDate ? format(selectedDate, "MMMM d, yyyy") : "Select a date"}
             </CardTitle>
             <CardDescription>
@@ -130,7 +155,7 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
                 : "No time slots added for this date"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             <div className="space-y-4">
               {selectedDayAvailability.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -142,9 +167,9 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
                 selectedDayAvailability.map((slot, index) => (
                   <div 
                     key={index} 
-                    className="flex items-center gap-4 p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
                   >
-                    <div className="flex-1 grid grid-cols-2 gap-4">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                       <div className="space-y-2">
                         <Label>Start Time</Label>
                         <Select
@@ -163,6 +188,7 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
                           </SelectContent>
                         </Select>
                       </div>
+                      
                       <div className="space-y-2">
                         <Label>End Time</Label>
                         <Select
@@ -186,7 +212,7 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
                       variant="ghost"
                       size="icon"
                       onClick={() => removeTimeSlot(format(selectedDate!, "yyyy-MM-dd"), index)}
-                      className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                      className="shrink-0 hover:bg-destructive/10 hover:text-destructive self-end sm:self-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -198,49 +224,47 @@ export function AvailabilityCalendar({ value = {}, onChange }: AvailabilityCalen
         </Card>
       </div>
 
-      {sortedDates.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              Availability Summary
-            </CardTitle>
-            <CardDescription>
-              {sortedDates.length} date{sortedDates.length > 1 ? 's' : ''} with availability set
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px] pr-4">
-              <div className="space-y-6">
-                {sortedDates.map((date) => (
-                  <div key={date} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">
-                        {format(parseISO(date), "EEEE, MMMM d, yyyy")}
-                      </h3>
-                      <Badge variant="secondary">
-                        {value[date].length} slot{value[date].length > 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {value[date].map((slot, index) => (
-                        <Badge 
-                          key={index}
-                          variant="secondary"
-                          className="px-3 py-1 text-sm"
-                        >
-                          {slot.startTime} - {slot.endTime}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Separator className="my-4" />
+      <Card>
+        <CardHeader className="p-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5" />
+            Availability Summary
+          </CardTitle>
+          <CardDescription>
+            {sortedDates.length} date{sortedDates.length > 1 ? 's' : ''} with availability set
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          <ScrollArea className="h-[300px] pr-4">
+            <div className="space-y-6">
+              {sortedDates.map((date) => (
+                <div key={date} className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <h3 className="font-medium text-base sm:text-lg">
+                      {format(parseISO(date), "EEEE, MMMM d, yyyy")}
+                    </h3>
+                    <Badge variant="secondary">
+                      {value[date].length} slot{value[date].length > 1 ? 's' : ''}
+                    </Badge>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+                  <div className="flex flex-wrap gap-2">
+                    {value[date].map((slot, index) => (
+                      <Badge 
+                        key={index}
+                        variant="secondary"
+                        className="px-3 py-1 text-sm"
+                      >
+                        {slot.startTime} - {slot.endTime}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Separator className="my-4" />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

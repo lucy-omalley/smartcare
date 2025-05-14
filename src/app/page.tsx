@@ -1,8 +1,8 @@
-import { ChatInterface } from "@/components/chat/chat-interface";
 import { Bot, Clock, Heart, MapPin, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HomeNav } from "@/components/nav/home-nav";
+import Link from 'next/link';
 
 const features = [
   {
@@ -37,67 +37,64 @@ const features = [
   }
 ];
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <main className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <HomeNav />
-      
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-primary/10 to-background py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
-            <h1 className="text-5xl font-bold tracking-tight">
-              Welcome to{" "}
-              <span className="text-primary">MumBot SmartCare</span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Europe's first AI-driven childcare matching platform connecting parents with both formal childcare facilities and temporary caregivers.
-            </p>
-            <div className="flex justify-center gap-4 pt-4">
-              <Button size="lg">Get Started</Button>
-              <Button size="lg" variant="outline">Learn More</Button>
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
+                  Find the Perfect Childcare Solution
+                </h1>
+                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                  SmartCare helps you find and connect with trusted childcare providers in your area. Start your search today!
+                </p>
+              </div>
+              <div className="space-x-4">
+                <Link href="/auth/signin">
+                  <Button size="lg">Get Started</Button>
+                </Link>
+                <Link href="/providers">
+                  <Button variant="outline" size="lg">Browse Providers</Button>
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Grid */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <div className="mb-2 text-primary">{feature.icon}</div>
-                  <CardTitle>{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Chat Interface Section */}
-      <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">Try MumBot Now</h2>
-              <p className="text-muted-foreground">
-                Start a conversation with our AI assistant to find the perfect childcare solution for your family.
-              </p>
+        {/* Features Section */}
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Why Choose SmartCare?
+                </h2>
+                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                  Our platform combines cutting-edge technology with human expertise to make finding childcare easier than ever.
+                </p>
+              </div>
             </div>
-            <Card>
-              <CardContent className="p-6">
-                <ChatInterface />
-              </CardContent>
-            </Card>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
+              {features.map((feature, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <div className="mb-2">{feature.icon}</div>
+                    <CardTitle>{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }
