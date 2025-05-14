@@ -17,6 +17,79 @@ const WELCOME_MESSAGE = {
   timestamp: new Date(),
 };
 
+// Add keyword extraction function
+const extractKeywords = (message: string): string[] => {
+  // Define keyword categories
+  const keywordCategories = {
+    careTypes: [
+      'creche', 'childminder', 'childcare', 'care', 'nanny', 'daycare',
+      'preschool', 'kindergarten', 'after school', 'babysitter'
+    ],
+    days: [
+      'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+      'saturday', 'sunday', 'weekday', 'weekend'
+    ],
+    timePeriods: [
+      'morning', 'afternoon', 'evening', 'night',
+      'full day', 'half day', 'part time', 'full time'
+    ],
+    specialNeeds: [
+      'special needs', 'autism', 'adhd', 'disability',
+      'learning difficulties', 'developmental delay'
+    ],
+    languages: [
+      'english', 'irish', 'polish', 'chinese', 'french',
+      'spanish', 'portuguese', 'multilingual', 'bilingual'
+    ],
+    locations: [
+      'dublin', 'dundrum', 'swords', 'dun laoghaire', 'tallaght',
+      'blanchardstown', 'sandyford', 'clontarf', 'rathmines', 'malahide'
+    ],
+    requirements: [
+      'certified', 'qualified', 'experienced', 'first aid',
+      'emergency', 'flexible', 'reliable', 'trusted'
+    ]
+  };
+
+  // Convert message to lowercase for case-insensitive matching
+  const lowerMessage = message.toLowerCase();
+
+  // Function to find exact word matches
+  const findExactMatches = (word: string): boolean => {
+    // Create a regex that matches word boundaries
+    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    return regex.test(lowerMessage);
+  };
+
+  // Function to find phrase matches
+  const findPhraseMatches = (phrase: string): boolean => {
+    return lowerMessage.includes(phrase.toLowerCase());
+  };
+
+  // Collect all matched keywords
+  const matchedKeywords: string[] = [];
+
+  // Check each category
+  Object.entries(keywordCategories).forEach(([category, keywords]) => {
+    keywords.forEach(keyword => {
+      // For single words, use exact matching
+      if (!keyword.includes(' ')) {
+        if (findExactMatches(keyword)) {
+          matchedKeywords.push(keyword);
+        }
+      } else {
+        // For phrases, use phrase matching
+        if (findPhraseMatches(keyword)) {
+          matchedKeywords.push(keyword);
+        }
+      }
+    });
+  });
+
+  // Remove duplicates and sort by length (longer matches first)
+  return Array.from(new Set(matchedKeywords)).sort((a, b) => b.length - a.length);
+};
+
 export function ChatInterface() {
   const [messages, setMessages] = useAtom(messagesAtom);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +140,7 @@ export function ChatInterface() {
   const handleSendMessage = async (content: string) => {
     try {
       setIsLoading(true);
+      console.log('Sending message:', content);
 
       // Add user message
       const userMessage: ChatMessageType = {
@@ -75,7 +149,11 @@ export function ChatInterface() {
         isUser: true,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, userMessage]);
+
+      // Update messages with user message
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
+      console.log('Updated messages with user message:', updatedMessages);
 
       // Get AI response
       const response = await fetch('/api/chat', {
@@ -83,15 +161,23 @@ export function ChatInterface() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json();
+        console.error('API error:', errorData);
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
       const data = await response.json();
+      console.log('Received AI response:', data);
       
+      if (!data.response) {
+        console.error('No response in data:', data);
+        throw new Error('No response received from the server');
+      }
+
       // Add AI response
       const aiMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
@@ -99,21 +185,37 @@ export function ChatInterface() {
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, aiMessage]);
+
+      console.log('Adding AI message:', aiMessage);
+      // Update messages with AI response
+      setMessages((prev) => {
+        const newMessages = [...prev, aiMessage];
+        console.log('Updated messages with AI response:', newMessages);
+        return newMessages;
+      });
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in handleSendMessage:', error);
       // Add error message
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
-        content: 'I apologize, but I encountered an error. Please try again later.',
+        content: error instanceof Error ? error.message : 'I apologize, but I encountered an error. Please try again later.',
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        const newMessages = [...prev, errorMessage];
+        console.log('Updated messages with error:', newMessages);
+        return newMessages;
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Add debug logging for messages changes
+  useEffect(() => {
+    console.log('Messages updated:', messages);
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-[600px] md:h-[700px] w-full max-w-2xl mx-auto border rounded-lg bg-background shadow-lg overflow-hidden">
@@ -161,21 +263,30 @@ export function ChatInterface() {
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-muted/30"
+        style={{ minHeight: '400px' }}
       >
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            message={message.content}
-            isUser={message.isUser}
-            timestamp={message.timestamp}
-          />
-        ))}
+        <div className="flex flex-col space-y-4">
+          {messages.map((message) => {
+            console.log('Rendering message:', message);
+            const matchedKeywords = extractKeywords(message.content);
+            return (
+              <div key={message.id} className="w-full">
+                <ChatMessage
+                  message={message.content}
+                  isUser={message.isUser}
+                  timestamp={message.timestamp}
+                  matchedKeywords={matchedKeywords}
+                />
+              </div>
+            );
+          })}
+        </div>
         <TypingIndicator isVisible={showTypingIndicator} />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input */}
-      <div className="border-t bg-background">
+      <div className="border-t bg-background p-4">
         <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
       </div>
     </div>
