@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create new provider
+    // Create new provider with basic information
     const provider = await prisma.provider.create({
       data: {
         name: validatedData.name,
@@ -70,9 +70,9 @@ export async function POST(request: Request) {
         address: validatedData.address,
         description: validatedData.description,
         experience: validatedData.experience,
-        hourlyRate: parseFloat(validatedData.hourlyRate),
-        availability: validatedData.availability,
-        crecheCapacity: validatedData.crecheCapacity,
+        hourlyRate: Number(validatedData.hourlyRate),
+        availability: validatedData.availability as any,
+        crecheCapacity: validatedData.crecheCapacity ? (validatedData.crecheCapacity as any) : undefined,
         status: "pending"
       }
     });
