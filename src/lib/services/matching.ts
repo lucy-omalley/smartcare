@@ -148,7 +148,9 @@ export class MatchingService {
     // Location match (30 points)
     let distance = 0;
     try {
-      if (provider.latitude && provider.longitude) {
+      // Check if provider has valid coordinates
+      if (typeof provider.latitude === 'number' && typeof provider.longitude === 'number' &&
+          !isNaN(provider.latitude) && !isNaN(provider.longitude)) {
         distance = this.calculateDistance(
           criteria.location.latitude,
           criteria.location.longitude,
@@ -196,7 +198,7 @@ export class MatchingService {
           console.log(`❌ Location too far: ${distance.toFixed(1)}km > ${criteria.location.maxDistance}km`);
         }
       } else {
-        console.log(`⚠️ Missing coordinates for ${provider.name}`);
+        console.log(`⚠️ Invalid coordinates for ${provider.name}`);
         reasons.push('Location information not available');
       }
     } catch (error) {
@@ -407,11 +409,11 @@ export class MatchingService {
       'Very Close (0-2km)': [],
       'Close (2-5km)': [],
       'Moderate (5-10km)': [],
-      'Far (>10km)': []
+      'Far (>10km)': [],
+      'Location Unknown': [] // New group for providers with missing location data
     };
 
     matches.forEach(match => {
-      console.log("match", match);
       const distanceMatch = match.reasons.find(r => r.includes('km away'));
       if (distanceMatch) {
         const distance = parseFloat(distanceMatch.match(/(\d+\.?\d*)km/)?.[1] || '0');
@@ -426,8 +428,8 @@ export class MatchingService {
           groups['Far (>10km)'].push(match);
         }
       } else {
-        // If no distance information is available, put in the "Far" category
-        groups['Far (>10km)'].push(match);
+        // If no distance information is available, put in the "Location Unknown" category
+        groups['Location Unknown'].push(match);
       }
     });
 
@@ -446,10 +448,10 @@ export class MatchingService {
    */
   public static generateMatchingResponse(matches: MatchingScore[]): string {
     if (matches.length === 0) {
-      return "I couldn't find any providers that match your specific requirements. Would you like to try adjusting your criteria? For example, we could:\n" +
-             "1. Expand the search area\n" +
-             "2. Look for different availability times\n" +
-             "3. Consider providers with slightly different rates\n\n" +
+      return "I couldn't find any providers within your budget. Would you like to:\n" +
+             "1. Adjust your budget\n" +
+             "2. Look in a different area\n" +
+             "3. Consider different availability times\n\n" +
              "What would you prefer to adjust?";
     }
 
@@ -464,31 +466,29 @@ export class MatchingService {
       const distanceB = parseFloat(b.reasons.find(r => r.includes('km away'))?.match(/(\d+\.?\d*)km/)?.[1] || '999');
       return distanceA - distanceB;
     });
-    console.log("sortedmatches", sortedMatches);
 
     // Group matches by distance
     const distanceGroups = this.groupByDistance(sortedMatches);
 
     // If no groups have matches, return a default response
     if (Object.keys(distanceGroups).length === 0) {
-      return "I found some providers that might interest you:\n\n" +
+      return "Here are the best matches within your budget:\n\n" +
              this.formatProviderList(sortedMatches.slice(0, 3));
     }
 
-    let response = "I've analyzed your requirements and found some great options for you, organized by distance:\n\n";
+    let response = "Here are the best matches within your budget, organized by distance:\n\n";
 
     // Process each distance group
     Object.entries(distanceGroups).forEach(([range, groupMatches]) => {
       response += `📍 ${range}:\n`;
-      response += this.formatProviderList(groupMatches.slice(0, 3));
+      response += this.formatProviderList(groupMatches.slice(0, 2)); // Show fewer providers per group
     });
 
     // Add contact information and options
     response += "\nWould you like to:\n";
-    response += "1. Get more details about any of these providers\n";
-    response += "2. See more options in a specific distance range\n";
-    response += "3. Adjust your search criteria\n";
-    response += "4. Sort by different criteria (price, rating, etc.)\n\n";
+    response += "1. Get more details about any provider\n";
+    response += "2. See more options\n";
+    response += "3. Adjust your search criteria\n\n";
     response += "Just let me know what you'd like to do next!";
 
     return response;
@@ -513,31 +513,17 @@ export class MatchingService {
           Math.abs(loc.lng - provider.longitude) < 0.1
         );
         
-        console.log(`\n🔍 Formatting creche ${provider.name}:`);
-        console.log('All reasons:', match.reasons);
-        
-        formatted += `  ${index + 1}. ${provider.name}\n`;
+        formatted += `  ${index + 1}. ${provider.name} (€${provider.hourlyRate.toFixed(2)}/hr)\n`;
         formatted += `     📍 ${location ? location.name : 'Dublin'}\n`;
         formatted += `     🚶 ${match.reasons.find(r => r.includes('km away')) || 'Distance information not available'}\n`;
-        formatted += `     💰 €${provider.hourlyRate.toFixed(2)}/hour\n`;
         
         // Find and display age group information
         const ageGroupInfo = match.reasons.find(r => r.startsWith('👶'));
-        console.log('Age group info found:', ageGroupInfo);
         if (ageGroupInfo) {
           formatted += `     ${ageGroupInfo}\n`;
-        } else {
-          console.log('❌ No age group info found in reasons');
-          // If no age group info found, try to get it from crecheCapacity
-          if (provider.crecheCapacity) {
-            const capacity = provider.crecheCapacity as any;
-            const availableSpaces = capacity.availableSpacesByAge;
-            console.log('Available spaces from capacity:', availableSpaces);
-          }
         }
         
-        formatted += `     ⭐ ${provider.experience}\n`;
-        formatted += `     🎯 Match Score: ${Math.round(match.score)}%\n\n`;
+        formatted += `     ⭐ ${provider.experience}\n\n`;
       });
     }
 
@@ -550,12 +536,10 @@ export class MatchingService {
           Math.abs(loc.lng - provider.longitude) < 0.1
         );
         
-        formatted += `  ${index + 1}. ${provider.name}\n`;
+        formatted += `  ${index + 1}. ${provider.name} (€${provider.hourlyRate.toFixed(2)}/hr)\n`;
         formatted += `     📍 ${location ? location.name : 'Dublin'}\n`;
         formatted += `     🚶 ${match.reasons.find(r => r.includes('km away')) || 'Distance information not available'}\n`;
-        formatted += `     💰 €${provider.hourlyRate.toFixed(2)}/hour\n`;
-        formatted += `     ⭐ ${provider.experience}\n`;
-        formatted += `     🎯 Match Score: ${Math.round(match.score)}%\n\n`;
+        formatted += `     ⭐ ${provider.experience}\n\n`;
       });
     }
 

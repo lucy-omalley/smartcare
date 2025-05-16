@@ -15,8 +15,8 @@ model Provider {
   phone       String
   type        String   // "creche" or "childminder"
   address     String
-  latitude    Float    // Added for precise location
-  longitude   Float    // Added for precise location
+  latitude    Float?   // Made optional
+  longitude   Float?   // Made optional
   description String
   experience  String
   status      String   @default("pending") // pending, approved, rejected
