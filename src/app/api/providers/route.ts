@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 const providerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -8,6 +9,11 @@ const providerSchema = z.object({
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
   type: z.enum(["creche", "childminder"]),
   address: z.string().min(5, "Address must be at least 5 characters"),
+  location: z.object({
+    name: z.string(),
+    lat: z.number(),
+    lng: z.number()
+  }),
   description: z.string().min(10, "Description must be at least 10 characters"),
   experience: z.string().min(1, "Please select your experience level"),
   hourlyRate: z.string().min(1, "Please enter your hourly rate"),
@@ -34,11 +40,20 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ providers });
+    return NextResponse.json({ providers }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { message: "Failed to fetch providers" },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }
@@ -56,43 +71,68 @@ export async function POST(request: Request) {
     if (existingProvider) {
       return NextResponse.json(
         { message: "A provider with this email already exists" },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
-    // Create new provider with basic information
+    // Create provider data object
+    const providerData: Prisma.ProviderCreateInput = {
+      name: validatedData.name,
+      email: validatedData.email,
+      phone: validatedData.phone,
+      type: validatedData.type,
+      address: validatedData.address,
+      latitude: validatedData.location.lat,
+      longitude: validatedData.location.lng,
+      description: validatedData.description,
+      experience: validatedData.experience,
+      hourlyRate: Number(validatedData.hourlyRate),
+      availability: validatedData.availability as any,
+      crecheCapacity: validatedData.crecheCapacity ? (validatedData.crecheCapacity as any) : undefined,
+      status: "pending"
+    };
+
+    // Create new provider
     const provider = await prisma.provider.create({
-      data: {
-        name: validatedData.name,
-        email: validatedData.email,
-        phone: validatedData.phone,
-        type: validatedData.type,
-        address: validatedData.address,
-        description: validatedData.description,
-        experience: validatedData.experience,
-        hourlyRate: Number(validatedData.hourlyRate),
-        availability: validatedData.availability as any,
-        crecheCapacity: validatedData.crecheCapacity ? (validatedData.crecheCapacity as any) : undefined,
-        status: "pending"
-      }
+      data: providerData
     });
 
     return NextResponse.json(
       { message: "Provider registered successfully", provider },
-      { status: 201 }
+      { 
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { message: "Validation error", errors: error.errors },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
     console.error("Error registering provider:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 } 

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AvailabilityCalendar } from "@/components/forms/availability-calendar";
 import { CrecheCapacity } from "@/components/forms/creche-capacity";
+import { DUBLIN_LOCATIONS } from '@/lib/constants';
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -20,6 +21,11 @@ const formSchema = z.object({
   phone: z.string().min(10, "Phone number must be at least 10 digits"),
   type: z.enum(["creche", "childminder"]),
   address: z.string().min(5, "Address must be at least 5 characters"),
+  location: z.object({
+    name: z.string(),
+    lat: z.number(),
+    lng: z.number()
+  }),
   description: z.string().min(10, "Description must be at least 10 characters"),
   experience: z.string().min(1, "Please select your experience level"),
   hourlyRate: z.string().min(1, "Please enter your hourly rate"),
@@ -40,6 +46,7 @@ export function ProviderRegistrationForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<"creche" | "childminder">("childminder");
+  const [selectedLocation, setSelectedLocation] = useState<typeof DUBLIN_LOCATIONS[0] | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -49,6 +56,7 @@ export function ProviderRegistrationForm() {
       phone: "",
       type: "childminder",
       address: "",
+      location: DUBLIN_LOCATIONS[0],
       description: "",
       experience: "",
       hourlyRate: "",
@@ -149,6 +157,35 @@ export function ProviderRegistrationForm() {
               <p className="text-sm text-red-500">{form.formState.errors.type.message}</p>
             )}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="location">Location</Label>
+          <Select
+            onValueChange={(value) => {
+              const location = DUBLIN_LOCATIONS.find(loc => loc.name === value);
+              if (location) {
+                setSelectedLocation(location);
+                form.setValue("location", location);
+                form.setValue("address", `${location.name}, Dublin`);
+              }
+            }}
+            defaultValue={form.getValues("location")?.name}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select your location" />
+            </SelectTrigger>
+            <SelectContent>
+              {DUBLIN_LOCATIONS.map((location) => (
+                <SelectItem key={location.name} value={location.name}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {form.formState.errors.location && (
+            <p className="text-sm text-red-500">{form.formState.errors.location.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">

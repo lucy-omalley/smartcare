@@ -54,7 +54,7 @@ export default function AdminDashboard() {
   const updateProviderStatus = async (id: string, status: string) => {
     try {
       const response = await fetch(`/api/providers/${id}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
