@@ -4,10 +4,8 @@ import { prisma } from '@/lib/db';
 import { extractMatchingCriteria } from '@/lib/services/chat';
 import { Provider } from '@prisma/client';
 
-interface ProviderWithLocation extends Provider {
-  latitude?: number | null;
-  longitude?: number | null;
-}
+// Update the interface to match Prisma's Provider type
+type ProviderWithLocation = Provider;
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
       where: {
         status: 'approved'
       }
-    }) as ProviderWithLocation[];
+    });
 
     // Extract matching criteria using the chat service
     const criteria = extractMatchingCriteria(messages);
