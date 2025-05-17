@@ -3,8 +3,8 @@ import { DUBLIN_LOCATIONS, Location } from '../constants';
 
 // Extend the Prisma Provider type with latitude and longitude
 type Provider = PrismaProvider & {
-  latitude: number;
-  longitude: number;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 interface MatchingCriteria {
@@ -147,59 +147,191 @@ export class MatchingService {
 
     // Location match (30 points)
     let distance = 0;
+    let locationScore = 0;
     try {
-      // Check if provider has valid coordinates
-      if (typeof provider.latitude === 'number' && typeof provider.longitude === 'number' &&
-          !isNaN(provider.latitude) && !isNaN(provider.longitude)) {
+      console.log(`\n🔍 Location validation for ${provider.name}:`, {
+        providerCoordinates: {
+          latitude: provider.latitude,
+          longitude: provider.longitude,
+          type: {
+            latitude: typeof provider.latitude,
+            longitude: typeof provider.longitude
+          }
+        },
+        criteriaCoordinates: {
+          latitude: criteria.location.latitude,
+          longitude: criteria.location.longitude
+        }
+      });
+
+      // Helper function to validate coordinates
+      const isValidCoordinate = (coord: number | null | undefined): boolean => {
+        const isValid = typeof coord === 'number' && 
+          !isNaN(coord) && 
+          coord >= -90 && 
+          coord <= 90;
+        
+        if (!isValid) {
+          console.log(`❌ Invalid coordinate:`, {
+            value: coord,
+            type: typeof coord,
+            isNaN: typeof coord === 'number' ? isNaN(coord) : 'N/A',
+            range: typeof coord === 'number' ? `${coord} is ${coord >= -90 && coord <= 90 ? 'within' : 'outside'} range` : 'N/A'
+          });
+        }
+        
+        return isValid;
+      };
+
+      // Get coordinates with validation
+      const providerLat = provider.latitude;
+      const providerLng = provider.longitude;
+      const hasValidCoordinates = 
+        isValidCoordinate(providerLat) && 
+        isValidCoordinate(providerLng);
+
+      console.log(`📍 Coordinate validation result:`, {
+        provider: provider.name,
+        hasValidCoordinates,
+        latitude: {
+          value: providerLat,
+          isValid: isValidCoordinate(providerLat)
+        },
+        longitude: {
+          value: providerLng,
+          isValid: isValidCoordinate(providerLng)
+        }
+      });
+
+      if (hasValidCoordinates && providerLat !== null && providerLng !== null) {
+        // At this point we know the coordinates are valid numbers
+        const lat = providerLat as number;
+        const lng = providerLng as number;
+        
         distance = this.calculateDistance(
           criteria.location.latitude,
           criteria.location.longitude,
-          provider.latitude,
-          provider.longitude
+          lat,
+          lng
         );
         
-        console.log(`📍 Distance calculation:`, {
-          provider: provider.name,
-          distance: `${distance.toFixed(1)}km`,
-          maxAllowed: `${criteria.location.maxDistance}km`,
-          coordinates: {
-            provider: { lat: provider.latitude, lng: provider.longitude },
-            criteria: { lat: criteria.location.latitude, lng: criteria.location.longitude }
-          }
-        });
-
-        // Find the nearest Dublin location for the provider
-        const providerLocation = DUBLIN_LOCATIONS.reduce((nearest: Location, current: Location) => {
-          const currentDistance = this.calculateDistance(
-            provider.latitude,
-            provider.longitude,
-            current.lat,
-            current.lng
-          );
-          const nearestDistance = this.calculateDistance(
-            provider.latitude,
-            provider.longitude,
-            nearest.lat,
-            nearest.lng
-          );
-          return currentDistance < nearestDistance ? current : nearest;
-        });
-
-        reasons.push(`Provider is ${distance.toFixed(1)}km away in ${providerLocation.name}`);
-        
-        if (distance <= criteria.location.maxDistance) {
-          const locationScore = Math.max(
-            0,
-            30 * (1 - distance / criteria.location.maxDistance)
-          );
-          score += locationScore;
-          console.log(`✅ Location score: ${locationScore.toFixed(1)} points`);
+        // Validate calculated distance
+        if (isNaN(distance) || distance < 0) {
+          console.error(`❌ Invalid distance calculated for ${provider.name}:`, {
+            provider: { lat, lng },
+            criteria: { lat: criteria.location.latitude, lng: criteria.location.longitude },
+            distance,
+            calculation: {
+              dLat: this.toRad(criteria.location.latitude - lat),
+              dLon: this.toRad(criteria.location.longitude - lng),
+              a: Math.sin(this.toRad(criteria.location.latitude - lat) / 2) * 
+                 Math.sin(this.toRad(criteria.location.latitude - lat) / 2) +
+                 Math.cos(this.toRad(lat)) *
+                 Math.cos(this.toRad(criteria.location.latitude)) *
+                 Math.sin(this.toRad(criteria.location.longitude - lng) / 2) *
+                 Math.sin(this.toRad(criteria.location.longitude - lng) / 2),
+              c: 2 * Math.atan2(
+                Math.sqrt(Math.sin(this.toRad(criteria.location.latitude - lat) / 2) * 
+                         Math.sin(this.toRad(criteria.location.latitude - lat) / 2) +
+                         Math.cos(this.toRad(lat)) *
+                         Math.cos(this.toRad(criteria.location.latitude)) *
+                         Math.sin(this.toRad(criteria.location.longitude - lng) / 2) *
+                         Math.sin(this.toRad(criteria.location.longitude - lng) / 2)),
+                Math.sqrt(1 - (Math.sin(this.toRad(criteria.location.latitude - lat) / 2) * 
+                             Math.sin(this.toRad(criteria.location.latitude - lat) / 2) +
+                             Math.cos(this.toRad(lat)) *
+                             Math.cos(this.toRad(criteria.location.latitude)) *
+                             Math.sin(this.toRad(criteria.location.longitude - lng) / 2) *
+                             Math.sin(this.toRad(criteria.location.longitude - lng) / 2)))
+              )
+            }
+          });
+          reasons.push('Location information not available');
         } else {
-          console.log(`❌ Location too far: ${distance.toFixed(1)}km > ${criteria.location.maxDistance}km`);
+          console.log(`✅ Distance calculation successful:`, {
+            provider: provider.name,
+            distance: `${distance.toFixed(1)}km`,
+            maxAllowed: `${criteria.location.maxDistance}km`,
+            coordinates: {
+              provider: { lat, lng },
+              criteria: { lat: criteria.location.latitude, lng: criteria.location.longitude }
+            }
+          });
+
+          // Find the nearest Dublin location for the provider
+          const providerLocation = DUBLIN_LOCATIONS.reduce((nearest: Location, current: Location) => {
+            const currentDistance = this.calculateDistance(
+              lat,
+              lng,
+              current.lat,
+              current.lng
+            );
+            const nearestDistance = this.calculateDistance(
+              lat,
+              lng,
+              nearest.lat,
+              nearest.lng
+            );
+            return currentDistance < nearestDistance ? current : nearest;
+          });
+
+          reasons.push(`Provider is ${distance.toFixed(1)}km away in ${providerLocation.name}`);
+          
+          if (distance <= criteria.location.maxDistance) {
+            locationScore = Math.max(
+              0,
+              30 * (1 - distance / criteria.location.maxDistance)
+            );
+            score += locationScore;
+            console.log(`✅ Location score: ${locationScore.toFixed(1)} points`);
+          } else {
+            console.log(`❌ Location too far: ${distance.toFixed(1)}km > ${criteria.location.maxDistance}km`);
+          }
         }
       } else {
-        console.log(`⚠️ Invalid coordinates for ${provider.name}`);
-        reasons.push('Location information not available');
+        // If coordinates are missing, try to match by address
+        console.log(`\n🔍 Attempting address match for ${provider.name}:`, {
+          address: provider.address,
+          availableLocations: DUBLIN_LOCATIONS.map(loc => loc.name)
+        });
+
+        const addressMatch = DUBLIN_LOCATIONS.find(loc => 
+          provider.address.toLowerCase().includes(loc.name.toLowerCase())
+        );
+        
+        if (addressMatch) {
+          console.log(`✅ Found address match:`, {
+            provider: provider.name,
+            address: provider.address,
+            matchedLocation: addressMatch.name,
+            coordinates: { lat: addressMatch.lat, lng: addressMatch.lng }
+          });
+
+          distance = this.calculateDistance(
+            criteria.location.latitude,
+            criteria.location.longitude,
+            addressMatch.lat,
+            addressMatch.lng
+          );
+          
+          if (distance <= criteria.location.maxDistance) {
+            locationScore = Math.max(
+              0,
+              20 * (1 - distance / criteria.location.maxDistance)
+            );
+            score += locationScore;
+            reasons.push(`Provider is approximately ${distance.toFixed(1)}km away in ${addressMatch.name} (based on address)`);
+            console.log(`✅ Location score (from address): ${locationScore.toFixed(1)} points`);
+          } else {
+            console.log(`❌ Location too far (from address): ${distance.toFixed(1)}km > ${criteria.location.maxDistance}km`);
+          }
+        } else {
+          console.log(`❌ No address match found for ${provider.name}:`, {
+            address: provider.address,
+            availableLocations: DUBLIN_LOCATIONS.map(loc => loc.name)
+          });
+          reasons.push('Location information not available');
+        }
       }
     } catch (error) {
       console.error('❌ Error calculating distance:', error);
@@ -508,10 +640,21 @@ export class MatchingService {
       formatted += "  🏫 Creches:\n";
       creches.forEach((match, index) => {
         const provider = match.provider;
-        const location = DUBLIN_LOCATIONS.find((loc: Location) => 
-          Math.abs(loc.lat - provider.latitude) < 0.1 && 
-          Math.abs(loc.lng - provider.longitude) < 0.1
-        );
+        const isValidCoordinate = (coord: number | null | undefined): coord is number => 
+          typeof coord === 'number' && 
+          !isNaN(coord) && 
+          coord >= -90 && 
+          coord <= 90;
+
+        const hasValidCoordinates = 
+          isValidCoordinate(provider.latitude) && 
+          isValidCoordinate(provider.longitude);
+
+        const location = hasValidCoordinates ?
+          DUBLIN_LOCATIONS.find((loc: Location) => 
+            Math.abs(loc.lat - provider.latitude!) < 0.1 && 
+            Math.abs(loc.lng - provider.longitude!) < 0.1
+          ) : undefined;
         
         formatted += `  ${index + 1}. ${provider.name} (€${provider.hourlyRate.toFixed(2)}/hr)\n`;
         formatted += `     📍 ${location ? location.name : 'Dublin'}\n`;
@@ -531,10 +674,21 @@ export class MatchingService {
       formatted += "  👩‍👧 Childminders:\n";
       childminders.forEach((match, index) => {
         const provider = match.provider;
-        const location = DUBLIN_LOCATIONS.find((loc: Location) => 
-          Math.abs(loc.lat - provider.latitude) < 0.1 && 
-          Math.abs(loc.lng - provider.longitude) < 0.1
-        );
+        const isValidCoordinate = (coord: number | null | undefined): coord is number => 
+          typeof coord === 'number' && 
+          !isNaN(coord) && 
+          coord >= -90 && 
+          coord <= 90;
+
+        const hasValidCoordinates = 
+          isValidCoordinate(provider.latitude) && 
+          isValidCoordinate(provider.longitude);
+
+        const location = hasValidCoordinates ?
+          DUBLIN_LOCATIONS.find((loc: Location) => 
+            Math.abs(loc.lat - provider.latitude!) < 0.1 && 
+            Math.abs(loc.lng - provider.longitude!) < 0.1
+          ) : undefined;
         
         formatted += `  ${index + 1}. ${provider.name} (€${provider.hourlyRate.toFixed(2)}/hr)\n`;
         formatted += `     📍 ${location ? location.name : 'Dublin'}\n`;

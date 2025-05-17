@@ -128,7 +128,8 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
   }
 }
 
-function extractMatchingCriteria(messages: ChatMessage[]): any {
+// Export the extractMatchingCriteria function
+export function extractMatchingCriteria(messages: ChatMessage[]): any {
   // Get all user messages for context
   const userMessages = messages.filter(m => m.isUser);
   if (userMessages.length === 0) return null;
@@ -150,33 +151,101 @@ function extractMatchingCriteria(messages: ChatMessage[]): any {
   }
 
   // Extract location with improved matching
-  let location = DUBLIN_LOCATIONS[0]; // Default to Dublin City Centre
+  let selectedLocation = DUBLIN_LOCATIONS[0]; // Default to Dublin City Centre
   let locationFound = false;
 
-  // First try exact matches
-  for (const loc of DUBLIN_LOCATIONS) {
-    const locName = loc.name.toLowerCase();
-    console.log("find locName",locName);
-    // Check for exact matches with word boundaries
-    if (new RegExp(`\\b${locName}\\b`).test(fullContext)) {
-      location = loc;
-      locationFound = true;
-      break;
-    }
-  }
+  console.log('\n🔍 Location extraction:', {
+    fullContext,
+    availableLocations: DUBLIN_LOCATIONS.map(loc => ({
+      name: loc.name,
+      coordinates: { lat: loc.lat, lng: loc.lng }
+    }))
+  });
 
-  // If no exact match, try partial matches
-  if (!locationFound) {
-    for (const loc of DUBLIN_LOCATIONS) {
-      const locName = loc.name.toLowerCase();
-      console.log("not found locName",locName);
-      // Check for partial matches
-      if (fullContext.includes(locName)) {
-        location = loc;
+  // First try to find location keywords in the message
+  const locationKeywords = [
+    'in', 'near', 'around', 'close to', 'at', 'located in', 'based in'
+  ];
+
+  // Try to find location after keywords
+  for (const keyword of locationKeywords) {
+    const regex = new RegExp(`${keyword}\\s+([A-Za-z\\s]+)`, 'i');
+    const match = fullContext.match(regex);
+    if (match) {
+      const mentionedLocation = match[1].trim().toLowerCase();
+      console.log(`Found location keyword "${keyword}" with value:`, mentionedLocation);
+
+      // Try exact match first
+      const exactMatch = DUBLIN_LOCATIONS.find(loc => 
+        loc.name.toLowerCase() === mentionedLocation
+      );
+      if (exactMatch) {
+        selectedLocation = exactMatch;
         locationFound = true;
+        console.log(`✅ Found exact location match:`, {
+          name: selectedLocation.name,
+          coordinates: { lat: selectedLocation.lat, lng: selectedLocation.lng }
+        });
+        break;
+      }
+
+      // Try partial match
+      const partialMatch = DUBLIN_LOCATIONS.find(loc => 
+        loc.name.toLowerCase().includes(mentionedLocation) ||
+        mentionedLocation.includes(loc.name.toLowerCase())
+      );
+      if (partialMatch) {
+        selectedLocation = partialMatch;
+        locationFound = true;
+        console.log(`✅ Found partial location match:`, {
+          name: selectedLocation.name,
+          coordinates: { lat: selectedLocation.lat, lng: selectedLocation.lng }
+        });
         break;
       }
     }
+  }
+
+  // If no location found with keywords, try direct location name matching
+  if (!locationFound) {
+    console.log('No location found with keywords, trying direct matching...');
+    
+    // Try exact matches first
+    for (const loc of DUBLIN_LOCATIONS) {
+      const locName = loc.name.toLowerCase();
+      if (new RegExp(`\\b${locName}\\b`).test(fullContext)) {
+        selectedLocation = loc;
+        locationFound = true;
+        console.log(`✅ Found direct exact match:`, {
+          name: selectedLocation.name,
+          coordinates: { lat: selectedLocation.lat, lng: selectedLocation.lng }
+        });
+        break;
+      }
+    }
+
+    // If still no match, try partial matches
+    if (!locationFound) {
+      for (const loc of DUBLIN_LOCATIONS) {
+        const locName = loc.name.toLowerCase();
+        if (fullContext.includes(locName)) {
+          selectedLocation = loc;
+          locationFound = true;
+          console.log(`✅ Found direct partial match:`, {
+            name: selectedLocation.name,
+            coordinates: { lat: selectedLocation.lat, lng: selectedLocation.lng }
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  if (!locationFound) {
+    console.log('❌ No location match found, using default:', {
+      name: selectedLocation.name,
+      coordinates: { lat: selectedLocation.lat, lng: selectedLocation.lng }
+    });
   }
 
   // Extract budget
@@ -231,13 +300,22 @@ function extractMatchingCriteria(messages: ChatMessage[]): any {
     fullContext.includes(lang.toLowerCase())
   );
 
+  // Ensure we have valid coordinates
+  const location = {
+    latitude: selectedLocation.lat,
+    longitude: selectedLocation.lng,
+    maxDistance: 10, // 10km radius
+  };
+
+  console.log('Final location criteria:', {
+    name: selectedLocation.name,
+    coordinates: location,
+    wasFound: locationFound
+  });
+
   return {
     type,
-    location: {
-      latitude: location.lat,
-      longitude: location.lng,
-      maxDistance: 10, // 10km radius
-    },
+    location,
     requiredAvailability: {
       days,
       startTime,

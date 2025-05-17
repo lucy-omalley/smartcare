@@ -15,7 +15,12 @@ export async function GET(
     if (!id) {
       return NextResponse.json(
         { error: 'Provider ID is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -26,16 +31,30 @@ export async function GET(
     if (!provider) {
       return NextResponse.json(
         { error: 'Provider not found' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
-    return NextResponse.json(provider);
+    return NextResponse.json(provider, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   } catch (error) {
     console.error('Error fetching provider:', error);
     return NextResponse.json(
       { error: 'Error fetching provider' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }
@@ -55,7 +74,12 @@ export async function PUT(
     if (!id) {
       return NextResponse.json(
         { error: 'Provider ID is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -67,7 +91,12 @@ export async function PUT(
     if (!existingProvider) {
       return NextResponse.json(
         { error: 'Provider not found' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -77,12 +106,21 @@ export async function PUT(
       data,
     });
 
-    return NextResponse.json(updatedProvider);
+    return NextResponse.json(updatedProvider, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   } catch (error) {
     console.error('Error updating provider:', error);
     return NextResponse.json(
       { error: 'Error updating provider' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }
@@ -101,7 +139,12 @@ export async function DELETE(
     if (!id) {
       return NextResponse.json(
         { error: 'Provider ID is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -113,7 +156,12 @@ export async function DELETE(
     if (!existingProvider) {
       return NextResponse.json(
         { error: 'Provider not found' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -124,13 +172,23 @@ export async function DELETE(
 
     return NextResponse.json(
       { message: 'Provider deleted successfully' },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   } catch (error) {
     console.error('Error deleting provider:', error);
     return NextResponse.json(
       { error: 'Error deleting provider' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 } 
