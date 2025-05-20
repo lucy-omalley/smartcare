@@ -9,22 +9,22 @@ datasource db {
 }
 
 model Provider {
-  id          String   @id @default(cuid())
-  name        String
-  email       String   @unique
-  phone       String
-  type        String   // "creche" or "childminder"
-  address     String
-  latitude    Float?   // Made optional
-  longitude   Float?   // Made optional
-  description String
-  experience  String
-  status      String   @default("pending") // pending, approved, rejected
-  hourlyRate  Float    // Hourly rate in the local currency
-  availability Json    // Store availability as a JSON object
-  crecheCapacity Json? // Store creche capacity as a JSON object
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String
+  type           String
+  address        String
+  latitude       Float?
+  longitude      Float?
+  description    String
+  experience     String
+  status         String   @default("pending")
+  hourlyRate     Float
+  availability   Json
+  crecheCapacity Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([email])
   @@index([status])
@@ -35,9 +35,9 @@ model User {
   email     String   @unique
   name      String
   password  String
-  image     String?  // 添加可选的 image 字段
+  image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([email])
-} 
+}
