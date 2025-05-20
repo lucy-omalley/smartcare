@@ -6,6 +6,26 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'NEXTAUTH_SECRET',
+  'NEXTAUTH_URL',
+  'DATABASE_URL',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GITHUB_ID',
+  'GITHUB_SECRET'
+] as const;
+
+const missingEnvVars = requiredEnvVars.filter(
+  (envVar) => !process.env[envVar]
+);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
+
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -24,30 +44,38 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Missing credentials');
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.error('Missing credentials');
+            throw new Error('Missing credentials');
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
+
+          if (!user || !user.password) {
+            console.error('No user found for email:', credentials.email);
+            throw new Error('No user found');
+          }
+
+          const isPasswordValid = await compare(credentials.password, user.password);
+
+          if (!isPasswordValid) {
+            console.error('Invalid password for user:', credentials.email);
+            throw new Error('Invalid password');
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error('Authorization error:', error);
+          throw error;
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
-
-        if (!user || !user.password) {
-          throw new Error('No user found');
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid password');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
       }
     })
   ],
@@ -61,18 +89,29 @@ const handler = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+      try {
+        if (user) {
+          token.id = user.id;
+        }
+        return token;
+      } catch (error) {
+        console.error('JWT callback error:', error);
+        throw error;
       }
-      return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
+      try {
+        if (session.user) {
+          session.user.id = token.id;
+        }
+        return session;
+      } catch (error) {
+        console.error('Session callback error:', error);
+        throw error;
       }
-      return session;
     },
   },
+  debug: process.env.NODE_ENV === 'development',
 });
 
 export { handler as GET, handler as POST }; 

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cmard6pcd0000undoqza1npff",
+    "email": "yzhuo.li@gmail.com",
+    "name": "lululu",
+    "password": "$2b$12$juEWG8w7HpB9LymFbQltLOiOcr77lsbSwHHpfpr4h3p7SrUprcgL.",
+    "image": null,
+    "createdAt": "2025-05-16T22:22:48.013Z",
+    "updatedAt": "2025-05-16T22:22:48.013Z"
+  },
+  {
+    "id": "cmargg9p80000unk4n1jfjm8s",
+    "email": "yuzhuoli@hotmail.com",
+    "name": "lucy li",
+    "password": "$2b$12$/HFCbN3CIqw2sxCVxcVQDe7B1jSpw7eEFj6VAvZdy4olN2E/3nrKa",
+    "image": null,
+    "createdAt": "2025-05-16T23:54:13.148Z",
+    "updatedAt": "2025-05-16T23:54:13.148Z"
+  }
+]

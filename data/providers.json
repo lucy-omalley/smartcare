@@ -1,0 +1,2845 @@
+[
+  {
+    "id": "cmard8jxq0000un808zi9e56a",
+    "name": "Little Explorers Creche",
+    "email": "creche1@example.com",
+    "phone": "+353 114325770",
+    "type": "creche",
+    "address": "Malahide, Dublin",
+    "latitude": 53.44783649824174,
+    "longitude": -6.152357826658463,
+    "description": "A modern, purpose-built facility with spacious indoor and outdoor play areas. Our experienced staff provide a nurturing environment where children can learn and grow.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 14,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 4,
+        "1-2": 3,
+        "2-3": 3,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.318Z",
+    "updatedAt": "2025-05-16T22:24:14.318Z"
+  },
+  {
+    "id": "cmard8jya0001un80bzy40mdt",
+    "name": "Sunshine Daycare",
+    "email": "creche2@example.com",
+    "phone": "+353 599537506",
+    "type": "creche",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29010015421219,
+    "longitude": -6.134445986246261,
+    "description": "State-of-the-art creche with a focus on early childhood development. We offer a balanced curriculum of play-based learning and structured activities.",
+    "experience": "1 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 4,
+        "1-2": 6,
+        "2-3": 6,
+        "3-4": 4
+      },
+      "totalSpaces": 20,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 9,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 2,
+        "1-2": 3,
+        "2-3": 3,
+        "3-4": 1
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.338Z",
+    "updatedAt": "2025-05-16T22:24:14.338Z"
+  },
+  {
+    "id": "cmard8jyd0002un80eqk4x4p7",
+    "name": "Rainbow Kids Academy",
+    "email": "creche3@example.com",
+    "phone": "+353 307042622",
+    "type": "creche",
+    "address": "Malahide, Dublin",
+    "latitude": 53.45505389176965,
+    "longitude": -6.154409480871188,
+    "description": "Family-run creche with a warm, welcoming atmosphere. We pride ourselves on our small group sizes and individual attention to each child.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 16,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 10,
+        "1-2": 15,
+        "2-3": 15,
+        "3-4": 10
+      },
+      "totalSpaces": 50,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 27,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 6,
+        "1-2": 10,
+        "2-3": 8,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.341Z",
+    "updatedAt": "2025-05-16T22:24:14.341Z"
+  },
+  {
+    "id": "cmard8jyf0003un80ot8c84fc",
+    "name": "Tiny Tots Nursery",
+    "email": "creche4@example.com",
+    "phone": "+353 942906337",
+    "type": "creche",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.31904988799873,
+    "longitude": -6.264680782504111,
+    "description": "Eco-friendly creche with organic meals and sustainable practices. Our curriculum includes nature-based learning and outdoor activities.",
+    "experience": "7 years",
+    "status": "approved",
+    "hourlyRate": 20,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 14,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 5,
+        "2-3": 3,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.343Z",
+    "updatedAt": "2025-05-16T22:24:14.343Z"
+  },
+  {
+    "id": "cmard8jyh0004un80ja25517c",
+    "name": "Happy Hearts Creche",
+    "email": "creche5@example.com",
+    "phone": "+353 844254361",
+    "type": "creche",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.32281646568955,
+    "longitude": -6.269328334199543,
+    "description": "Multilingual creche offering immersion programs in multiple languages. Our diverse staff creates an inclusive environment for all children.",
+    "experience": "6 years",
+    "status": "approved",
+    "hourlyRate": 15,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 17,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 4,
+        "2-3": 6,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.346Z",
+    "updatedAt": "2025-05-16T22:24:14.346Z"
+  },
+  {
+    "id": "cmard8jyk0005un809awbd6k7",
+    "name": "Bright Beginnings",
+    "email": "creche6@example.com",
+    "phone": "+353 817992146",
+    "type": "creche",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.3222356359388,
+    "longitude": -6.267572874313715,
+    "description": "Modern creche with a focus on STEM education. We provide hands-on learning experiences and encourage curiosity and exploration.",
+    "experience": "9 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 8,
+        "1-2": 12,
+        "2-3": 12,
+        "3-4": 8
+      },
+      "totalSpaces": 40,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 19,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 5,
+        "1-2": 4,
+        "2-3": 7,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.349Z",
+    "updatedAt": "2025-05-16T22:24:14.349Z"
+  },
+  {
+    "id": "cmard8jyo0006un80ky75w0ri",
+    "name": "Wonderland Early Learning",
+    "email": "creche7@example.com",
+    "phone": "+353 749612262",
+    "type": "creche",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.27462205829764,
+    "longitude": -6.225377350633361,
+    "description": "Traditional creche with a strong emphasis on Irish culture and language. We offer a bilingual program and celebrate Irish traditions.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 21,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 10,
+        "1-2": 15,
+        "2-3": 15,
+        "3-4": 10
+      },
+      "totalSpaces": 50,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 16,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 4,
+        "1-2": 4,
+        "2-3": 4,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.352Z",
+    "updatedAt": "2025-05-16T22:24:14.352Z"
+  },
+  {
+    "id": "cmard8jys0007un80rpl30de8",
+    "name": "Little Stars Creche",
+    "email": "creche8@example.com",
+    "phone": "+353 826045152",
+    "type": "creche",
+    "address": "Malahide, Dublin",
+    "latitude": 53.45046609301574,
+    "longitude": -6.154576225373253,
+    "description": "Montessori-inspired creche that encourages independence and self-directed learning. Our environment is designed to foster natural development.",
+    "experience": "8 years",
+    "status": "approved",
+    "hourlyRate": 20,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 6,
+        "1-2": 9,
+        "2-3": 9,
+        "3-4": 6
+      },
+      "totalSpaces": 30,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 11,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 2,
+        "2-3": 3,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.356Z",
+    "updatedAt": "2025-05-16T22:24:14.356Z"
+  },
+  {
+    "id": "cmard8jyu0008un8097dyqsm1",
+    "name": "Magic Moments Nursery",
+    "email": "creche9@example.com",
+    "phone": "+353 376366117",
+    "type": "creche",
+    "address": "Dundrum, Dublin",
+    "latitude": 53.29254719680672,
+    "longitude": -6.242676485417106,
+    "description": "Arts-focused creche with dedicated spaces for music, dance, and visual arts. We nurture creativity and self-expression in all children.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 15,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 15,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 2,
+        "1-2": 3,
+        "2-3": 6,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.359Z",
+    "updatedAt": "2025-05-16T22:24:14.359Z"
+  },
+  {
+    "id": "cmard8jyx0009un80znks6i2r",
+    "name": "Growing Minds Academy",
+    "email": "creche10@example.com",
+    "phone": "+353 146022048",
+    "type": "creche",
+    "address": "Blanchardstown, Dublin",
+    "latitude": 53.38941659831156,
+    "longitude": -6.378752986432572,
+    "description": "Sports-oriented creche with daily physical activities and outdoor play. We promote healthy habits and physical development.",
+    "experience": "1 years",
+    "status": "approved",
+    "hourlyRate": 20,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 10,
+        "1-2": 15,
+        "2-3": 15,
+        "3-4": 10
+      },
+      "totalSpaces": 50,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 19,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 5,
+        "2-3": 6,
+        "3-4": 5
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.361Z",
+    "updatedAt": "2025-05-16T22:24:14.361Z"
+  },
+  {
+    "id": "cmard8jyz000aun80xl99bzdy",
+    "name": "Little Angels Creche",
+    "email": "creche11@example.com",
+    "phone": "+353 699451764",
+    "type": "creche",
+    "address": "Swords, Dublin",
+    "latitude": 53.45686895536444,
+    "longitude": -6.216511164530978,
+    "description": "Nature-based creche with extensive outdoor facilities. We believe in learning through exploration and connection with nature.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 8,
+        "1-2": 12,
+        "2-3": 12,
+        "3-4": 8
+      },
+      "totalSpaces": 40,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 15,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 5,
+        "1-2": 3,
+        "2-3": 4,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.363Z",
+    "updatedAt": "2025-05-16T22:24:14.363Z"
+  },
+  {
+    "id": "cmard8jz2000bun80ow7wibyl",
+    "name": "Sunny Days Nursery",
+    "email": "creche12@example.com",
+    "phone": "+353 197439018",
+    "type": "creche",
+    "address": "Malahide, Dublin",
+    "latitude": 53.45153331746388,
+    "longitude": -6.153118783488447,
+    "description": "Technology-integrated creche with age-appropriate digital learning tools. We prepare children for the digital age while maintaining balance.",
+    "experience": "4 years",
+    "status": "approved",
+    "hourlyRate": 19,
+    "availability": {
+      "schedule": {
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 10,
+        "1-2": 15,
+        "2-3": 15,
+        "3-4": 10
+      },
+      "totalSpaces": 50,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 22,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 6,
+        "2-3": 8,
+        "3-4": 5
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.366Z",
+    "updatedAt": "2025-05-16T22:24:14.366Z"
+  },
+  {
+    "id": "cmard8jz4000cun80o7ej33dv",
+    "name": "Rainbow Bridge Academy",
+    "email": "creche13@example.com",
+    "phone": "+353 666325042",
+    "type": "creche",
+    "address": "Malahide, Dublin",
+    "latitude": 53.44781234143087,
+    "longitude": -6.15686072088663,
+    "description": "Community-focused creche that emphasizes social skills and cooperation. We build strong relationships with families and the local community.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 21,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 5,
+        "1-2": 7,
+        "2-3": 7,
+        "3-4": 6
+      },
+      "totalSpaces": 25,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 13,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 2,
+        "1-2": 3,
+        "2-3": 4,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.368Z",
+    "updatedAt": "2025-05-16T22:24:14.368Z"
+  },
+  {
+    "id": "cmard8jz6000dun808pf0zqa4",
+    "name": "Tiny Treasures Creche",
+    "email": "creche14@example.com",
+    "phone": "+353 870673840",
+    "type": "creche",
+    "address": "Tallaght, Dublin",
+    "latitude": 53.28823934265861,
+    "longitude": -6.353771857750122,
+    "description": "Inclusive creche with specialized support for children with additional needs. We create an environment where every child can thrive.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 15,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 10,
+        "1-2": 15,
+        "2-3": 15,
+        "3-4": 10
+      },
+      "totalSpaces": 50,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 26,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 4,
+        "1-2": 6,
+        "2-3": 10,
+        "3-4": 6
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.371Z",
+    "updatedAt": "2025-05-16T22:24:14.371Z"
+  },
+  {
+    "id": "cmard8jz8000eun80f0xctov2",
+    "name": "Happy Days Nursery",
+    "email": "creche15@example.com",
+    "phone": "+353 959161645",
+    "type": "creche",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.27256130754662,
+    "longitude": -6.224545550463735,
+    "description": "Music and movement creche with daily rhythm activities. We use music to enhance learning and development across all areas.",
+    "experience": "1 years",
+    "status": "approved",
+    "hourlyRate": 18,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 5,
+        "1-2": 7,
+        "2-3": 7,
+        "3-4": 6
+      },
+      "totalSpaces": 25,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 10,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 2,
+        "1-2": 4,
+        "2-3": 2,
+        "3-4": 2
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.373Z",
+    "updatedAt": "2025-05-16T22:24:14.373Z"
+  },
+  {
+    "id": "cmard8jza000fun806ix3zuj5",
+    "name": "Bright Futures Academy",
+    "email": "creche16@example.com",
+    "phone": "+353 534058273",
+    "type": "creche",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.32155132816829,
+    "longitude": -6.26553919558774,
+    "description": "Language-rich creche with a strong focus on communication skills. We support children in developing strong verbal and non-verbal skills.",
+    "experience": "2 years",
+    "status": "approved",
+    "hourlyRate": 15,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 4,
+        "1-2": 6,
+        "2-3": 6,
+        "3-4": 4
+      },
+      "totalSpaces": 20,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 7,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 1,
+        "1-2": 2,
+        "2-3": 3,
+        "3-4": 1
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.375Z",
+    "updatedAt": "2025-05-16T22:24:14.375Z"
+  },
+  {
+    "id": "cmard8jzc000gun80eys59fhj",
+    "name": "Wonder World Creche",
+    "email": "creche17@example.com",
+    "phone": "+353 878623009",
+    "type": "creche",
+    "address": "Swords, Dublin",
+    "latitude": 53.45670625921242,
+    "longitude": -6.214376449279269,
+    "description": "Creative arts creche with dedicated art studios and performance spaces. We encourage self-expression through various art forms.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 8,
+        "1-2": 12,
+        "2-3": 12,
+        "3-4": 8
+      },
+      "totalSpaces": 40,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 16,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 4,
+        "2-3": 5,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.377Z",
+    "updatedAt": "2025-05-16T22:24:14.377Z"
+  },
+  {
+    "id": "cmard8jze000hun80ojrfsvce",
+    "name": "Little Learners Nursery",
+    "email": "creche18@example.com",
+    "phone": "+353 856707468",
+    "type": "creche",
+    "address": "Swords, Dublin",
+    "latitude": 53.46419995265533,
+    "longitude": -6.219307024532186,
+    "description": "Science-focused creche with hands-on experiments and discovery. We nurture curiosity and scientific thinking from an early age.",
+    "experience": "2 years",
+    "status": "approved",
+    "hourlyRate": 16,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 16,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 4,
+        "1-2": 4,
+        "2-3": 6,
+        "3-4": 2
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.379Z",
+    "updatedAt": "2025-05-16T22:24:14.379Z"
+  },
+  {
+    "id": "cmard8jzg000iun80zajvxl7z",
+    "name": "Magic Garden Academy",
+    "email": "creche19@example.com",
+    "phone": "+353 576304615",
+    "type": "creche",
+    "address": "Tallaght, Dublin",
+    "latitude": 53.28581691826841,
+    "longitude": -6.358333854132243,
+    "description": "Outdoor learning creche with nature-based curriculum. We believe in the benefits of outdoor education and environmental awareness.",
+    "experience": "4 years",
+    "status": "approved",
+    "hourlyRate": 18,
+    "availability": {
+      "schedule": {
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 8,
+        "1-2": 12,
+        "2-3": 12,
+        "3-4": 8
+      },
+      "totalSpaces": 40,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 19,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 6,
+        "2-3": 7,
+        "3-4": 3
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.381Z",
+    "updatedAt": "2025-05-16T22:24:14.381Z"
+  },
+  {
+    "id": "cmard8jzk000jun80sczf27lg",
+    "name": "Growing Together Creche",
+    "email": "creche20@example.com",
+    "phone": "+353 268331533",
+    "type": "creche",
+    "address": "Dublin City Centre, Dublin",
+    "latitude": 53.34779007347486,
+    "longitude": -6.256405617070909,
+    "description": "Family-centered creche with flexible hours and parent involvement. We work closely with families to support each child's development.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 17,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": {
+      "ageGroups": {
+        "0-1": 7,
+        "1-2": 10,
+        "2-3": 10,
+        "3-4": 8
+      },
+      "totalSpaces": 35,
+      "operatingHours": {
+        "friday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "monday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "tuesday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "thursday": {
+          "end": "18:00",
+          "start": "07:30"
+        },
+        "wednesday": {
+          "end": "18:00",
+          "start": "07:30"
+        }
+      },
+      "availableSpaces": 14,
+      "staffToChildRatio": {
+        "0-1": "1:3",
+        "1-2": "1:4",
+        "2-3": "1:6",
+        "3-4": "1:8"
+      },
+      "availableSpacesByAge": {
+        "0-1": 3,
+        "1-2": 4,
+        "2-3": 3,
+        "3-4": 4
+      }
+    },
+    "createdAt": "2025-05-16T22:24:14.384Z",
+    "updatedAt": "2025-05-16T22:24:14.384Z"
+  },
+  {
+    "id": "cmard8jzm000kun80bjdmhke3",
+    "name": "Mary's Home Childcare",
+    "email": "childminder1@example.com",
+    "phone": "+353 320264111",
+    "type": "childminder",
+    "address": "Blanchardstown, Dublin",
+    "latitude": 53.38918198812586,
+    "longitude": -6.375995058046369,
+    "description": "Experienced childminder providing a home-from-home environment. I offer flexible hours and personalized care for your child.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.386Z",
+    "updatedAt": "2025-05-16T22:24:14.386Z"
+  },
+  {
+    "id": "cmard8jzo000lun80lulcv7xs",
+    "name": "Family First Childminding",
+    "email": "childminder2@example.com",
+    "phone": "+353 323779976",
+    "type": "childminder",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.32073727684923,
+    "longitude": -6.267714175063935,
+    "description": "Qualified childminder with a background in early childhood education. My home is set up as a safe, stimulating environment for children.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 12,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.388Z",
+    "updatedAt": "2025-05-16T22:24:14.388Z"
+  },
+  {
+    "id": "cmard8jzq000mun800vlwhc7x",
+    "name": "Home Sweet Home Childcare",
+    "email": "childminder3@example.com",
+    "phone": "+353 833406211",
+    "type": "childminder",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.3199115013437,
+    "longitude": -6.263836256933801,
+    "description": "Family-oriented childminder with experience in special needs care. I provide a nurturing, structured environment with regular outdoor activities.",
+    "experience": "13 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.390Z",
+    "updatedAt": "2025-05-16T22:24:14.390Z"
+  },
+  {
+    "id": "cmard8jzs000nun80jcrze0lf",
+    "name": "Little Angels Childminding",
+    "email": "childminder4@example.com",
+    "phone": "+353 820439986",
+    "type": "childminder",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29755340518859,
+    "longitude": -6.135969015171361,
+    "description": "Registered childminder offering a small, intimate setting for your child. I focus on creating a warm, family atmosphere with plenty of individual attention.",
+    "experience": "13 years",
+    "status": "approved",
+    "hourlyRate": 12,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.392Z",
+    "updatedAt": "2025-05-16T22:24:14.392Z"
+  },
+  {
+    "id": "cmard8jzu000oun80zvvchujm",
+    "name": "Nurturing Nest Childcare",
+    "email": "childminder5@example.com",
+    "phone": "+353 638471576",
+    "type": "childminder",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29761885624939,
+    "longitude": -6.137675759694001,
+    "description": "Professional childminder with Montessori training. My home is designed to encourage independence and natural learning through play.",
+    "experience": "15 years",
+    "status": "approved",
+    "hourlyRate": 8,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.394Z",
+    "updatedAt": "2025-05-16T22:24:14.394Z"
+  },
+  {
+    "id": "cmard8jzw000pun80e238fy7s",
+    "name": "Family Care Childminding",
+    "email": "childminder6@example.com",
+    "phone": "+353 848606201",
+    "type": "childminder",
+    "address": "Dundrum, Dublin",
+    "latitude": 53.28964945768023,
+    "longitude": -6.249624921799107,
+    "description": "Experienced childminder with a focus on outdoor learning. We spend plenty of time in nature and local parks.",
+    "experience": "6 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.396Z",
+    "updatedAt": "2025-05-16T22:24:14.396Z"
+  },
+  {
+    "id": "cmard8jzz000qun80s8dw7rr3",
+    "name": "Home Away From Home",
+    "email": "childminder7@example.com",
+    "phone": "+353 929135864",
+    "type": "childminder",
+    "address": "Malahide, Dublin",
+    "latitude": 53.45299434936582,
+    "longitude": -6.151875289832785,
+    "description": "Qualified childminder offering a bilingual environment. I speak both English and Irish fluently.",
+    "experience": "2 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.399Z",
+    "updatedAt": "2025-05-16T22:24:14.399Z"
+  },
+  {
+    "id": "cmard8k0o0013un80bq5tsjkf",
+    "name": "Home Sweet Home Childminding",
+    "email": "childminder20@example.com",
+    "phone": "+353 335658988",
+    "type": "childminder",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.32326593853122,
+    "longitude": -6.268357131726294,
+    "description": "Creative childminder with a passion for outdoor learning. We explore nature and the local environment daily.",
+    "experience": "11 years",
+    "status": "approved",
+    "hourlyRate": 12,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.424Z",
+    "updatedAt": "2025-05-16T22:24:14.424Z"
+  },
+  {
+    "id": "cmard8k01000run80rxvdgu5h",
+    "name": "Little Learners Childcare",
+    "email": "childminder8@example.com",
+    "phone": "+353 736290589",
+    "type": "childminder",
+    "address": "Swords, Dublin",
+    "latitude": 53.4596459292562,
+    "longitude": -6.218126018338395,
+    "description": "Family-focused childminder with flexible hours. I understand the challenges of working parents and offer reliable, consistent care.",
+    "experience": "14 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.401Z",
+    "updatedAt": "2025-05-16T22:24:14.401Z"
+  },
+  {
+    "id": "cmard8k03000sun80ziteivuk",
+    "name": "Family Circle Childminding",
+    "email": "childminder9@example.com",
+    "phone": "+353 171636985",
+    "type": "childminder",
+    "address": "Blanchardstown, Dublin",
+    "latitude": 53.38834238959041,
+    "longitude": -6.376344789414005,
+    "description": "Creative childminder with a background in arts education. I provide a stimulating environment with plenty of creative activities.",
+    "experience": "2 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.403Z",
+    "updatedAt": "2025-05-16T22:24:14.403Z"
+  },
+  {
+    "id": "cmard8k05000tun80jh1j8v9k",
+    "name": "Home Grown Childcare",
+    "email": "childminder10@example.com",
+    "phone": "+353 688700954",
+    "type": "childminder",
+    "address": "Blanchardstown, Dublin",
+    "latitude": 53.38878061574599,
+    "longitude": -6.377465041219239,
+    "description": "Nurturing childminder with experience in early years education. I focus on developing social skills and emotional intelligence.",
+    "experience": "9 years",
+    "status": "approved",
+    "hourlyRate": 12,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.405Z",
+    "updatedAt": "2025-05-16T22:24:14.405Z"
+  },
+  {
+    "id": "cmard8k07000uun80ij5u93s6",
+    "name": "Sarah's Home Childcare",
+    "email": "childminder11@example.com",
+    "phone": "+353 907013423",
+    "type": "childminder",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29404561509209,
+    "longitude": -6.136328863903355,
+    "description": "Professional childminder with a background in child psychology. I provide a supportive environment for emotional development.",
+    "experience": "7 years",
+    "status": "approved",
+    "hourlyRate": 11,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.407Z",
+    "updatedAt": "2025-05-16T22:24:14.407Z"
+  },
+  {
+    "id": "cmard8k08000vun80ikkwaf0m",
+    "name": "Family Time Childminding",
+    "email": "childminder12@example.com",
+    "phone": "+353 187583127",
+    "type": "childminder",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.273755934439,
+    "longitude": -6.226689045805275,
+    "description": "Experienced childminder offering a structured daily routine. I believe in consistency and clear boundaries for children.",
+    "experience": "5 years",
+    "status": "approved",
+    "hourlyRate": 11,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.409Z",
+    "updatedAt": "2025-05-16T22:24:14.409Z"
+  },
+  {
+    "id": "cmard8k0a000wun80f8xmu73g",
+    "name": "Home Comfort Childcare",
+    "email": "childminder13@example.com",
+    "phone": "+353 124220061",
+    "type": "childminder",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.27474960226967,
+    "longitude": -6.228172340355591,
+    "description": "Qualified childminder with a focus on healthy eating. I provide nutritious meals and teach children about good nutrition.",
+    "experience": "8 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.410Z",
+    "updatedAt": "2025-05-16T22:24:14.410Z"
+  },
+  {
+    "id": "cmard8k0c000xun804v85l6iv",
+    "name": "Little Stars Childminding",
+    "email": "childminder14@example.com",
+    "phone": "+353 879004539",
+    "type": "childminder",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.27411309925066,
+    "longitude": -6.230090300872872,
+    "description": "Family-oriented childminder with a large, child-friendly garden. We spend lots of time outdoors in all weathers.",
+    "experience": "6 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.412Z",
+    "updatedAt": "2025-05-16T22:24:14.412Z"
+  },
+  {
+    "id": "cmard8k0e000yun80krp3srbt",
+    "name": "Nurturing Hearts Childcare",
+    "email": "childminder15@example.com",
+    "phone": "+353 801190083",
+    "type": "childminder",
+    "address": "Swords, Dublin",
+    "latitude": 53.45949667787843,
+    "longitude": -6.218161270166947,
+    "description": "Registered childminder with experience in special needs. I provide inclusive care for children of all abilities.",
+    "experience": "7 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.414Z",
+    "updatedAt": "2025-05-16T22:24:14.414Z"
+  },
+  {
+    "id": "cmard8k0g000zun809ovnyezy",
+    "name": "Family Focus Childminding",
+    "email": "childminder16@example.com",
+    "phone": "+353 783850455",
+    "type": "childminder",
+    "address": "Blanchardstown, Dublin",
+    "latitude": 53.38901635413372,
+    "longitude": -6.377907494865834,
+    "description": "Professional childminder offering a small group setting. I maintain a low child-to-adult ratio for individual attention.",
+    "experience": "1 years",
+    "status": "approved",
+    "hourlyRate": 8,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.417Z",
+    "updatedAt": "2025-05-16T22:24:14.417Z"
+  },
+  {
+    "id": "cmard8k0i0010un80a6rajds9",
+    "name": "Home Base Childcare",
+    "email": "childminder17@example.com",
+    "phone": "+353 267409060",
+    "type": "childminder",
+    "address": "Malahide, Dublin",
+    "latitude": 53.44734101978747,
+    "longitude": -6.152392327353773,
+    "description": "Experienced childminder with a background in music education. We enjoy daily music and movement activities.",
+    "experience": "11 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.419Z",
+    "updatedAt": "2025-05-16T22:24:14.419Z"
+  },
+  {
+    "id": "cmard8k0k0011un80bf35nhor",
+    "name": "Little Explorers Childminding",
+    "email": "childminder18@example.com",
+    "phone": "+353 510522233",
+    "type": "childminder",
+    "address": "Malahide, Dublin",
+    "latitude": 53.44816928883348,
+    "longitude": -6.153671019212051,
+    "description": "Qualified childminder providing a language-rich environment. I focus on developing strong communication skills.",
+    "experience": "11 years",
+    "status": "approved",
+    "hourlyRate": 8,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.420Z",
+    "updatedAt": "2025-05-16T22:24:14.420Z"
+  },
+  {
+    "id": "cmard8k0m0012un80ti4uvyvu",
+    "name": "Family Fun Childcare",
+    "email": "childminder19@example.com",
+    "phone": "+353 522411764",
+    "type": "childminder",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29586717233463,
+    "longitude": -6.134830643372511,
+    "description": "Family-focused childminder with flexible hours. I understand the needs of modern families and offer reliable care.",
+    "experience": "4 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.422Z",
+    "updatedAt": "2025-05-16T22:24:14.422Z"
+  },
+  {
+    "id": "cmard8k0p0014un80sa6bmfl2",
+    "name": "Emma's Home Childcare",
+    "email": "childminder21@example.com",
+    "phone": "+353 169319678",
+    "type": "childminder",
+    "address": "Dún Laoghaire, Dublin",
+    "latitude": 53.29548520466792,
+    "longitude": -6.136078567428998,
+    "description": "Professional childminder with experience in early intervention. I provide specialized support for children with additional needs.",
+    "experience": "3 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.426Z",
+    "updatedAt": "2025-05-16T22:24:14.426Z"
+  },
+  {
+    "id": "cmard8k0r0015un80dw3rzsbu",
+    "name": "Family Matters Childminding",
+    "email": "childminder22@example.com",
+    "phone": "+353 807541030",
+    "type": "childminder",
+    "address": "Dundrum, Dublin",
+    "latitude": 53.28933123556459,
+    "longitude": -6.243052363076472,
+    "description": "Experienced childminder offering a structured learning environment. I follow the Aistear curriculum framework.",
+    "experience": "11 years",
+    "status": "approved",
+    "hourlyRate": 11,
+    "availability": {
+      "schedule": {
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.428Z",
+    "updatedAt": "2025-05-16T22:24:14.428Z"
+  },
+  {
+    "id": "cmard8k0t0016un80x5pt7gtt",
+    "name": "Home Care Childcare",
+    "email": "childminder23@example.com",
+    "phone": "+353 498206900",
+    "type": "childminder",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.31857467873479,
+    "longitude": -6.26790701229219,
+    "description": "Qualified childminder with a focus on emotional development. I create a nurturing, supportive environment.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 11,
+    "availability": {
+      "schedule": {
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.429Z",
+    "updatedAt": "2025-05-16T22:24:14.429Z"
+  },
+  {
+    "id": "cmard8k0v0017un805abeqvyz",
+    "name": "Little Treasures Childminding",
+    "email": "childminder24@example.com",
+    "phone": "+353 380062554",
+    "type": "childminder",
+    "address": "Malahide, Dublin",
+    "latitude": 53.44968638582465,
+    "longitude": -6.158152377700002,
+    "description": "Family-oriented childminder with a background in child development. I provide age-appropriate activities and care.",
+    "experience": "1 years",
+    "status": "approved",
+    "hourlyRate": 8,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:30",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.431Z",
+    "updatedAt": "2025-05-16T22:24:14.431Z"
+  },
+  {
+    "id": "cmard8k0x0018un807016yr6f",
+    "name": "Nurturing Minds Childcare",
+    "email": "childminder25@example.com",
+    "phone": "+353 642219564",
+    "type": "childminder",
+    "address": "Clontarf, Dublin",
+    "latitude": 53.36721600188668,
+    "longitude": -6.194562832357144,
+    "description": "Registered childminder offering a home-like setting. I focus on creating a warm, family atmosphere.",
+    "experience": "9 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "wednesday": {
+          "endTime": "18:00",
+          "startTime": "08:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.433Z",
+    "updatedAt": "2025-05-16T22:24:14.433Z"
+  },
+  {
+    "id": "cmard8k0y0019un80tgw38qjv",
+    "name": "Family First Childminding",
+    "email": "childminder26@example.com",
+    "phone": "+353 212866660",
+    "type": "childminder",
+    "address": "Clontarf, Dublin",
+    "latitude": 53.36473880357791,
+    "longitude": -6.193406133845403,
+    "description": "Professional childminder with experience in special education. I provide inclusive care for all children.",
+    "experience": "2 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:30"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.435Z",
+    "updatedAt": "2025-05-16T22:24:14.435Z"
+  },
+  {
+    "id": "cmard8k10001aun80grpznxyz",
+    "name": "Home Support Childcare",
+    "email": "childminder27@example.com",
+    "phone": "+353 742177704",
+    "type": "childminder",
+    "address": "Tallaght, Dublin",
+    "latitude": 53.29152924816168,
+    "longitude": -6.353887426058997,
+    "description": "Experienced childminder with a focus on physical development. We enjoy daily outdoor activities and exercise.",
+    "experience": "12 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:00",
+          "startTime": "08:30"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "tuesday": {
+          "endTime": "17:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.436Z",
+    "updatedAt": "2025-05-16T22:24:14.436Z"
+  },
+  {
+    "id": "cmard8k11001bun80gfnhmo0b",
+    "name": "Little Angels Childminding",
+    "email": "childminder28@example.com",
+    "phone": "+353 983820675",
+    "type": "childminder",
+    "address": "Sandyford, Dublin",
+    "latitude": 53.272315679347,
+    "longitude": -6.22751374052015,
+    "description": "Qualified childminder offering a creative environment. I provide plenty of opportunities for artistic expression.",
+    "experience": "14 years",
+    "status": "approved",
+    "hourlyRate": 8,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "17:30",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:00"
+        },
+        "thursday": {
+          "endTime": "18:00",
+          "startTime": "08:00"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:00"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.438Z",
+    "updatedAt": "2025-05-16T22:24:14.438Z"
+  },
+  {
+    "id": "cmard8k13001cun8030fzzt8c",
+    "name": "Family Care Childcare",
+    "email": "childminder29@example.com",
+    "phone": "+353 686679262",
+    "type": "childminder",
+    "address": "Rathmines, Dublin",
+    "latitude": 53.32153041503142,
+    "longitude": -6.268169572691312,
+    "description": "Family-focused childminder with flexible hours. I understand the needs of working parents.",
+    "experience": "7 years",
+    "status": "approved",
+    "hourlyRate": 9,
+    "availability": {
+      "schedule": {
+        "friday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "monday": {
+          "endTime": "17:00",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "17:00",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "17:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.439Z",
+    "updatedAt": "2025-05-16T22:24:14.439Z"
+  },
+  {
+    "id": "cmard8k14001dun80ceup05do",
+    "name": "Home Sweet Home Childminding",
+    "email": "childminder30@example.com",
+    "phone": "+353 112915329",
+    "type": "childminder",
+    "address": "Dundrum, Dublin",
+    "latitude": 53.28876456407215,
+    "longitude": -6.242616682343428,
+    "description": "Creative childminder with a passion for early learning. I provide a stimulating, educational environment.",
+    "experience": "10 years",
+    "status": "approved",
+    "hourlyRate": 10,
+    "availability": {
+      "schedule": {
+        "monday": {
+          "endTime": "18:00",
+          "startTime": "07:00"
+        },
+        "tuesday": {
+          "endTime": "18:30",
+          "startTime": "08:30"
+        },
+        "thursday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        },
+        "wednesday": {
+          "endTime": "18:30",
+          "startTime": "07:30"
+        }
+      }
+    },
+    "crecheCapacity": null,
+    "createdAt": "2025-05-16T22:24:14.441Z",
+    "updatedAt": "2025-05-16T22:24:14.441Z"
+  },
+  {
+    "id": "cmardzray0000ungohv0pm1lr",
+    "name": "testete",
+    "email": "yzhuo.li@gmail.com",
+    "phone": "0871410000",
+    "type": "childminder",
+    "address": "Dublin 3 Moy Elta Road",
+    "latitude": 53.28876456407215,
+    "longitude": -6.242616682343428,
+    "description": "sdfsdfsdfdsfsdf",
+    "experience": "1-3",
+    "status": "pending",
+    "hourlyRate": 20,
+    "availability": {
+      "2025-05-11": [
+        {
+          "endTime": "17:00",
+          "startTime": "09:00"
+        }
+      ]
+    },
+    "crecheCapacity": [],
+    "createdAt": "2025-05-16T22:45:23.579Z",
+    "updatedAt": "2025-05-17T00:17:09.657Z"
+  }
+]
