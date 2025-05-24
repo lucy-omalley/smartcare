@@ -24,7 +24,7 @@ const DUBLIN_LOCATIONS = [
   { name: 'Malahide', lat: 53.4508, lng: -6.1544 },
 ];
 
-const SYSTEM_PROMPT = `You are MumBot, an AI childcare assistant helping parents find the perfect childcare solution in Ireland. You are knowledgeable about:
+export const SYSTEM_PROMPT = `You are MumBot, an AI childcare assistant helping parents find the perfect childcare solution in Ireland. You are knowledgeable about:
 - Irish childcare regulations and standards
 - EU childcare subsidies and eligibility
 - Local childcare facilities and services
@@ -52,6 +52,45 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
 
     const content = lastUserMessage.content.toLowerCase();
 
+    // Check if this is a request for provider details
+    const isProviderDetailRequest = content.includes('more details') || 
+                                  content.includes('tell me more') || 
+                                  content.includes('about') ||
+                                  content.includes('information') ||
+                                  content.match(/provider\s+\d+/i) ||
+                                  content.match(/option\s+\d+/i);
+
+    if (isProviderDetailRequest) {
+      // Use OpenAI to get detailed information about childcare providers
+      const openAIMessages = [
+        { 
+          role: 'system' as const, 
+          content: SYSTEM_PROMPT + "\n\nWhen asked about provider details, provide comprehensive information about:\n" +
+                   "1. General information about the type of provider (creche or childminder)\n" +
+                   "2. Typical services and facilities offered\n" +
+                   "3. Average costs and pricing factors\n" +
+                   "4. Common regulations and standards\n" +
+                   "5. Tips for choosing and evaluating providers\n" +
+                   "6. Questions parents should ask when visiting\n" +
+                   "7. Recent trends and developments in Irish childcare\n" +
+                   "Be specific to the Irish context and include relevant regulations and standards."
+        },
+        ...messages.map(msg => ({
+          role: msg.isUser ? 'user' as const : 'assistant' as const,
+          content: msg.content,
+        })),
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+        messages: openAIMessages,
+        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
+      });
+
+      return response.choices[0]?.message?.content || 'I apologize, but I am unable to provide detailed information at the moment. Please try again later.';
+    }
+
     // Check if this is a matching request
     const isMatchingRequest = content.includes('find') || 
                             content.includes('looking for') || 
@@ -60,7 +99,13 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
                             (content.includes('creche') || content.includes('childminder'));
 
     if (isMatchingRequest) {
-      const criteria = extractMatchingCriteria(messages);
+      const criteria = await extractMatchingCriteria(messages);
+      
+      // Check if we need to return a clarification response
+      if (criteria && 'needsClarification' in criteria) {
+        return criteria.response;
+      }
+
       if (criteria) {
         console.log('Extracted criteria:', criteria);
         
@@ -74,35 +119,68 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
         console.log('Found providers:', providers.length);
 
         if (providers.length === 0) {
-          return "I couldn't find any approved providers in the database. Please try again later or contact support.";
+          // Use OpenAI for a more natural response about no providers being available
+          const openAIMessages = [
+            { 
+              role: 'system' as const, 
+              content: SYSTEM_PROMPT + "\n\nWhen no providers are available in the database, provide a helpful and empathetic response that:\n" +
+                       "1. Acknowledges the current unavailability\n" +
+                       "2. Suggests alternative options (like checking back later or contacting support)\n" +
+                       "3. Offers to help with other childcare-related questions\n" +
+                       "4. Maintains a supportive and professional tone"
+            },
+            ...messages.map(msg => ({
+              role: msg.isUser ? 'user' as const : 'assistant' as const,
+              content: msg.content,
+            })),
+          ];
+
+          const response = await openai.chat.completions.create({
+            model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+            messages: openAIMessages,
+            temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+            max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
+          });
+
+          return response.choices[0]?.message?.content || "I apologize, but I couldn't find any approved providers at the moment. Please try again later or contact our support team for assistance.";
         }
 
         // Find matches using the matching service
         const matches = await MatchingService.findMatches(providers, criteria);
         console.log('Found matches:', matches.length);
         
-        // If no matches found, ask for more information
-        if (matches.length === 0) {
-          return "I couldn't find any providers matching your current criteria. Could you please provide more details about:\n" +
-                 "1. Your preferred location in Dublin\n" +
-                 "2. The days and times you need childcare\n" +
-                 "3. Your budget per hour\n" +
-                 "4. Any special requirements (language, special needs, etc.)";
-        }
-
         // Generate a response with the matches
-        const response = MatchingService.generateMatchingResponse(matches);
+        const response = MatchingService.generateMatchingResponse(matches, criteria);
         console.log('Generated response:', response);
         return response;
-      } else {
-        // If criteria extraction failed, ask for more information
-        return "To help you find the right childcare, I need to know which type of provider you're looking for:\n" +
-               "1. Would you prefer a creche (a childcare center) or a childminder (home-based care)?\n" +
-               "2. Which area of Dublin are you looking in?\n" +
-               "3. What days and times do you need childcare?\n" +
-               "4. What's your budget per hour?\n" +
-               "5. Do you have any special requirements?";
       }
+
+      // If criteria extraction failed, use OpenAI to ask for more information in a natural way
+      const openAIMessages = [
+        { 
+          role: 'system' as const, 
+          content: SYSTEM_PROMPT + "\n\nWhen asking for more information about childcare needs, be conversational and natural. Consider:\n" +
+                   "1. The user's previous messages for context\n" +
+                   "2. What specific information is still needed\n" +
+                   "3. How to make the request feel like a natural conversation\n" +
+                   "4. Providing examples of what kind of information would be helpful\n" +
+                   "5. Maintaining a helpful and friendly tone\n" +
+                   "Focus on the most relevant missing information based on the conversation context."
+        },
+        ...messages.map(msg => ({
+          role: msg.isUser ? 'user' as const : 'assistant' as const,
+          content: msg.content,
+        })),
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+        messages: openAIMessages,
+        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
+      });
+
+      return response.choices[0]?.message?.content || "I see you're looking for childcare in Dublin. To help you find the best match, could you tell me whether you're interested in a creche or a childminder? Also, which area of Dublin would be most convenient for you? I can then help you find options that fit your schedule and preferences.";
     }
 
     // For general questions, use OpenAI
@@ -128,14 +206,13 @@ export async function getAIResponse(messages: ChatMessage[]): Promise<string> {
   }
 }
 
-// Export the extractMatchingCriteria function
-export function extractMatchingCriteria(messages: ChatMessage[]): any {
-  // Get all user messages for context
-  const userMessages = messages.filter(m => m.isUser);
-  if (userMessages.length === 0) return null;
+export async function extractMatchingCriteria(messages: ChatMessage[]): Promise<any> {
+  // Get only the most recent user message
+  const lastUserMessage = messages.filter(m => m.isUser).pop();
+  if (!lastUserMessage) return null;
 
-  // Combine all user messages for better context
-  const fullContext = userMessages.map(m => m.content.toLowerCase()).join(' ');
+  // Use only the last message for context
+  const fullContext = lastUserMessage.content.toLowerCase();
   
   // Extract provider type
   let type: 'creche' | 'childminder' | undefined;
@@ -145,9 +222,37 @@ export function extractMatchingCriteria(messages: ChatMessage[]): any {
     type = 'childminder';
   }
 
-  // If no type specified, return null to ask for clarification
+  // If no type specified, use OpenAI to ask for clarification
   if (!type) {
-    return null;
+    const openAIMessages = [
+      { 
+        role: 'system' as const, 
+        content: SYSTEM_PROMPT + "\n\nWhen the user hasn't specified their preferred type of childcare (creche or childminder), provide a natural and conversational response that:\n" +
+                 "1. Acknowledges their search for childcare\n" +
+                 "2. Explains the difference between creches and childminders in Ireland\n" +
+                 "3. Asks which type they prefer in a natural way\n" +
+                 "4. Provides context about what each type offers\n" +
+                 "5. Maintains a helpful and friendly tone\n" +
+                 "Focus on making the conversation feel natural while gathering the necessary information."
+      },
+      ...messages.map(msg => ({
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+      })),
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+      messages: openAIMessages,
+      temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
+    });
+
+    // Return a special object that indicates we need to use the OpenAI response
+    return { 
+      needsClarification: true,
+      response: response.choices[0]?.message?.content || "I'd be happy to help you find childcare. In Ireland, we have two main types of childcare: creches (childcare centers) and childminders (home-based care). Creches are larger facilities that can accommodate more children and often have structured programs, while childminders provide care in their homes, offering a more intimate setting. Which type would you prefer for your child?"
+    };
   }
 
   // Extract location with improved matching
