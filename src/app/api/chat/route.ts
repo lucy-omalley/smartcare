@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { MatchingService } from '@/lib/services/matching';
 import { prisma } from '@/lib/db';
-import { extractMatchingCriteria } from '@/lib/services/chat';
+import { extractMatchingCriteria, SYSTEM_PROMPT } from '@/lib/services/chat';
 import { Provider } from '@prisma/client';
+import { OpenAI } from 'openai';
 
 // Update the interface to match Prisma's Provider type
 type ProviderWithLocation = Provider;
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
   try {
@@ -40,26 +45,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get all providers
-    const providers = await prisma.provider.findMany({
-      where: {
-        status: 'approved'
-      }
-    });
-
     // Extract matching criteria using the chat service
-    const criteria = extractMatchingCriteria(messages);
+    const criteria = await extractMatchingCriteria(messages);
     console.log('Extracted criteria:', criteria);
 
+    // Check if we need to return a clarification response
+    if (criteria && 'needsClarification' in criteria) {
+      return NextResponse.json(
+        { response: criteria.response },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
     if (!criteria) {
+      // Use OpenAI for a general response when no criteria is available
+      const openAIMessages = [
+        { 
+          role: 'system' as const, 
+          content: SYSTEM_PROMPT + "\n\nWhen starting a new childcare search conversation, provide a welcoming and informative response that:\n" +
+                   "1. Introduces yourself as a childcare assistant\n" +
+                   "2. Explains that you can help find both creches and childminders\n" +
+                   "3. Asks about their childcare needs in a natural way\n" +
+                   "4. Provides examples of the kind of information that would be helpful\n" +
+                   "5. Maintains a friendly and professional tone"
+        },
+        ...messages.map(msg => ({
+          role: msg.isUser ? 'user' as const : 'assistant' as const,
+          content: msg.content,
+        })),
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+        messages: openAIMessages,
+        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000'),
+      });
+
       return NextResponse.json(
         { 
-          response: "To help you find the right childcare, I need to know which type of provider you're looking for:\n" +
-                   "1. Would you prefer a creche (a childcare center) or a childminder (home-based care)?\n" +
-                   "2. Which area of Dublin are you looking in?\n" +
-                   "3. What days and times do you need childcare?\n" +
-                   "4. What's your budget per hour?\n" +
-                   "5. Do you have any special requirements?"
+          response: response.choices[0]?.message?.content || "Hi! I'm here to help you find the perfect childcare solution in Dublin. I can help you find both creches (childcare centers) and childminders (home-based care). Could you tell me a bit about what you're looking for? For example, which type of care interests you, and which area of Dublin would be most convenient?"
         },
         {
           headers: {
@@ -69,13 +98,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get all providers
+    const providers = await prisma.provider.findMany({
+      where: {
+        status: 'approved'
+      }
+    });
+
     // Use MatchingService to find matches
     const matches = await MatchingService.findMatches(providers, criteria);
     console.log('Found matches:', matches.length);
 
     // Generate response using MatchingService
     const response = matches.length > 0
-      ? MatchingService.generateMatchingResponse(matches)
+      ? MatchingService.generateMatchingResponse(matches, criteria)
       : "I couldn't find any providers matching your current criteria. Could you please provide more details about:\n" +
         "1. Your preferred location in Dublin\n" +
         "2. The days and times you need childcare\n" +

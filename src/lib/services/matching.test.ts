@@ -11,6 +11,8 @@ const sampleProviders: Provider[] = [
     phone: '1234567890',
     type: 'creche',
     address: '53.3498, -6.2603', // Dublin City Centre
+    latitude: 53.3498,
+    longitude: -6.2603,
     description: 'A warm and welcoming creche with English and French speaking staff. Special needs support available.',
     experience: '10 years of experience',
     status: 'approved',
@@ -44,6 +46,8 @@ const sampleProviders: Provider[] = [
     phone: '0987654321',
     type: 'childminder',
     address: '53.2921, -6.2457', // Dundrum
+    latitude: 53.2921,
+    longitude: -6.2457,
     description: 'Experienced childminder with special needs experience. Speaks English and Polish.',
     experience: '8 years of experience',
     status: 'approved',
@@ -83,7 +87,7 @@ async function runTests() {
   };
 
   const matches1 = await MatchingService.findMatches(sampleProviders, criteria1);
-  console.log('Response:', MatchingService.generateMatchingResponse(matches1));
+  console.log('Response:', MatchingService.generateMatchingResponse(matches1, criteria1));
   console.log('\n---\n');
 
   // Test 2: Matching with language requirement
@@ -104,7 +108,7 @@ async function runTests() {
   };
 
   const matches2 = await MatchingService.findMatches(sampleProviders, criteria2);
-  console.log('Response:', MatchingService.generateMatchingResponse(matches2));
+  console.log('Response:', MatchingService.generateMatchingResponse(matches2, criteria2));
   console.log('\n---\n');
 
   // Test 3: Matching with special needs
@@ -126,7 +130,7 @@ async function runTests() {
   };
 
   const matches3 = await MatchingService.findMatches(sampleProviders, criteria3);
-  console.log('Response:', MatchingService.generateMatchingResponse(matches3));
+  console.log('Response:', MatchingService.generateMatchingResponse(matches3, criteria3));
   console.log('\n---\n');
 
   // Test 4: No matches scenario
@@ -147,7 +151,7 @@ async function runTests() {
   };
 
   const matches4 = await MatchingService.findMatches(sampleProviders, criteria4);
-  console.log('Response:', MatchingService.generateMatchingResponse(matches4));
+  console.log('Response:', MatchingService.generateMatchingResponse(matches4, criteria4));
 }
 
 // Run the tests

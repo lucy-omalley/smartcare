@@ -530,6 +530,7 @@ export class MatchingService {
       }))
     });
 
+    console.log('Response:', MatchingService.generateMatchingResponse(matches, criteria));
     return matches;
   }
 
@@ -578,13 +579,55 @@ export class MatchingService {
   /**
    * Generate a human-readable response for the chatbot
    */
-  public static generateMatchingResponse(matches: MatchingScore[]): string {
+  public static generateMatchingResponse(matches: MatchingScore[], criteria: MatchingCriteria): string {
     if (matches.length === 0) {
-      return "I couldn't find any providers within your budget. Would you like to:\n" +
-             "1. Adjust your budget\n" +
-             "2. Look in a different area\n" +
-             "3. Consider different availability times\n\n" +
-             "What would you prefer to adjust?";
+      // Find the nearest locations to the search criteria
+      const searchLocation = DUBLIN_LOCATIONS.find(loc => 
+        Math.abs(loc.lat - criteria.location.latitude) < 0.1 && 
+        Math.abs(loc.lng - criteria.location.longitude) < 0.1
+      );
+
+      // Get nearby locations (within 5km)
+      const nearbyLocations = DUBLIN_LOCATIONS
+        .filter(loc => {
+          const distance = this.calculateDistance(
+            criteria.location.latitude,
+            criteria.location.longitude,
+            loc.lat,
+            loc.lng
+          );
+          return distance <= 5 && loc.name !== searchLocation?.name;
+        })
+        .slice(0, 3); // Get top 3 nearest locations
+
+      let response = "I couldn't find any providers matching your criteria in this area. ";
+      
+      if (nearbyLocations.length > 0) {
+        response += "However, I found some providers in nearby areas:\n\n";
+        response += "📍 Nearby areas you might want to consider:\n";
+        nearbyLocations.forEach((loc, index) => {
+          const distance = this.calculateDistance(
+            criteria.location.latitude,
+            criteria.location.longitude,
+            loc.lat,
+            loc.lng
+          );
+          response += `${index + 1}. ${loc.name} (${distance.toFixed(1)}km away)\n`;
+        });
+        response += "\nWould you like to:\n";
+        response += "1. Search in one of these nearby areas\n";
+        response += "2. Try a different location\n";
+        response += "3. Adjust your other criteria (budget, availability, etc.)\n\n";
+        response += "Just let me know what you'd prefer to do!";
+      } else {
+        response += "Would you like to:\n";
+        response += "1. Try a different location\n";
+        response += "2. Adjust your budget\n";
+        response += "3. Consider different availability times\n\n";
+        response += "What would you prefer to adjust?";
+      }
+
+      return response;
     }
 
     // Sort matches by score and distance
