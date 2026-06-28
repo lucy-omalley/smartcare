@@ -2,148 +2,96 @@
 
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Menu, Send, User, X } from 'lucide-react';
+import { Bot, Menu, X } from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { TypingIndicator } from './typing-indicator';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import { messagesAtom, type ChatMessage as ChatMessageType } from '@/lib/store/chat';
 import { cn } from '@/lib/utils';
-import { MatchingService } from '@/lib/services/matching';
+import { generateWelcomeMessage } from '@/lib/mumbot-messages';
+import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 
-const WELCOME_MESSAGE = {
-  id: 'welcome',
-  content: MatchingService.generateWelcomeMessage(),
-  isUser: false,
-  timestamp: new Date(),
-};
-
-// Add keyword extraction function
-const extractKeywords = (message: string): string[] => {
-  // Define keyword categories
-  const keywordCategories = {
-    careTypes: [
-      'creche', 'childminder', 'childcare', 'care', 'nanny', 'daycare',
-      'preschool', 'kindergarten', 'after school', 'babysitter'
-    ],
-    days: [
-      'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
-      'saturday', 'sunday', 'weekday', 'weekend'
-    ],
-    timePeriods: [
-      'morning', 'afternoon', 'evening', 'night',
-      'full day', 'half day', 'part time', 'full time'
-    ],
-    specialNeeds: [
-      'special needs', 'autism', 'adhd', 'disability',
-      'learning difficulties', 'developmental delay'
-    ],
-    languages: [
-      'english', 'irish', 'polish', 'chinese', 'french',
-      'spanish', 'portuguese', 'multilingual', 'bilingual'
-    ],
-    locations: [
-      'dublin', 'dundrum', 'swords', 'dun laoghaire', 'tallaght',
-      'blanchardstown', 'sandyford', 'clontarf', 'rathmines', 'malahide'
-    ],
-    requirements: [
-      'certified', 'qualified', 'experienced', 'first aid',
-      'emergency', 'flexible', 'reliable', 'trusted'
-    ]
-  };
-
-  // Convert message to lowercase for case-insensitive matching
-  const lowerMessage = message.toLowerCase();
-
-  // Function to find exact word matches
-  const findExactMatches = (word: string): boolean => {
-    // Create a regex that matches word boundaries
-    const regex = new RegExp(`\\b${word}\\b`, 'i');
-    return regex.test(lowerMessage);
-  };
-
-  // Function to find phrase matches
-  const findPhraseMatches = (phrase: string): boolean => {
-    return lowerMessage.includes(phrase.toLowerCase());
-  };
-
-  // Collect all matched keywords
-  const matchedKeywords: string[] = [];
-
-  // Check each category
-  Object.entries(keywordCategories).forEach(([category, keywords]) => {
-    keywords.forEach(keyword => {
-      // For single words, use exact matching
-      if (!keyword.includes(' ')) {
-        if (findExactMatches(keyword)) {
-          matchedKeywords.push(keyword);
-        }
-      } else {
-        // For phrases, use phrase matching
-        if (findPhraseMatches(keyword)) {
-          matchedKeywords.push(keyword);
-        }
-      }
-    });
-  });
-
-  // Remove duplicates and sort by length (longer matches first)
-  return Array.from(new Set(matchedKeywords)).sort((a, b) => b.length - a.length);
-};
+interface SuggestedMemory {
+  content: string;
+  category: string;
+}
 
 export function ChatInterface() {
+  const { data: session } = useSession();
   const [messages, setMessages] = useAtom(messagesAtom);
   const [isLoading, setIsLoading] = useState(false);
   const [showTypingIndicator, setShowTypingIndicator] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [pendingMemory, setPendingMemory] = useState<SuggestedMemory | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Add welcome message if chat is empty
   useEffect(() => {
     if (messages.length === 0) {
-      setMessages([WELCOME_MESSAGE]);
+      setMessages([{
+        id: 'welcome',
+        content: generateWelcomeMessage(session?.user?.name),
+        isUser: false,
+        timestamp: new Date(),
+      }]);
     }
-  }, [messages.length, setMessages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages.length, setMessages, session?.user?.name]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, showTypingIndicator]);
+    if (!session?.user) return;
 
-  // Handle typing indicator visibility with a slight delay
+    fetch('/api/chat')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.conversation?.messages?.length > 0) {
+          setConversationId(data.conversation.id);
+          setMessages(
+            data.conversation.messages.map((m: { id: string; content: string; isUser: boolean; createdAt: string }) => ({
+              id: m.id,
+              content: m.content,
+              isUser: m.isUser,
+              timestamp: new Date(m.createdAt),
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [session?.user, setMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, showTypingIndicator, pendingMemory]);
+
   useEffect(() => {
     if (isLoading) {
       setShowTypingIndicator(true);
     } else {
-      const timer = setTimeout(() => {
-        setShowTypingIndicator(false);
-      }, 500);
+      const timer = setTimeout(() => setShowTypingIndicator(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
 
-  // Close mobile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isMobileMenuOpen && !(event.target as Element).closest('.mobile-menu')) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobileMenuOpen]);
+  const handleRemember = async () => {
+    if (!pendingMemory) return;
+    try {
+      await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingMemory),
+      });
+      setPendingMemory(null);
+    } catch {
+      // silently fail
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     try {
       setIsLoading(true);
-      console.log('Sending message:', content);
+      setPendingMemory(null);
 
-      // Add user message
       const userMessage: ChatMessageType = {
         id: Date.now().toString(),
         content,
@@ -151,35 +99,26 @@ export function ChatInterface() {
         timestamp: new Date(),
       };
 
-      // Update messages with user message
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
-      console.log('Updated messages with user message:', updatedMessages);
 
-      // Get AI response
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: updatedMessages }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages, conversationId }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API error:', errorData);
         throw new Error(errorData.error || 'Failed to get AI response');
       }
 
       const data = await response.json();
-      console.log('Received AI response:', data);
-      
-      if (!data.response) {
-        console.error('No response in data:', data);
-        throw new Error('No response received from the server');
+
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
       }
 
-      // Add AI response
       const aiMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         content: data.response,
@@ -187,52 +126,38 @@ export function ChatInterface() {
         timestamp: new Date(),
       };
 
-      console.log('Adding AI message:', aiMessage);
-      // Update messages with AI response
-      setMessages((prev) => {
-        const newMessages = [...prev, aiMessage];
-        console.log('Updated messages with AI response:', newMessages);
-        return newMessages;
-      });
+      setMessages((prev) => [...prev, aiMessage]);
+
+      if (data.suggestedMemory && session?.user) {
+        setPendingMemory(data.suggestedMemory);
+      }
     } catch (error) {
-      console.error('Error in handleSendMessage:', error);
-      // Add error message
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         content: error instanceof Error ? error.message : 'I apologize, but I encountered an error. Please try again later.',
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages((prev) => {
-        const newMessages = [...prev, errorMessage];
-        console.log('Updated messages with error:', newMessages);
-        return newMessages;
-      });
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Add debug logging for messages changes
-  useEffect(() => {
-    console.log('Messages updated:', messages);
-  }, [messages]);
-
   return (
-    <div className="flex flex-col h-[600px] md:h-[700px] w-full max-w-2xl mx-auto border rounded-lg bg-background shadow-lg overflow-hidden">
-      {/* Chat Header */}
+    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[700px] w-full max-w-2xl mx-auto border rounded-2xl bg-background shadow-lg overflow-hidden">
       <div className="border-b p-4 bg-muted/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-6 w-6 text-primary" />
           <div>
-            <h3 className="font-semibold">MumBot SmartCare</h3>
-            <p className="text-sm text-muted-foreground">AI Childcare Assistant</p>
+            <h3 className="font-semibold">MumBot</h3>
+            <p className="text-sm text-muted-foreground">Your AI Co-Parent</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeSelector />
           <button
-            className="md:hidden inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+            className="md:hidden inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-9 px-3"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -241,55 +166,42 @@ export function ChatInterface() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <div
-        className={cn(
-          "mobile-menu fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden transition-opacity duration-200",
-          isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-      >
-        <div className="fixed right-0 top-0 h-full w-64 bg-background border-l shadow-lg transform transition-transform duration-200 ease-in-out"
-             style={{ transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)' }}>
-          <div className="p-4 space-y-4">
-            <h3 className="font-semibold">Settings</h3>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Theme</label>
-              <ThemeSelector />
-            </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-muted/20">
+        {messages.map((message) => (
+          <div key={message.id} className="w-full">
+            <ChatMessage
+              message={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
           </div>
-        </div>
-      </div>
-
-      {/* Messages Container */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-muted/30"
-        style={{ minHeight: '400px' }}
-      >
-        <div className="flex flex-col space-y-4">
-          {messages.map((message) => {
-            console.log('Rendering message:', message);
-            const matchedKeywords = extractKeywords(message.content);
-            return (
-              <div key={message.id} className="w-full">
-                <ChatMessage
-                  message={message.content}
-                  isUser={message.isUser}
-                  timestamp={message.timestamp}
-                  matchedKeywords={matchedKeywords}
-                />
-              </div>
-            );
-          })}
-        </div>
+        ))}
         <TypingIndicator isVisible={showTypingIndicator} />
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Chat Input */}
+      {pendingMemory && (
+        <div className="border-t bg-accent/30 p-4 space-y-3">
+          <p className="text-sm font-medium">
+            Would you like me to remember that?
+          </p>
+          <p className="text-sm text-muted-foreground italic">
+            &ldquo;{pendingMemory.content}&rdquo;
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleRemember}>
+              Remember
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingMemory(null)}>
+              Not now
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="border-t bg-background p-4">
         <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
       </div>
     </div>
   );
-} 
+}
