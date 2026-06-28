@@ -1,266 +1,395 @@
-项目名称： MumBot SmartCare 欧洲首个AI驱动的跨形态托育即时匹配平台，从Creche到临时保姆，30秒找到合规看护方案
+# SmartCare V2.2 - Visual Experience & Emotional Design
 
-👥 目标用户是谁？
+## Product Philosophy
 
-核心用户：
+SmartCare is not simply an AI tool.
 
-爱尔兰职场父母（25-45岁），尤其是孩子未获得Creche名额的双职工家庭
+It is an emotional parenting companion.
 
-新移民家庭（如中国，波兰/巴西裔），需要语言支持的托育服务
+Every screen should make parents feel:
 
-典型场景：
+😊 Calm
 
-产假结束后仍无托育机构空位
+❤️ Supported
 
-学校突然关闭时的紧急看护需求
+🌞 Encouraged
 
-🎯 用户遇到的问题 / 痛点：
+🎉 Inspired
 
-资源短缺：爱尔兰Creche平均等待时间18个月，30%地区被列为"育儿荒漠"
+The product should feel warm, beautiful and delightful.
 
-信息黑箱：家长不知道哪些机构/家庭日托（Childminder）仍有空位
+Avoid dense text.
 
-信任危机：43%家长遭遇过保姆资质造假（2023爱尔兰儿童部报告）
+Avoid enterprise dashboards.
 
-✨ 产品核心功能：
+Avoid technical language.
 
-通过聊天机器人的方式为用户推荐附近creche空位或者实时的临时保姆信息
+The experience should feel like opening a beautiful parenting magazine that refreshes every day.
 
- 市场验证：
+---
 
-竞品缺陷：
+# Daily Visual Cards
 
-NCI的Early Childhood Hub仅提供静态信息
+Every recommendation should include a large visual card.
 
-Care.com本地化不足，无法处理欧盟补贴计算
+Examples:
 
-用户反馈：
+🍳 Recipe
 
-83%爱尔兰家长认为找托育比找房难（2024 Pobal调查）
+Large meal photo.
 
-🧠 为什么想做这个项目？
+Nutritional highlights.
 
-个人经历：作为曾因孩子无人看护被迫请假的都柏林科技行业妈妈
+Preparation time.
 
-技术契机：发现欧盟托育数据开放程度高但未被有效利用
+Difficulty.
 
-社会价值：帮助解决爱尔兰生育率下降的核心痛点（托育难导致25%家庭放弃二胎）
+Healthy tip.
 
+Shopping list button.
 
+---
 
-🧠 可扩展性设计 未来通过模块化添加：
+🎮 Activity
 
-早教游戏：匹配时推荐适龄活动
+Beautiful illustration.
 
-二手市场：看护者代收/配送童品
+Skills developed.
 
-妈妈社群：同机构家长私信网
+Duration.
 
+Materials required.
 
-# MumBot SmartCare - Product Requirements Document (PRD)
+Indoor / Outdoor badge.
 
-## 1. Project Overview
+Age recommendation.
 
-### 1.1 Project Vision
-MumBot SmartCare aims to be Europe's first AI-driven childcare matching platform that connects parents with both formal childcare facilities (Creches) and temporary caregivers within 30 seconds, ensuring compliance with local regulations.
+---
 
-### 1.2 Target Users
-- **Primary Users**: Working parents in Ireland (25-45 years old)
-  - Dual-income families without Creche spots
-  - New immigrant families (Chinese, Polish, Brazilian) requiring language support
-- **Use Cases**:
-  - Post-maternity leave childcare needs
-  - Emergency childcare during school closures
-  - Temporary care solutions
+📚 Bedtime Story
 
-### 1.3 Market Pain Points
-- Resource scarcity (18-month average Creche wait time)
-- Information opacity (lack of real-time availability)
-- Trust issues (43% reported caregiver qualification fraud)
-- Limited local solutions for EU subsidy calculations
+Beautiful AI-generated cover image.
 
-## 2. Technical Architecture
+Story title.
 
-### 2.1 Technology Stack
-- **Frontend Framework**: Next.js 14 (App Router)
-- **UI Components**: shadcn/ui
-- **Styling**: Tailwind CSS
-- **State Management**: Jotai
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: NextAuth.js
-- **Maps Integration**: Mapbox
-- **AI/ML**: OpenAI GPT-4 API
-- **Real-time Updates**: Pusher
+Reading time.
 
-### 2.2 Core Technical Requirements
-- Server-side rendering for SEO optimization
-- Progressive Web App (PWA) capabilities
-- Real-time availability updates
-- Secure payment processing
-- Multi-language support
-- GDPR compliance
-- Mobile-first responsive design
-
-## 3. Product Features
-
-### 3.1 Core Features
-
-#### 3.1.1 AI-Powered Matching System
-- Chatbot interface for natural language interaction
-- Real-time availability checking
-- Smart matching algorithm considering:
-  - Location proximity
-  - Care requirements
-  - Language preferences
-  - Budget constraints
-  - EU subsidy eligibility
-
-#### 3.1.2 Provider Management
-- Creche profile management
-- Childminder registration and verification
-- Real-time availability calendar
-- Document verification system
-- Review and rating system
-
-#### 3.1.3 Parent Dashboard
-- Profile management
-- Booking history
-- Payment management
-- EU subsidy calculator
-- Emergency care request system
-
-#### 3.1.4 Search and Discovery
-- Interactive map interface
-- Advanced filtering options
-- Real-time availability indicators
-- Provider comparison tools
-
-### 3.2 Future Expansion Modules
-- Early education game recommendations
-- Second-hand marketplace
-- Parent community network
-- Additional language support
-- Extended service areas
-
-## 4. User Interface Requirements
-
-### 4.1 Design System
-- Based on shadcn/ui components
-- Custom Tailwind theme
-- Responsive breakpoints:
-  - Mobile: < 640px
-  - Tablet: 640px - 1024px
-  - Desktop: > 1024px
-
-### 4.2 Key UI Components
-- Chat interface
-- Interactive map
-- Booking calendar
-- Provider cards
-- Review system
-- Payment forms
-- Profile management
-- Search filters
-
-## 5. Data Requirements
-
-### 5.1 Core Data Models
-- Users (Parents)
-- Providers (Creches/Childminders)
-- Bookings
-- Reviews
-- Payments
-- Documents
-- Locations
-
-### 5.2 External Data Integration
-- EU subsidy databases
-- Provider verification systems
-- Payment gateways
-- Map services
-- Weather API (for emergency closures)
-
-## 6. Security & Compliance
-
-### 6.1 Security Requirements
-- End-to-end encryption
-- Secure payment processing
-- GDPR compliance
-- Data backup and recovery
-- Regular security audits
-
-### 6.2 Compliance Requirements
-- Irish childcare regulations
-- EU data protection laws
-- Payment processing standards
-- Provider verification requirements
-
-## 7. Performance Requirements
-
-### 7.1 Technical Performance
-- Page load time < 2 seconds
-- API response time < 500ms
-- 99.9% uptime
-- Real-time updates < 1 second delay
-
-### 7.2 Business Metrics
-- Matching success rate > 90%
-- User satisfaction > 4.5/5
-- Booking completion rate > 80%
-- Provider response time < 5 minutes
-
-## 8. Implementation Phases
-
-### Phase 1 (MVP)
-- Basic user authentication
-- Provider registration
-- Simple search functionality
-- Basic booking system
-- Essential chatbot features
-
-### Phase 2
-- Advanced AI matching
-- Real-time availability
-- Payment integration
-- Review system
-- Mobile app
-
-### Phase 3
-- Community features
-- Marketplace integration
-- Extended language support
-- Advanced analytics
-- Additional service areas
-
-## 9. Success Metrics
-
-### 9.1 Key Performance Indicators
-- User acquisition rate
-- Matching success rate
-- Booking completion rate
-- User retention
-- Provider satisfaction
-- Revenue growth
-
-### 9.2 User Satisfaction Metrics
-- Net Promoter Score (NPS)
-- User feedback scores
-- Provider ratings
-- Support ticket resolution time
-- Feature adoption rate
-
-## 10. Maintenance & Support
-
-### 10.1 Technical Support
-- 24/7 system monitoring
-- Regular security updates
-- Performance optimization
-- Bug tracking and resolution
-- Database maintenance
-
-### 10.2 User Support
-- Multi-language support
-- Provider onboarding assistance
-- Parent guidance
-- Emergency support
-- Feedback management 
+Play audio button (future).
+
+Save favourite button.
+
+Future:
+
+Generate illustrated storybook pages.
+
+---
+
+🧠 Development Insight
+
+Cute illustration.
+
+Friendly icon.
+
+Simple explanation.
+
+One activity to try today.
+
+Avoid long articles.
+
+---
+
+❤️ Parenting Tip
+
+Illustrated quote card.
+
+Very short.
+
+Easy to remember.
+
+Share button.
+
+---
+
+☕ Coffee Walk
+
+Large park or café image.
+
+Weather indicator.
+
+Distance.
+
+Age group.
+
+Attendees.
+
+Join button.
+
+---
+
+🎉 Weekend Activities
+
+Every event card should display:
+
+Large image.
+
+Age suitability.
+
+Distance.
+
+Free / Paid badge.
+
+Indoor / Outdoor.
+
+Bookmark button.
+
+---
+
+# Family Memory Timeline
+
+This should become one of the signature experiences.
+
+Timeline style.
+
+Large photos.
+
+Beautiful spacing.
+
+AI-generated journal entry.
+
+Examples:
+
+📷
+
+Jack counted to ten today.
+
+Today Jack proudly counted to ten without help.
+
+Small moments become lifelong memories.
+
+❤️
+
+Future:
+
+Parents can print monthly and yearly memory books.
+
+---
+
+# AI Generated Images
+
+Use AI-generated illustrations whenever no real photo exists.
+
+Generate:
+
+Today's Game
+
+Today's Story
+
+Development Cards
+
+Learning Activities
+
+Celebration Cards
+
+The illustration style should be:
+
+Soft
+
+Watercolour inspired
+
+Modern children's book
+
+Warm pastel palette
+
+Friendly characters
+
+Consistent visual identity.
+
+---
+
+# Personalised Storybook
+
+Every bedtime story should have:
+
+Story cover
+
+Main character illustration
+
+Optional future page illustrations
+
+Parents can save stories.
+
+Children should recognise themselves as the hero.
+
+---
+
+# Home Screen Experience
+
+The home screen should feel alive.
+
+Morning example:
+
+🌞 Good Morning Lucy
+
+Jack is 3 years 2 months.
+
+━━━━━━━━━━━━
+
+🍳 Today's Recipe
+
+(Large meal photo)
+
+━━━━━━━━━━━━
+
+🎮 Today's Adventure
+
+(Beautiful illustration)
+
+━━━━━━━━━━━━
+
+🧠 Today's Growth Moment
+
+(Cute development card)
+
+━━━━━━━━━━━━
+
+❤️ Parenting Encouragement
+
+━━━━━━━━━━━━
+
+📚 Tonight's Story
+
+(Cover illustration)
+
+━━━━━━━━━━━━
+
+📷 Yesterday's Happy Memory
+
+(Family photo)
+
+━━━━━━━━━━━━
+
+☕ Nearby Parent Meetups
+
+━━━━━━━━━━━━
+
+🎉 Weekend Activities
+
+━━━━━━━━━━━━
+
+💬 Chat with MumBot
+
+Every section should feel inviting.
+
+---
+
+# Empty States
+
+Never display blank pages.
+
+Instead use friendly illustrations.
+
+Examples:
+
+No memories yet?
+
+Let's create your first family memory ❤️
+
+No activities nearby?
+
+We'll recommend some soon.
+
+No toy exchanges?
+
+Be the first parent in your neighbourhood.
+
+---
+
+# Icons
+
+Use friendly icons throughout.
+
+Examples:
+
+🍳 Meals
+
+🎮 Activities
+
+🧠 Learning
+
+❤️ Parenting
+
+📚 Stories
+
+📷 Memories
+
+☕ Community
+
+🎉 Events
+
+♻️ Exchange
+
+---
+
+# Animation
+
+Use subtle animations.
+
+Cards gently appear.
+
+Buttons softly animate.
+
+Celebrate milestones with delightful micro-interactions.
+
+Avoid distracting animations.
+
+---
+
+# Colour Palette
+
+Warm neutral backgrounds.
+
+Soft greens.
+
+Sky blue.
+
+Warm yellow.
+
+Coral accents.
+
+Rounded cards.
+
+Gentle shadows.
+
+Never use harsh colours.
+
+Never look corporate.
+
+---
+
+# Mobile First
+
+Design every screen for one-handed use.
+
+Large touch targets.
+
+Minimal typing.
+
+Maximum three taps to any core feature.
+
+Parents are often holding a child while using the app.
+
+---
+
+# Ultimate Design Goal
+
+Every time a parent opens SmartCare they should feel:
+
+"This app understands my family."
+
+"This app makes parenting easier."
+
+"This app makes me smile."
+
+Design for emotion first.
+
+Technology second.
