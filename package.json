@@ -10,7 +10,6 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "test:matching": "node -r tsconfig-paths/register -r ts-node/register src/lib/services/matching.test.ts",
     "export-data": "ts-node scripts/export-data.ts",
     "import-data": "ts-node scripts/import-data.ts",
     "postinstall": "npm run clean && prisma generate"

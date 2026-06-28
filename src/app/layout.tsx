@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SmartCare - Childcare Matching Platform",
-  description: "Find the perfect childcare solution in Ireland",
+  title: "SmartCare — Meet MumBot, Your AI Co-Parent",
+  description: "AI-powered parenting companion with family memory, parent community, and local activities. Every parent deserves a village.",
 };
 
 export default function RootLayout({

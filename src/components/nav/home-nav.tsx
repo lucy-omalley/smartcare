@@ -12,38 +12,20 @@ export function HomeNav() {
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Bot className="h-6 w-6 text-primary" />
-            <span className="font-semibold">MumBot SmartCare</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="#features"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              Features
-            </Link>
-            {!session && (
-              <Link
-                href="/register"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                Register as Provider
-              </Link>
-            )}
-          </nav>
-        </div>
+        <Link href="/" className="flex items-center gap-2">
+          <Bot className="h-6 w-6 text-primary" />
+          <span className="font-semibold">SmartCare</span>
+        </Link>
         <div className="ml-auto flex items-center gap-2">
           {session ? (
             <>
-              <Link href="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
+              <Link href="/home">
+                <Button variant="ghost">Home</Button>
               </Link>
-              <Button
-                variant="outline"
-                onClick={() => signOut({ callbackUrl: '/' })}
-              >
+              <Link href="/mumbot">
+                <Button variant="ghost">MumBot</Button>
+              </Link>
+              <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
                 Sign Out
               </Button>
             </>
@@ -53,7 +35,7 @@ export function HomeNav() {
                 <Button variant="ghost">Sign In</Button>
               </Link>
               <Link href="/auth/register">
-                <Button>Register</Button>
+                <Button className="rounded-xl">Get Started</Button>
               </Link>
             </>
           )}
@@ -62,4 +44,4 @@ export function HomeNav() {
       </div>
     </nav>
   );
-} 
+}

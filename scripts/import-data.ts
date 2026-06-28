@@ -7,24 +7,14 @@ const prisma = new PrismaClient();
 async function importData() {
   try {
     const dataDir = path.join(process.cwd(), 'data');
+    const usersPath = path.join(dataDir, 'users.json');
 
-    // Import Providers
-    const providersData = JSON.parse(
-      fs.readFileSync(path.join(dataDir, 'providers.json'), 'utf-8')
-    );
-    for (const provider of providersData) {
-      await prisma.provider.upsert({
-        where: { id: provider.id },
-        update: provider,
-        create: provider,
-      });
+    if (!fs.existsSync(usersPath)) {
+      console.log('No users.json found — skipping import.');
+      return;
     }
-    console.log(`Imported ${providersData.length} providers`);
 
-    // Import Users
-    const usersData = JSON.parse(
-      fs.readFileSync(path.join(dataDir, 'users.json'), 'utf-8')
-    );
+    const usersData = JSON.parse(fs.readFileSync(usersPath, 'utf-8'));
     for (const user of usersData) {
       await prisma.user.upsert({
         where: { id: user.id },
@@ -42,4 +32,4 @@ async function importData() {
   }
 }
 
-importData(); 
+importData();

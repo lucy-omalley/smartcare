@@ -2,16 +2,11 @@ import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Combine auth middleware with security headers
 export default withAuth(
   function middleware(request: NextRequest) {
-    // Get the response
     const response = NextResponse.next();
-
-    // Add security headers
     const headers = response.headers;
 
-    // Content Security Policy
     headers.set(
       'Content-Security-Policy',
       [
@@ -32,7 +27,6 @@ export default withAuth(
       ].join('; ')
     );
 
-    // Other security headers
     headers.set('X-DNS-Prefetch-Control', 'on');
     headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     headers.set('X-XSS-Protection', '1; mode=block');
@@ -50,15 +44,17 @@ export default withAuth(
   }
 );
 
-// Configure which paths the middleware should run on
 export const config = {
   matcher: [
-    // Protected routes that require authentication
-    '/dashboard/:path*',
+    '/home/:path*',
+    '/mumbot/:path*',
+    '/memory/:path*',
     '/profile/:path*',
-    '/settings/:path*',
+    '/community/:path*',
+    '/activities/:path*',
+    '/exchange/:path*',
+    '/onboarding/:path*',
+    '/dashboard/:path*',
     '/chat/:path*',
-    '/bookings/:path*',
-    '/messages/:path*',
   ],
-}; 
+};
