@@ -1,26 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bot, MessageCircle, Brain, Users, Calendar, Gift,
-  ArrowRight, Sparkles, Coffee
+  Bot, MessageCircle, Heart, Sparkles, Coffee, Calendar, ArrowRight, Sun
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RecipeCard } from '@/components/home/recipe-card';
+import { PlayCard } from '@/components/home/play-card';
+import { DevelopmentCard } from '@/components/home/development-card';
+import { StoryCard } from '@/components/home/story-card';
+import { JournalPrompt } from '@/components/home/journal-prompt';
+import type { DailyBriefContent } from '@/types/daily-brief';
+import { format } from 'date-fns';
+import { ACTIVITY_CATEGORIES } from '@/lib/constants';
+
+interface Meetup {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  childAgeRange: string;
+}
+
+interface WeekendActivity {
+  id: string;
+  title: string;
+  description: string;
+  category: keyof typeof ACTIVITY_CATEGORIES;
+  date: string;
+  location: string;
+}
 
 interface HomeData {
-  todaysFocus: string;
-  parentingTip: string;
-  memoryCount: number;
-  postCount: number;
-  upcomingMeetups: number;
-  lastConversation: { id: string; title: string; updatedAt: string } | null;
-  profile: { name: string; childNickname?: string | null; parentingGoal?: string | null };
+  brief: DailyBriefContent;
+  profile: { name: string; childNickname?: string | null; childAge?: string | null };
+  meetups: Meetup[];
+  weekendActivities: WeekendActivity[];
+  yesterdayMemory: { content: string } | null;
 }
 
 export default function HomePage() {
@@ -28,6 +51,13 @@ export default function HomePage() {
   const router = useRouter();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sectionLoading, setSectionLoading] = useState(false);
+
+  const loadBrief = useCallback(() => {
+    return fetch('/api/daily-brief')
+      .then((r) => r.json())
+      .then(setData);
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -39,22 +69,43 @@ export default function HomePage() {
     fetch('/api/onboarding')
       .then((r) => r.json())
       .then(({ profile }) => {
-        if (!profile?.onboardingComplete) {
-          router.push('/onboarding');
-        }
+        if (!profile?.onboardingComplete) router.push('/onboarding');
       });
 
-    fetch('/api/home')
-      .then((r) => r.json())
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, [status, router]);
+    loadBrief().finally(() => setLoading(false));
+  }, [status, router, loadBrief]);
+
+  const patchBrief = async (action: string) => {
+    setSectionLoading(true);
+    try {
+      const res = await fetch('/api/daily-brief', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json();
+      if (json.brief) {
+        setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+      }
+    } finally {
+      setSectionLoading(false);
+    }
+  };
+
+  const submitJournal = async (sentence: string) => {
+    await fetch('/api/journal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sentence }),
+    });
+  };
 
   if (status === 'loading' || loading) {
     return (
       <AppShell>
-        <div className="container max-w-lg mx-auto p-6 flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <Sun className="h-8 w-8 text-primary animate-pulse" />
+          <p className="text-muted-foreground text-sm">MumBot is preparing today&apos;s plan...</p>
         </div>
       </AppShell>
     );
@@ -62,144 +113,173 @@ export default function HomePage() {
 
   const firstName = data?.profile?.name?.split(' ')[0] || session?.user?.name?.split(' ')[0] || 'there';
   const childName = data?.profile?.childNickname;
+  const brief = data?.brief;
 
   return (
     <AppShell>
-      <div className="container max-w-lg mx-auto p-4 space-y-6">
-        {/* Hero */}
-        <section className="pt-4 pb-2">
+      <div className="container max-w-lg mx-auto p-4 space-y-5 pb-8">
+        {/* Greeting */}
+        <section className="pt-3">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Bot className="h-6 w-6 text-primary" />
+            <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Bot className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Hi {firstName} 👋</h1>
-              <p className="text-muted-foreground mt-1 leading-relaxed">
-                I&apos;m <span className="font-medium text-foreground">MumBot</span>.
-                {childName ? ` Here for you and ${childName}.` : ' Here whenever you need me.'}
-              </p>
+              <h1 className="text-2xl font-bold">Good morning, {firstName} 👋</h1>
+              {childName && brief?.childAgeDisplay && (
+                <p className="text-muted-foreground mt-1">
+                  <span className="font-medium text-foreground">{childName}</span> is {brief.childAgeDisplay}.
+                </p>
+              )}
+              {brief?.greeting && (
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{brief.greeting}</p>
+              )}
             </div>
-          </div>
-          <div className="flex gap-3 mt-5">
-            <Link href="/mumbot" className="flex-1">
-              <Button className="w-full rounded-xl" size="lg">
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Start Chatting
-              </Button>
-            </Link>
-            <Link href="/community" className="flex-1">
-              <Button variant="outline" className="w-full rounded-xl" size="lg">
-                <Users className="mr-2 h-4 w-4" />
-                Community
-              </Button>
-            </Link>
           </div>
         </section>
 
-        {/* Today's Focus */}
-        <Card className="rounded-2xl border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+        {/* Encouragement banner */}
+        {brief?.encouragement && (
+          <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 px-4 py-3">
+            <p className="text-sm font-medium flex items-start gap-2">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              {brief.encouragement}
+            </p>
+          </div>
+        )}
+
+        {brief && (
+          <>
+            <RecipeCard
+              recipe={brief.recipe}
+              loading={sectionLoading}
+              onRegenerate={() => patchBrief('regenerate-recipe')}
+              onSave={() => patchBrief('save-recipe')}
+            />
+
+            <PlayCard
+              play={brief.play}
+              loading={sectionLoading}
+              onRegenerate={() => patchBrief('regenerate-play')}
+            />
+
+            <DevelopmentCard items={brief.development} />
+
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-rose-500" />
+                  <CardTitle className="text-base">Today&apos;s Parenting Tip</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Badge variant="secondary" className="rounded-full text-xs mb-2">{brief.tip.topic}</Badge>
+                <p className="text-sm leading-relaxed">{brief.tip.content}</p>
+              </CardContent>
+            </Card>
+
+            <StoryCard
+              story={brief.bedtimeStory}
+              onSave={() => patchBrief('save-story')}
+            />
+          </>
+        )}
+
+        <JournalPrompt
+          yesterdayMemory={data?.yesterdayMemory}
+          onSubmit={submitJournal}
+        />
+
+        {/* Meetups */}
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Today&apos;s Focus</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Coffee className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">Nearby Parent Meetups</CardTitle>
+              </div>
+              <Link href="/community?tab=meetups">
+                <Button variant="ghost" size="sm" className="h-8 text-xs">View all</Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-relaxed">{data?.todaysFocus}</p>
+            {data?.meetups && data.meetups.length > 0 ? (
+              <div className="space-y-3">
+                {data.meetups.map((m) => (
+                  <div key={m.id} className="text-sm border-b last:border-0 pb-2 last:pb-0">
+                    <p className="font-medium">{m.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {format(new Date(m.date), 'EEE d MMM')} · {m.time} · {m.location}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No upcoming meetups — start one in Community!</p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Parenting Tip */}
+        {/* Weekend Activities */}
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Today&apos;s Parenting Tip</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">Weekend Activities</CardTitle>
+              </div>
+              <Link href="/activities">
+                <Button variant="ghost" size="sm" className="h-8 text-xs">View all</Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed">{data?.parentingTip}</p>
+            {data?.weekendActivities && data.weekendActivities.length > 0 ? (
+              <div className="space-y-3">
+                {data.weekendActivities.map((a) => (
+                  <div key={a.id} className="text-sm">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{a.title}</p>
+                      <Badge variant="outline" className="text-[10px] rounded-full">
+                        {ACTIVITY_CATEGORIES[a.category]}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {format(new Date(a.date), 'EEE d MMM')} · {a.location}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Discover local family fun — add events in Activities.</p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Quick Links Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/mumbot">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
+        {/* Ask MumBot */}
+        <Link href="/mumbot">
+          <Card className="rounded-2xl border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <MessageCircle className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Continue Chat</p>
-                {data?.lastConversation && (
-                  <p className="text-xs text-muted-foreground line-clamp-1">
-                    {data.lastConversation.title}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
+                <div>
+                  <p className="font-medium">Ask MumBot Anything</p>
+                  <p className="text-xs text-muted-foreground">Your AI Co-Parent is always here</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
 
-          <Link href="/memory">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Family Memory</p>
-                <p className="text-xs text-muted-foreground">
-                  {data?.memoryCount || 0} memories saved
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/community">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Community</p>
-                <p className="text-xs text-muted-foreground">
-                  {data?.postCount || 0} posts
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/activities">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Weekend Activities</p>
-                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/exchange">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <Gift className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Toy Exchange</p>
-                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/community?tab=meetups">
-            <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex flex-col gap-2">
-                <Coffee className="h-5 w-5 text-primary" />
-                <p className="font-medium text-sm">Coffee Walks</p>
-                <p className="text-xs text-muted-foreground">
-                  {data?.upcomingMeetups || 0} upcoming
-                </p>
-              </CardContent>
-            </Card>
+        <div className="text-center pb-2">
+          <Link href="/library">
+            <Button variant="link" className="text-muted-foreground text-sm">
+              Browse personalised Parenting Library →
+            </Button>
           </Link>
         </div>
-
-        {data?.profile?.parentingGoal && (
-          <div className="flex items-center gap-2 justify-center pb-2">
-            <span className="text-xs text-muted-foreground">Your goal:</span>
-            <Badge variant="secondary" className="rounded-full">
-              {data.profile.parentingGoal}
-            </Badge>
-          </div>
-        )}
       </div>
     </AppShell>
   );

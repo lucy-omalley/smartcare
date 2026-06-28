@@ -7,6 +7,7 @@ export const MEMORY_CATEGORIES = {
   FUNNY_MOMENT: "Funny Moment",
   CONCERN: "Concern",
   FAVOURITE_THINGS: "Favourite Things",
+  JOURNAL: "Journal",
 } as const;
 
 export const PARENTING_GOALS = [

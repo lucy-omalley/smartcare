@@ -19,19 +19,28 @@ interface Profile {
 
 interface ReflectionContent {
   parentingWins?: string;
-  learningProgress?: string;
+  developmentProgress?: string;
+  eating?: string;
+  sleep?: string;
+  emotionalGrowth?: string;
+  favouriteActivities?: string;
   happyMoments?: string;
-  emotionalDevelopment?: string;
   nextWeekFocus?: string;
   encouragement?: string;
+  // legacy keys
+  learningProgress?: string;
+  emotionalDevelopment?: string;
 }
 
 const REFLECTION_SECTIONS = [
   { key: 'parentingWins', label: '⭐ Parenting Wins' },
-  { key: 'learningProgress', label: '🧠 Learning Progress' },
-  { key: 'happyMoments', label: '😊 Happy Moments' },
-  { key: 'emotionalDevelopment', label: '❤️ Emotional Development' },
-  { key: 'nextWeekFocus', label: '🎯 Next Week Focus' },
+  { key: 'developmentProgress', label: '🧠 Development Progress' },
+  { key: 'eating', label: '🍎 Eating' },
+  { key: 'sleep', label: '😴 Sleep' },
+  { key: 'emotionalGrowth', label: '😊 Emotional Growth' },
+  { key: 'favouriteActivities', label: '🎮 Favourite Activities' },
+  { key: 'happyMoments', label: '❤️ Happy Family Moments' },
+  { key: 'nextWeekFocus', label: '🎯 Focus Next Week' },
   { key: 'encouragement', label: '💛 Encouragement for Parents' },
 ] as const;
 
@@ -126,14 +135,18 @@ export default function ProfilePage() {
           <CardContent>
             {reflection ? (
               <div className="space-y-4">
-                {REFLECTION_SECTIONS.map(({ key, label }) =>
-                  reflection[key] ? (
+                {REFLECTION_SECTIONS.map(({ key, label }) => {
+                  const text =
+                    reflection[key] ??
+                    (key === 'developmentProgress' ? reflection.learningProgress : undefined) ??
+                    (key === 'emotionalGrowth' ? reflection.emotionalDevelopment : undefined);
+                  return text ? (
                     <div key={key}>
                       <p className="text-sm font-medium mb-1">{label}</p>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{reflection[key]}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{text}</p>
                     </div>
-                  ) : null
-                )}
+                  ) : null;
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
