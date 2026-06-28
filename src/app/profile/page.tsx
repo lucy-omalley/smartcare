@@ -7,7 +7,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, LogOut, Target, Baby, Star } from 'lucide-react';
+import { User, LogOut, Target, Baby, Star, MapPin, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 
 interface Profile {
@@ -15,6 +15,7 @@ interface Profile {
   childNickname?: string | null;
   childAge?: string | null;
   parentingGoal?: string | null;
+  location?: string | null;
 }
 
 interface ReflectionContent {
@@ -112,11 +113,29 @@ export default function ProfilePage() {
                 <Badge variant="secondary" className="rounded-full">{profile.parentingGoal}</Badge>
               </div>
             )}
+            {profile?.location && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span>{profile.location}</span>
+              </div>
+            )}
             <Link href="/onboarding">
               <Button variant="link" className="p-0 h-auto text-primary">Update profile</Button>
             </Link>
           </CardContent>
         </Card>
+
+        <Link href="/saved">
+          <Card className="rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Bookmark className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">Saved Recipes &amp; Stories</p>
+                <p className="text-xs text-muted-foreground">Your favourite meals and bedtime tales</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">

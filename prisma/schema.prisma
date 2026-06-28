@@ -50,6 +50,7 @@ model User {
   childNickname      String?
   childAge           String?
   parentingGoal      String?
+  location           String?
   onboardingComplete Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -251,12 +252,15 @@ model SavedRecipe {
 }
 
 model SavedStory {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  story     String   @db.Text
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  story           String   @db.Text
+  moral           String?
+  illustrationData String? @db.Text
+  audioData       Bytes?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

@@ -6,6 +6,8 @@ import {
   getOrCreateDailyBrief,
   regenerateDailyBriefSection,
   getHomeSupplementaryData,
+  generateAndSaveBriefIllustrations,
+  needsBriefIllustrations,
 } from "@/lib/services/daily-brief";
 import type { DailyBriefContent } from "@/types/daily-brief";
 
@@ -24,6 +26,7 @@ export async function GET() {
 
   return NextResponse.json({
     brief,
+    needsIllustrations: needsBriefIllustrations(brief),
     ...supplementary,
   });
 }
@@ -35,7 +38,12 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { action } = body as { action: string };
+  const { action } = body as { action: string; illustrationData?: string };
+
+  if (action === "generate-illustrations") {
+    const brief = await generateAndSaveBriefIllustrations(session.user.id);
+    return NextResponse.json({ brief, needsIllustrations: false });
+  }
 
   if (action === "regenerate-recipe") {
     const brief = await regenerateDailyBriefSection(session.user.id, "recipe");
@@ -63,11 +71,14 @@ export async function PATCH(request: Request) {
   if (action === "save-story") {
     const brief = await getOrCreateDailyBrief(session.user.id);
     const story = brief.bedtimeStory;
+    const illustrationData = (body as { illustrationData?: string }).illustrationData;
     const saved = await prisma.savedStory.create({
       data: {
         userId: session.user.id,
         title: story.title,
         story: story.story,
+        moral: story.moral ?? null,
+        illustrationData: illustrationData ?? story.illustrationData ?? null,
       },
     });
     return NextResponse.json({ saved, brief });

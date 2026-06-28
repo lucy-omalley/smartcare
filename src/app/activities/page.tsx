@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Plus, MapPin } from 'lucide-react';
 import { ACTIVITY_CATEGORIES } from '@/lib/constants';
+import { EmptyState } from '@/components/visual/empty-state';
 import { format } from 'date-fns';
 
 interface Activity {
@@ -99,11 +100,14 @@ export default function ActivitiesPage() {
         )}
 
         {activities.length === 0 ? (
-          <Card className="rounded-2xl">
-            <CardContent className="p-8 text-center text-muted-foreground text-sm">
-              No upcoming activities. Add library events, playgroups, and more!
-            </CardContent>
-          </Card>
+          <EmptyState
+            emoji="🎉"
+            title="No activities nearby?"
+            description="We'll recommend some soon. Be the first to add a local family event!"
+            gradientKey="activity"
+            actionLabel="Add an event"
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           activities.map((activity) => (
             <Card key={activity.id} className="rounded-2xl">

@@ -5,6 +5,7 @@ export interface BriefProfile {
   childNickname?: string | null;
   childAge?: string | null;
   parentingGoal?: string | null;
+  location?: string | null;
 }
 
 export interface BriefMemory {
@@ -24,6 +25,7 @@ export function buildDailyBriefContext(
   if (profile.childNickname) parts.push(`Child nickname: ${profile.childNickname}`);
   if (profile.childAge) parts.push(`Child age: ${profile.childAge}`);
   if (profile.parentingGoal) parts.push(`Current parenting goal: ${profile.parentingGoal}`);
+  if (profile.location) parts.push(`Location: ${profile.location}`);
   if (weeklyFocus) parts.push(`Weekly focus: ${weeklyFocus}`);
 
   if (memories.length > 0) {

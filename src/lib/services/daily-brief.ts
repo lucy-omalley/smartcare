@@ -1,13 +1,47 @@
 import { prisma } from "@/lib/db";
 import { generateDailyBrief, regeneratePlay, regenerateRecipe } from "@/lib/services/mumbot";
+import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
-import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe } from "@/types/daily-brief";
+import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, WeatherInfo } from "@/types/daily-brief";
+import { enrichBriefWithIllustrations, needsBriefIllustrations } from "@/lib/services/card-illustrations";
+import type { BriefProfile } from "@/lib/daily-brief-context";
+
+export { needsBriefIllustrations };
+
+export async function generateAndSaveBriefIllustrations(userId: string): Promise<DailyBriefContent> {
+  const today = toDateKey();
+  let brief = await prisma.dailyBrief.findUnique({
+    where: { userId_date: { userId, date: today } },
+  });
+
+  if (!brief) {
+    return getOrCreateDailyBrief(userId);
+  }
+
+  const content = brief.content as unknown as DailyBriefContent;
+  if (!needsBriefIllustrations(content)) {
+    return content;
+  }
+
+  const profile = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { childNickname: true },
+  });
+
+  const enriched = await enrichBriefWithIllustrations(content, profile?.childNickname);
+  await prisma.dailyBrief.update({
+    where: { userId_date: { userId, date: today } },
+    data: { content: enriched as object },
+  });
+
+  return enriched;
+}
 
 async function fetchBriefContext(userId: string) {
   const [user, memories, recentMessages, reflection] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, childNickname: true, childAge: true, parentingGoal: true },
+      select: { name: true, childNickname: true, childAge: true, parentingGoal: true, location: true },
     }),
     prisma.familyMemory.findMany({
       where: { userId },
@@ -37,7 +71,7 @@ async function fetchBriefContext(userId: string) {
       : null;
 
   return {
-    profile: user ?? {},
+    profile: (user ?? {}) as BriefProfile,
     memories,
     recentMessages: recentMessages.map((m) => m.content),
     weeklyFocus,
@@ -56,7 +90,8 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   }
 
   const { profile, memories, recentMessages, weeklyFocus } = await fetchBriefContext(userId);
-  const content = await generateDailyBrief(profile, memories, recentMessages, weeklyFocus);
+  const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
+  const content = await generateDailyBrief(profile, memories, recentMessages, weeklyFocus, weather);
 
   await prisma.dailyBrief.create({
     data: { userId, date: today, content: content as object },
@@ -110,13 +145,14 @@ export async function regenerateDailyBriefSection(userId: string, section: "reci
 
   const content = brief!.content as unknown as DailyBriefContent;
   const { profile, memories } = await fetchBriefContext(userId);
+  const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
 
   if (section === "recipe") {
     const recipe = await regenerateRecipe(profile, memories, content.recipe);
     return updateDailyBriefSection(userId, "recipe", recipe);
   }
 
-  const play = await regeneratePlay(profile, memories, content.play);
+  const play = await regeneratePlay(profile, memories, content.play, weather);
   return updateDailyBriefSection(userId, "play", play);
 }
 
@@ -143,7 +179,7 @@ export async function getHomeSupplementaryData(userId: string) {
   weekendStart.setDate(now.getDate() + (day === 0 ? 0 : daysUntilSaturday));
   weekendStart.setHours(0, 0, 0, 0);
 
-  const [meetups, weekendActivities, profile, yesterdayMemory] = await Promise.all([
+  const [meetups, weekendActivities, profile, yesterdayMemory, weather] = await Promise.all([
     prisma.meetup.findMany({
       where: { date: { gte: now } },
       orderBy: { date: "asc" },
@@ -158,10 +194,13 @@ export async function getHomeSupplementaryData(userId: string) {
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, childNickname: true, childAge: true, parentingGoal: true },
+      select: { name: true, childNickname: true, childAge: true, parentingGoal: true, location: true },
     }),
     getYesterdayJournalMemory(userId),
+    prisma.user
+      .findUnique({ where: { id: userId }, select: { location: true } })
+      .then((u) => (u?.location ? fetchWeatherForLocation(u.location) : null)),
   ]);
 
-  return { meetups, weekendActivities, profile, yesterdayMemory };
+  return { meetups, weekendActivities, profile, yesterdayMemory, weather: weather as WeatherInfo | null };
 }

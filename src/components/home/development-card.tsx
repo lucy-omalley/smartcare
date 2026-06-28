@@ -1,34 +1,56 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain } from 'lucide-react';
 import type { DailyBriefDevelopment } from '@/types/daily-brief';
+import { VisualCardHero } from '@/components/visual/visual-card-hero';
 
 interface DevelopmentCardProps {
   items: DailyBriefDevelopment[];
+  developmentImage?: string;
+  imagesLoading?: boolean;
 }
 
-export function DevelopmentCard({ items }: DevelopmentCardProps) {
+export function DevelopmentCard({ items, developmentImage, imagesLoading }: DevelopmentCardProps) {
+  const featured = items[0];
+
   return (
-    <Card className="rounded-2xl border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-background dark:from-blue-950/20">
-      <CardHeader className="pb-2">
+    <article className="visual-card animate-fade-in-up">
+      <VisualCardHero
+        imageData={developmentImage}
+        gradientKey="development"
+        emoji="🧠"
+        alt="Development focus"
+        loading={imagesLoading}
+      />
+      <div className="p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-blue-600" />
-          <CardTitle className="text-base">Development Focus</CardTitle>
+          <span className="text-lg">🧠</span>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Growth Moment</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
         {items.map((item) => (
-          <div key={item.domain} className="space-y-1.5">
-            <p className="text-sm font-semibold">{item.domain}</p>
+          <div key={item.domain} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{item.icon ?? '✨'}</span>
+              <p className="font-semibold">{item.domain}</p>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{item.insight}</p>
-            <p className="text-sm bg-primary/5 rounded-lg p-2.5 leading-relaxed">
-              <span className="font-medium text-primary">Try today: </span>
-              {item.tryToday}
-            </p>
+            {item === featured && (
+              <p className="text-sm bg-sky-50 text-sky-900 rounded-2xl px-4 py-3 leading-relaxed border border-sky-100">
+                <span className="font-medium">Try today: </span>{item.tryToday}
+              </p>
+            )}
           </div>
         ))}
-      </CardContent>
-    </Card>
+        {items.length > 1 && (
+          <div className="pt-2 space-y-3 border-t border-border/50">
+            {items.slice(1).map((item) => (
+              <div key={item.domain} className="text-sm">
+                <p className="font-medium flex items-center gap-1.5">{item.icon} {item.domain}</p>
+                <p className="text-muted-foreground mt-0.5">{item.tryToday}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }

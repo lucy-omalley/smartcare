@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Gift, Plus, MapPin, Mail } from 'lucide-react';
 import { EXCHANGE_CATEGORIES } from '@/lib/constants';
+import { EmptyState } from '@/components/visual/empty-state';
 
 interface Listing {
   id: string;
@@ -99,11 +100,14 @@ export default function ExchangePage() {
         )}
 
         {listings.length === 0 ? (
-          <Card className="rounded-2xl">
-            <CardContent className="p-8 text-center text-muted-foreground text-sm">
-              No listings yet. Share books, toys, clothes, or baby equipment with nearby parents.
-            </CardContent>
-          </Card>
+          <EmptyState
+            emoji="♻️"
+            title="No toy exchanges yet?"
+            description="Be the first parent in your neighbourhood to share books, toys, or baby gear."
+            gradientKey="default"
+            actionLabel="List an item"
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           listings.map((listing) => (
             <Card key={listing.id} className="rounded-2xl">

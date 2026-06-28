@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Bot, ArrowRight } from 'lucide-react';
@@ -18,7 +18,24 @@ export default function OnboardingPage() {
   const [childNickname, setChildNickname] = useState('');
   const [childAge, setChildAge] = useState('');
   const [parentingGoal, setParentingGoal] = useState('');
+  const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/onboarding')
+        .then((r) => r.json())
+        .then(({ profile }) => {
+          if (profile) {
+            if (profile.name) setName(profile.name);
+            if (profile.childNickname) setChildNickname(profile.childNickname);
+            if (profile.childAge) setChildAge(profile.childAge);
+            if (profile.parentingGoal) setParentingGoal(profile.parentingGoal);
+            if (profile.location) setLocation(profile.location);
+          }
+        });
+    }
+  }, [status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +46,7 @@ export default function OnboardingPage() {
       await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, childNickname, childAge, parentingGoal }),
+        body: JSON.stringify({ name, childNickname, childAge, parentingGoal, location }),
       });
       router.push('/home');
     } finally {
@@ -108,6 +125,16 @@ export default function OnboardingPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="location">Your city <span className="text-muted-foreground">(for local weather)</span></Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Dublin, IE"
+                className="mt-1"
+              />
             </div>
             <Button type="submit" className="w-full rounded-xl" size="lg" disabled={loading}>
               {loading ? 'Setting up...' : 'Start with MumBot'}

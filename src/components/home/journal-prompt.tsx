@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { BookHeart, Sparkles } from 'lucide-react';
+import { VisualCardHero } from '@/components/visual/visual-card-hero';
+import { EmptyState } from '@/components/visual/empty-state';
 import { toast } from 'sonner';
 
 interface JournalPromptProps {
@@ -34,44 +34,52 @@ export function JournalPrompt({ yesterdayMemory, onSubmit }: JournalPromptProps)
 
   return (
     <>
-      {yesterdayMemory && (
-        <Card className="rounded-2xl border-rose-200/50 bg-gradient-to-br from-rose-50/80 to-background dark:from-rose-950/20">
-          <CardHeader className="pb-2">
+      {yesterdayMemory ? (
+        <article className="visual-card animate-fade-in-up">
+          <VisualCardHero gradientKey="memory" emoji="📷" alt="Yesterday's memory" aspect="square" />
+          <div className="p-5 space-y-2">
             <div className="flex items-center gap-2">
-              <BookHeart className="h-4 w-4 text-rose-600" />
-              <CardTitle className="text-base">Yesterday&apos;s Memory</CardTitle>
+              <span className="text-lg">📷</span>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Yesterday&apos;s Happy Memory</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-relaxed italic">&ldquo;{yesterdayMemory.content}&rdquo;</p>
-          </CardContent>
-        </Card>
-      )}
+            <blockquote className="text-base leading-relaxed italic text-foreground/90">
+              &ldquo;{yesterdayMemory.content}&rdquo;
+            </blockquote>
+            <p className="text-xs text-muted-foreground">Small moments become lifelong memories ❤️</p>
+          </div>
+        </article>
+      ) : null}
 
       {isEvening && (
-        <Card className="rounded-2xl border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-background dark:from-amber-950/20">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-600" />
-              <CardTitle className="text-base">What made you smile today?</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <article className="visual-card animate-fade-in-up">
+          <div className="bg-gradient-to-br from-amber-100 via-rose-50 to-pink-100 px-5 py-6">
+            <span className="text-3xl">✨</span>
+            <p className="font-semibold mt-2">What made you smile today?</p>
+            <p className="text-sm text-muted-foreground mt-1">One sentence is all it takes.</p>
+          </div>
+          <div className="p-5 space-y-3">
             <Textarea
               placeholder="Jack counted to ten today..."
               value={sentence}
               onChange={(e) => setSentence(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[80px] resize-none rounded-2xl border-0 bg-muted/50"
             />
-            <Button
-              className="w-full rounded-xl"
-              disabled={!sentence.trim() || submitting}
-              onClick={handleSubmit}
-            >
+            <Button className="w-full rounded-full touch-target" disabled={!sentence.trim() || submitting} onClick={handleSubmit}>
               {submitting ? 'Saving...' : 'Save to Family Memory'}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </article>
+      )}
+
+      {!yesterdayMemory && !isEvening && (
+        <EmptyState
+          emoji="📷"
+          title="Your memory timeline awaits"
+          description="This evening, tell MumBot what made you smile — we'll turn it into a beautiful journal entry."
+          gradientKey="memory"
+          actionLabel="View memories"
+          actionHref="/memory"
+        />
       )}
     </>
   );

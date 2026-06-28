@@ -16,6 +16,7 @@ export async function GET() {
       childNickname: true,
       childAge: true,
       parentingGoal: true,
+      location: true,
       onboardingComplete: true,
     },
   });
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name, childNickname, childAge, parentingGoal } = await request.json();
+  const { name, childNickname, childAge, parentingGoal, location } = await request.json();
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       childNickname: childNickname?.trim() || null,
       childAge: childAge?.trim() || null,
       parentingGoal: parentingGoal?.trim() || null,
+      location: location?.trim() || null,
       onboardingComplete: true,
     },
     select: {
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
       childNickname: true,
       childAge: true,
       parentingGoal: true,
+      location: true,
       onboardingComplete: true,
     },
   });

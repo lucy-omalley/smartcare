@@ -3,7 +3,8 @@ import { MemoryCategory } from "@prisma/client";
 import { generateParentingTipStatic } from "@/lib/mumbot-messages";
 import { OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS } from "@/lib/openai-config";
 import { buildDailyBriefContext, type BriefProfile, type BriefMemory } from "@/lib/daily-brief-context";
-import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, LibraryRecommendation } from "@/types/daily-brief";
+import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, LibraryRecommendation, WeatherInfo } from "@/types/daily-brief";
+import { weatherContextLine } from "@/lib/services/weather";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -213,6 +214,9 @@ const DAILY_BRIEF_JSON_SCHEMA = `Return JSON with this exact structure:
     "title": "Today's Healthy Lunch",
     "subtitle": "Meal name",
     "prepTimeMinutes": 15,
+    "difficulty": "Easy",
+    "nutritionalHighlights": ["Protein", "Vegetables"],
+    "healthyTip": "One short healthy eating tip",
     "whyThisMeal": "1-2 sentences explaining why this suits this family",
     "ingredients": ["item1", "item2"],
     "steps": ["step1", "step2"]
@@ -223,15 +227,17 @@ const DAILY_BRIEF_JSON_SCHEMA = `Return JSON with this exact structure:
     "instructions": ["step1"],
     "skillsDeveloped": ["Fine motor", "Language"],
     "durationMinutes": 20,
-    "indoorOutdoor": "indoor" | "outdoor" | "either"
+    "indoorOutdoor": "indoor" | "outdoor" | "either",
+    "ageRecommendation": "e.g. 2-4 years"
   },
   "development": [
-    { "domain": "Language", "insight": "Many children around this age begin...", "tryToday": "One practical activity" },
+    { "domain": "Language", "icon": "💬", "insight": "Many children around this age begin...", "tryToday": "One practical activity" },
     { "domain": "Fine Motor", "insight": "...", "tryToday": "..." },
     { "domain": "Social", "insight": "...", "tryToday": "..." }
   ],
   "tip": { "topic": "Eating|Sleep|Tantrums|etc", "content": "Short practical evidence-informed tip" },
   "encouragement": "One warm supportive sentence for the parent",
+  "weatherNote": "Optional one sentence about today's weather and how it affects the plan (omit if no weather)",
   "bedtimeStory": {
     "title": "Story title",
     "story": "Full bedtime story, child as main character, 3-5 min read",
@@ -245,7 +251,7 @@ const BRIEF_TONE_RULES = `Rules:
 - Reduce anxiety, celebrate small wins, be warm and practical
 - Personalise using family context (age, goals, memories, allergies if mentioned)
 - Recipe: consider picky eating, quick prep (~15-30 min default)
-- Play: age-appropriate, clear materials and steps
+- Play: age-appropriate, clear materials and steps; match indoorOutdoor to today's weather when provided
 - Development: 3-4 domains max, each with tryToday action
 - Bedtime story: child nickname as hero if provided; use favourite things from memories when available`;
 
@@ -271,6 +277,9 @@ function defaultDailyBrief(profile: BriefProfile): DailyBriefContent {
       title: "Today's Healthy Lunch",
       subtitle: "Simple Veggie Pasta",
       prepTimeMinutes: 20,
+      difficulty: "Easy",
+      nutritionalHighlights: ["Vegetables", "Energy"],
+      healthyTip: "Offer familiar foods alongside new ones — no pressure.",
       whyThisMeal: "A familiar pasta base with finely chopped vegetables — gentle introduction for picky eaters.",
       ingredients: ["Pasta", "Cherry tomatoes", "Peas", "Olive oil", "Cheese"],
       steps: ["Cook pasta.", "Sauté chopped veg until soft.", "Mix together and serve warm."],
@@ -282,11 +291,12 @@ function defaultDailyBrief(profile: BriefProfile): DailyBriefContent {
       skillsDeveloped: ["Colour recognition", "Gross motor", "Turn-taking"],
       durationMinutes: 20,
       indoorOutdoor: "indoor",
+      ageRecommendation: "2-5 years",
     },
     development: [
-      { domain: "Language", insight: "Many children around this age begin joining two words together and naming familiar objects.", tryToday: "Narrate what you're doing: 'Now we're putting on your blue shoes.'" },
-      { domain: "Fine Motor", insight: "Many children around this age begin stacking blocks and turning pages in board books.", tryToday: "Offer chunky crayons and paper for free scribbling." },
-      { domain: "Social", insight: "Many children around this age begin imitating everyday actions they see at home.", tryToday: "Play 'copy me' with simple gestures like clapping or waving." },
+      { domain: "Language", icon: "💬", insight: "Many children around this age begin joining two words together and naming familiar objects.", tryToday: "Narrate what you're doing: 'Now we're putting on your blue shoes.'" },
+      { domain: "Fine Motor", icon: "✋", insight: "Many children around this age begin stacking blocks and turning pages in board books.", tryToday: "Offer chunky crayons and paper for free scribbling." },
+      { domain: "Social", icon: "🤝", insight: "Many children around this age begin imitating everyday actions they see at home.", tryToday: "Play 'copy me' with simple gestures like clapping or waving." },
     ],
     tip: { topic: "Connection", content: "Five minutes of undivided play can fill your child's emotional cup for hours." },
     encouragement: "You're doing a great job — small moments of presence matter more than perfection.",
@@ -303,9 +313,13 @@ export async function generateDailyBrief(
   profile: BriefProfile,
   memories: BriefMemory[],
   recentMessages: string[],
-  weeklyFocus?: string | null
+  weeklyFocus?: string | null,
+  weather?: WeatherInfo | null
 ): Promise<DailyBriefContent> {
-  const context = buildDailyBriefContext(profile, memories, recentMessages, weeklyFocus);
+  const context = [
+    buildDailyBriefContext(profile, memories, recentMessages, weeklyFocus),
+    weather ? `\n${weatherContextLine(weather)}` : "",
+  ].join("\n");
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
@@ -360,9 +374,13 @@ export async function regenerateRecipe(
 export async function regeneratePlay(
   profile: BriefProfile,
   memories: BriefMemory[],
-  currentPlay?: DailyBriefPlay
+  currentPlay?: DailyBriefPlay,
+  weather?: WeatherInfo | null
 ): Promise<DailyBriefPlay> {
-  const context = buildDailyBriefContext(profile, memories, []);
+  const context = [
+    buildDailyBriefContext(profile, memories, []),
+    weather ? `\n${weatherContextLine(weather)}` : "",
+  ].join("\n");
   const avoid = currentPlay ? `\nAvoid repeating: ${currentPlay.title}` : "";
 
   const completion = await openai.chat.completions.create({

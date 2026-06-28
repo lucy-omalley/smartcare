@@ -42,3 +42,7 @@ export const ACTIVITY_CATEGORIES = {
   FESTIVAL: "Family Festivals",
   OTHER: "Other",
 } as const;
+
+export function weatherIconUrl(icon: string): string {
+  return `https://openweathermap.org/img/wn/${icon}@2x.png`;
+}

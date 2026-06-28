@@ -4,86 +4,97 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 40 33% 98%;
+    --foreground: 24 20% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
+    --card-foreground: 24 20% 18%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 24 95% 53%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 24 95% 90%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --popover-foreground: 24 20% 18%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 24 95% 53%;
- 
-    --radius: 0.75rem;
- 
-    --chart-1: 24 95% 53%;
-    --chart-2: 142 76% 36%;
-    --chart-3: 217 91% 60%;
-    --chart-4: 43 96% 56%;
-    --chart-5: 340 82% 52%;
+    --primary: 18 85% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 145 30% 94%;
+    --secondary-foreground: 24 20% 22%;
+
+    --muted: 40 25% 95%;
+    --muted-foreground: 24 10% 45%;
+
+    --accent: 200 60% 94%;
+    --accent-foreground: 24 20% 22%;
+
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 35 25% 90%;
+    --input: 35 25% 90%;
+    --ring: 18 85% 58%;
+
+    --radius: 1rem;
+
+    --sage: 145 35% 88%;
+    --sky: 200 70% 92%;
+    --sun: 45 90% 88%;
+    --coral: 12 80% 92%;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 24 95% 53%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 24 95% 20%;
-    --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --background: 24 15% 10%;
+    --foreground: 40 20% 96%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 24 95% 53%;
+    --card: 24 15% 13%;
+    --card-foreground: 40 20% 96%;
 
-    --chart-1: 24 95% 53%;
-    --chart-2: 142 76% 36%;
-    --chart-3: 217 91% 60%;
-    --chart-4: 43 96% 56%;
-    --chart-5: 340 82% 52%;
+    --popover: 24 15% 13%;
+    --popover-foreground: 40 20% 96%;
+
+    --primary: 18 85% 58%;
+    --primary-foreground: 24 20% 10%;
+
+    --secondary: 145 15% 18%;
+    --secondary-foreground: 40 20% 96%;
+
+    --muted: 24 12% 18%;
+    --muted-foreground: 35 10% 60%;
+
+    --accent: 200 20% 18%;
+    --accent-foreground: 40 20% 96%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 40 20% 96%;
+
+    --border: 24 12% 22%;
+    --input: 24 12% 22%;
+    --ring: 18 85% 58%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .magazine-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(var(--sun) / 0.5), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 50%, hsl(var(--sky) / 0.35), transparent),
+      radial-gradient(ellipse 50% 30% at 0% 80%, hsl(var(--sage) / 0.3), transparent),
+      hsl(var(--background));
+  }
+
+  .visual-card {
+    @apply rounded-3xl border border-white/70 bg-card/90 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)] backdrop-blur-sm overflow-hidden;
+  }
+
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }
