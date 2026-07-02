@@ -10,6 +10,7 @@ import {
   needsBriefIllustrations,
 } from "@/lib/services/daily-brief";
 import type { DailyBriefContent } from "@/types/daily-brief";
+import type { IllustrationSection } from "@/lib/services/card-illustrations";
 
 const ILLUSTRATION_SECTIONS: IllustrationSection[] = ["recipe", "play", "story", "development", "tip"];
 

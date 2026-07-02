@@ -14,7 +14,7 @@ export async function generateStoryIllustration(
 ): Promise<string> {
   const prompt = storyIllustrationPrompt(
     { title, story: storyExcerpt, lengthMinutes: 5, moral: moral ?? undefined },
-    childName
+    childName ?? "the child"
   );
   return generateCardIllustration(prompt);
 }
