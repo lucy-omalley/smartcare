@@ -267,7 +267,7 @@ function parseDailyBriefJson(raw: string): DailyBriefContent | null {
   return null;
 }
 
-function defaultDailyBrief(profile: BriefProfile): DailyBriefContent {
+export function defaultDailyBrief(profile: BriefProfile): DailyBriefContent {
   const child = profile.childNickname || "your little one";
   const parent = profile.name?.split(" ")[0] || "there";
   return {

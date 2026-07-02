@@ -6,7 +6,7 @@
     "dev": "next dev",
     "clean": "rimraf node_modules/.prisma",
     "build": "npm run clean && prisma generate && next build",
-    "vercel-build": "npm run clean && prisma generate && next build",
+    "vercel-build": "npm run clean && prisma generate && prisma db push && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:seed": "ts-node prisma/seed.ts",

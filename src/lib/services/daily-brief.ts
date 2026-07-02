@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { generateDailyBrief, regeneratePlay, regenerateRecipe } from "@/lib/services/mumbot";
+import { defaultDailyBrief, generateDailyBrief, regeneratePlay, regenerateRecipe } from "@/lib/services/mumbot";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
 import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe } from "@/types/daily-brief";
@@ -98,11 +98,28 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
 
   const { profile, memories, recentMessages, weeklyFocus } = await fetchBriefContext(userId);
   const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
-  const content = await generateDailyBrief(profile, memories, recentMessages, weeklyFocus, weather?.weather ?? null);
 
-  await prisma.dailyBrief.create({
-    data: { userId, date: today, content: content as object },
-  });
+  let content: DailyBriefContent;
+  try {
+    content = await generateDailyBrief(
+      profile,
+      memories,
+      recentMessages,
+      weeklyFocus,
+      weather?.weather ?? null
+    );
+  } catch (error) {
+    console.error("Daily brief AI generation failed, using fallback:", error);
+    content = defaultDailyBrief(profile);
+  }
+
+  try {
+    await prisma.dailyBrief.create({
+      data: { userId, date: today, content: content as object },
+    });
+  } catch (error) {
+    console.error("Failed to persist daily brief:", error);
+  }
 
   return content;
 }
