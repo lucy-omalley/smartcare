@@ -10,6 +10,10 @@ import {
   needsBriefIllustrations,
 } from "@/lib/services/daily-brief";
 import type { DailyBriefContent } from "@/types/daily-brief";
+import type { IllustrationSection } from "@/lib/services/card-illustrations";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const ILLUSTRATION_SECTIONS: IllustrationSection[] = ["recipe", "play", "story", "development", "tip"];
 
@@ -29,16 +33,28 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [brief, supplementary] = await Promise.all([
-    getOrCreateDailyBrief(userId),
-    getHomeSupplementaryData(userId),
-  ]);
+  try {
+    const supplementary = await getHomeSupplementaryData(userId);
 
-  return NextResponse.json({
-    brief,
-    needsIllustrations: needsBriefIllustrations(brief),
-    ...supplementary,
-  });
+    let brief: DailyBriefContent;
+    try {
+      brief = await getOrCreateDailyBrief(userId);
+    } catch (error) {
+      console.error("Daily brief GET error:", error);
+      const message = error instanceof Error ? error.message : "Failed to load daily brief";
+      return NextResponse.json({ error: message, ...supplementary }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      brief,
+      needsIllustrations: needsBriefIllustrations(brief),
+      ...supplementary,
+    });
+  } catch (error) {
+    console.error("Home data GET error:", error);
+    const message = error instanceof Error ? error.message : "Failed to load home data";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {

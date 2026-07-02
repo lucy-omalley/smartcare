@@ -1,10 +1,9 @@
-import { startOfDay, subDays } from "date-fns";
-
-/** Calendar date at UTC midnight for DB @db.Date keys */
+/** Calendar date at UTC midnight for DB @db.Date keys (consistent across local + Vercel). */
 export function toDateKey(date: Date = new Date()): Date {
-  return startOfDay(date);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 export function yesterdayDateKey(): Date {
-  return startOfDay(subDays(new Date(), 1));
+  const today = toDateKey();
+  return new Date(today.getTime() - 86_400_000);
 }

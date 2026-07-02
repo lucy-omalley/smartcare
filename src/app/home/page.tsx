@@ -55,6 +55,7 @@ export default function HomePage() {
   const router = useRouter();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sectionLoading, setSectionLoading] = useState(false);
   const [imagesLoading, setImagesLoading] = useState(false);
   const illustrationBriefKey = useRef<string | null>(null);
@@ -63,7 +64,22 @@ export default function HomePage() {
     `${brief.recipe.subtitle}|${brief.play.title}|${brief.bedtimeStory.title}`;
 
   const loadBrief = useCallback(() => {
-    return fetch('/api/daily-brief').then((r) => r.json()).then(setData);
+    return fetch('/api/daily-brief', { cache: 'no-store' })
+      .then(async (r) => {
+        const json = await r.json();
+        if (!r.ok) {
+          throw new Error(json.error || `Failed to load home data (${r.status})`);
+        }
+        return json as HomeData;
+      })
+      .then((json) => {
+        setLoadError(null);
+        setData(json);
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to load home data';
+        setLoadError(message);
+      });
   }, []);
 
   const generateIllustrations = useCallback(async (sections?: string[]) => {
@@ -185,6 +201,21 @@ export default function HomePage() {
             )}
           </header>
         </AnimatedSection>
+
+        {loadError && !brief && (
+          <AnimatedSection delay={100}>
+            <div className="visual-card p-5 text-center space-y-3 border border-destructive/20 bg-destructive/5">
+              <p className="text-sm text-destructive font-medium">Could not load today&apos;s plan</p>
+              <p className="text-xs text-muted-foreground">{loadError}</p>
+              <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
+                setLoading(true);
+                loadBrief().finally(() => setLoading(false));
+              }}>
+                Try again
+              </Button>
+            </div>
+          </AnimatedSection>
+        )}
 
         <AnimatedSection delay={80}>
           <WeatherCard
