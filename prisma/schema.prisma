@@ -41,6 +41,12 @@ enum ActivityCategory {
   OTHER
 }
 
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -51,25 +57,33 @@ model User {
   childAge           String?
   parentingGoal      String?
   location           String?
+  bio                String?
+  interests          String[] @default([])
+  openToConnect      Boolean  @default(true)
   onboardingComplete Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  memories      FamilyMemory[]
-  conversations Conversation[]
-  posts         CommunityPost[]
-  meetups       Meetup[]
-  meetupJoins   MeetupAttendee[]
-  activities    Activity[]
-  listings      ExchangeListing[]
-  reflections   WeeklyReflection[]
-  dailyBriefs   DailyBrief[]
-  savedRecipes  SavedRecipe[]
-  savedStories  SavedStory[]
+  accounts            Account[]
+  sessions            Session[]
+  memories            FamilyMemory[]
+  conversations       Conversation[]
+  posts               CommunityPost[]
+  meetups             Meetup[]
+  meetupJoins         MeetupAttendee[]
+  activities          Activity[]
+  listings            ExchangeListing[]
+  reflections         WeeklyReflection[]
+  dailyBriefs         DailyBrief[]
+  savedRecipes        SavedRecipe[]
+  savedStories        SavedStory[]
+  sentConnections     ParentConnection[] @relation("SentConnections")
+  receivedConnections ParentConnection[] @relation("ReceivedConnections")
+  parentMessages      ParentMessage[]
 
   @@index([email])
+  @@index([location])
+  @@index([openToConnect])
 }
 
 model Account {
@@ -263,4 +277,46 @@ model SavedStory {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model ParentConnection {
+  id           String           @id @default(cuid())
+  requesterId  String
+  recipientId  String
+  status       ConnectionStatus @default(PENDING)
+  introMessage String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  requester    User             @relation("SentConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient    User             @relation("ReceivedConnections", fields: [recipientId], references: [id], onDelete: Cascade)
+  thread       ParentThread?
+
+  @@unique([requesterId, recipientId])
+  @@index([requesterId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+model ParentThread {
+  id           String           @id @default(cuid())
+  connectionId String           @unique
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  connection   ParentConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  messages     ParentMessage[]
+
+  @@index([updatedAt])
+}
+
+model ParentMessage {
+  id        String       @id @default(cuid())
+  threadId  String
+  senderId  String
+  content   String       @db.Text
+  createdAt DateTime     @default(now())
+  thread    ParentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender    User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([senderId])
 }

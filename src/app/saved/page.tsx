@@ -91,7 +91,7 @@ export default function SavedPage() {
       const res = await fetch('/api/stories/illustrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: story.title, story: story.story, savedStoryId: story.id }),
+        body: JSON.stringify({ title: story.title, story: story.story, moral: story.moral, savedStoryId: story.id }),
       });
       if (!res.ok) throw new Error();
       const { illustrationData } = await res.json();

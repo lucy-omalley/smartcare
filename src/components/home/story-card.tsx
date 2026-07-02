@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bookmark, ChevronDown, ChevronUp, ImageIcon, Volume2, Square, Loader2 } from 'lucide-react';
@@ -23,6 +23,10 @@ export function StoryCard({ story, onSave, imagesLoading }: StoryCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => {
+    setIllustrationData(story.illustrationData);
+  }, [story.illustrationData]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -41,7 +45,7 @@ export function StoryCard({ story, onSave, imagesLoading }: StoryCardProps) {
       const res = await fetch('/api/stories/illustrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: story.title, story: story.story }),
+        body: JSON.stringify({ title: story.title, story: story.story, moral: story.moral }),
       });
       if (!res.ok) throw new Error();
       const { illustrationData: data } = await res.json();
@@ -110,11 +114,19 @@ export function StoryCard({ story, onSave, imagesLoading }: StoryCardProps) {
             {story.moral && <p className="mt-3 text-xs italic text-primary/80">✨ {story.moral}</p>}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="outline" className="rounded-full touch-target" disabled={illustrating} onClick={handleIllustrate}>
-            {illustrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5 mr-1" />}
-            {illustrationData ? 'New cover' : 'Illustrate'}
-          </Button>
+        <div className={`grid gap-2 ${illustrationData || !imagesLoading ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {illustrationData && (
+            <Button size="sm" variant="outline" className="rounded-full touch-target" disabled={illustrating || imagesLoading} onClick={handleIllustrate}>
+              {illustrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5 mr-1" />}
+              New cover
+            </Button>
+          )}
+          {!illustrationData && !imagesLoading && (
+            <Button size="sm" variant="outline" className="rounded-full touch-target" disabled={illustrating} onClick={handleIllustrate}>
+              {illustrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5 mr-1" />}
+              Retry illustration
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="rounded-full touch-target" disabled={narrating && !isPlaying} onClick={handleNarrate}>
             {isPlaying ? <Square className="h-3.5 w-3.5 mr-1" /> : narrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1" />}
             {isPlaying ? 'Stop' : 'Listen'}

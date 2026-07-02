@@ -1,9 +1,7 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CloudSun, MapPin } from 'lucide-react';
-import type { WeatherInfo } from '@/types/daily-brief';
+import type { WeatherError, WeatherInfo } from '@/types/daily-brief';
 import { weatherIconUrl } from '@/lib/constants';
 import Link from 'next/link';
 import { EmptyState } from '@/components/visual/empty-state';
@@ -12,9 +10,17 @@ interface WeatherCardProps {
   weather: WeatherInfo | null;
   weatherNote?: string;
   hasLocation: boolean;
+  weatherError?: WeatherError;
 }
 
-export function WeatherCard({ weather, weatherNote, hasLocation }: WeatherCardProps) {
+const WEATHER_ERROR_MESSAGES: Record<WeatherError, string> = {
+  city_not_found: "We couldn't find that city. Try a format like Dublin or Dublin, IE in your profile.",
+  invalid_key: "Couldn't load weather for your city right now.",
+  missing_key: "Couldn't load weather for your city right now.",
+  api_error: "Couldn't load weather right now. Please try again later.",
+};
+
+export function WeatherCard({ weather, weatherNote, hasLocation, weatherError }: WeatherCardProps) {
   if (!hasLocation) {
     return (
       <EmptyState
@@ -29,9 +35,20 @@ export function WeatherCard({ weather, weatherNote, hasLocation }: WeatherCardPr
   }
 
   if (!weather) {
+    const message = weatherError
+      ? WEATHER_ERROR_MESSAGES[weatherError]
+      : "Weather unavailable — check your city in profile.";
+
     return (
-      <div className="visual-card p-4 text-sm text-muted-foreground text-center">
-        Weather unavailable — check your city in profile.
+      <div className="visual-card p-4 text-sm text-muted-foreground text-center space-y-2">
+        <p>{message}</p>
+        {weatherError === 'city_not_found' && (
+          <Link href="/onboarding">
+            <Button variant="link" className="text-primary text-sm h-auto p-0">
+              Update city in profile
+            </Button>
+          </Link>
+        )}
       </div>
     );
   }

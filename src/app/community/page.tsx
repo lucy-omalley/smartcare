@@ -12,9 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Users, Plus, Coffee, MessageSquare } from 'lucide-react';
+import { Users, Plus, Coffee, MessageSquare, Heart, MessagesSquare } from 'lucide-react';
 import { POST_TYPES } from '@/lib/constants';
 import { format } from 'date-fns';
+import { ParentConnectPanel } from '@/components/community/parent-connect-panel';
+import { ParentChatsPanel } from '@/components/community/parent-chats-panel';
+import { ParentChatRoom } from '@/components/community/parent-chat-room';
 
 interface Post {
   id: string;
@@ -37,12 +40,22 @@ interface Meetup {
   _count: { attendees: number };
 }
 
+type CommunityTab = 'posts' | 'meetups' | 'connect' | 'chats';
+
+function tabFromParams(tab: string | null): CommunityTab {
+  if (tab === 'meetups') return 'meetups';
+  if (tab === 'connect') return 'connect';
+  if (tab === 'chats') return 'chats';
+  return 'posts';
+}
+
 function CommunityContent() {
   const { status, data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'meetups' ? 'meetups' : 'posts';
-  const [tab, setTab] = useState<'posts' | 'meetups'>(initialTab);
+  const [tab, setTab] = useState<CommunityTab>(tabFromParams(searchParams.get('tab')));
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [chatsRefresh, setChatsRefresh] = useState(0);
   const [posts, setPosts] = useState<Post[]>([]);
   const [meetups, setMeetups] = useState<Meetup[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -69,6 +82,21 @@ function CommunityContent() {
       loadMeetups();
     }
   }, [status, router]);
+
+  useEffect(() => {
+    setTab(tabFromParams(searchParams.get('tab')));
+  }, [searchParams]);
+
+  const switchTab = (next: CommunityTab) => {
+    setTab(next);
+    setActiveThreadId(null);
+    router.replace(`/community?tab=${next}`, { scroll: false });
+  };
+
+  const openChat = (threadId: string) => {
+    setActiveThreadId(threadId);
+    setTab('chats');
+  };
 
   const handleCreatePost = async () => {
     if (!title.trim() || !content.trim()) return;
@@ -109,6 +137,23 @@ function CommunityContent() {
     loadMeetups();
   };
 
+  if (activeThreadId && session?.user?.id) {
+    return (
+      <AppShell>
+        <div className="container max-w-lg mx-auto p-4">
+          <ParentChatRoom
+            threadId={activeThreadId}
+            currentUserId={session.user.id}
+            onBack={() => {
+              setActiveThreadId(null);
+              setChatsRefresh((k) => k + 1);
+            }}
+          />
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="container max-w-lg mx-auto p-4 space-y-4">
@@ -117,30 +162,30 @@ function CommunityContent() {
             <Users className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">Parent Community</h1>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Create
-          </Button>
+          {(tab === 'posts' || tab === 'meetups') && (
+            <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Create
+            </Button>
+          )}
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={tab === 'posts' ? 'default' : 'outline'}
-            className="rounded-full"
-            onClick={() => setTab('posts')}
-          >
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant={tab === 'posts' ? 'default' : 'outline'} className="rounded-full" onClick={() => switchTab('posts')}>
             <MessageSquare className="h-3.5 w-3.5 mr-1" />
             Posts
           </Button>
-          <Button
-            size="sm"
-            variant={tab === 'meetups' ? 'default' : 'outline'}
-            className="rounded-full"
-            onClick={() => setTab('meetups')}
-          >
+          <Button size="sm" variant={tab === 'meetups' ? 'default' : 'outline'} className="rounded-full" onClick={() => switchTab('meetups')}>
             <Coffee className="h-3.5 w-3.5 mr-1" />
             Coffee Walks
+          </Button>
+          <Button size="sm" variant={tab === 'connect' ? 'default' : 'outline'} className="rounded-full" onClick={() => switchTab('connect')}>
+            <Heart className="h-3.5 w-3.5 mr-1" />
+            Connect
+          </Button>
+          <Button size="sm" variant={tab === 'chats' ? 'default' : 'outline'} className="rounded-full" onClick={() => switchTab('chats')}>
+            <MessagesSquare className="h-3.5 w-3.5 mr-1" />
+            Chats
           </Button>
         </div>
 
@@ -187,7 +232,18 @@ function CommunityContent() {
           </Card>
         )}
 
-        {tab === 'posts' ? (
+        {tab === 'connect' && (
+          <ParentConnectPanel
+            onOpenChat={openChat}
+            onRequestsChange={() => setChatsRefresh((k) => k + 1)}
+          />
+        )}
+
+        {tab === 'chats' && (
+          <ParentChatsPanel onOpenChat={openChat} refreshKey={chatsRefresh} />
+        )}
+
+        {tab === 'posts' && (
           posts.length === 0 ? (
             <Card className="rounded-2xl">
               <CardContent className="p-8 text-center text-muted-foreground text-sm">
@@ -210,7 +266,9 @@ function CommunityContent() {
               </Card>
             ))
           )
-        ) : (
+        )}
+
+        {tab === 'meetups' && (
           meetups.length === 0 ? (
             <Card className="rounded-2xl">
               <CardContent className="p-8 text-center text-muted-foreground text-sm">
