@@ -21,6 +21,28 @@ export const PARENTING_GOALS = [
   "Other",
 ];
 
+export const PARENT_INTERESTS = [
+  "Playdates",
+  "Coffee walks",
+  "Outdoor activities",
+  "Speech & language",
+  "Sleep routines",
+  "Healthy eating",
+  "New parent support",
+  "Working parents",
+  "Twins & multiples",
+  "Special needs support",
+] as const;
+
+export const CHILD_AGE_BANDS = [
+  "0-1 years",
+  "1-2 years",
+  "2-3 years",
+  "3-4 years",
+  "4-5 years",
+  "5+ years",
+] as const;
+
 export const POST_TYPES = {
   QUESTION: "Questions",
   RECOMMENDATION: "Recommendations",

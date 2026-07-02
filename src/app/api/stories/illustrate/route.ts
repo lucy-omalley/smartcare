@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { title, story, savedStoryId } = await request.json();
+  const { title, story, savedStoryId, moral } = await request.json();
   if (!title?.trim() || !story?.trim()) {
     return NextResponse.json({ error: "Title and story are required" }, { status: 400 });
   }
@@ -20,18 +20,25 @@ export async function POST(request: Request) {
     select: { childNickname: true },
   });
 
-  const illustrationData = await generateStoryIllustration(
-    title.trim(),
-    story.trim(),
-    user?.childNickname
-  );
+  try {
+    const illustrationData = await generateStoryIllustration(
+      title.trim(),
+      story.trim(),
+      user?.childNickname,
+      moral?.trim() || null
+    );
 
-  if (savedStoryId) {
-    await prisma.savedStory.updateMany({
-      where: { id: savedStoryId, userId: session.user.id },
-      data: { illustrationData },
-    });
+    if (savedStoryId) {
+      await prisma.savedStory.updateMany({
+        where: { id: savedStoryId, userId: session.user.id },
+        data: { illustrationData },
+      });
+    }
+
+    return NextResponse.json({ illustrationData });
+  } catch (error) {
+    console.error("Story illustration error:", error);
+    const message = error instanceof Error ? error.message : "Illustration failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ illustrationData });
 }

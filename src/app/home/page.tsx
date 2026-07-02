@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ import { MeetupCard } from '@/components/home/meetup-card';
 import { ActivityCard } from '@/components/home/activity-card';
 import { WeatherCard } from '@/components/home/weather-card';
 import { AnimatedSection } from '@/components/visual/animated-section';
-import type { DailyBriefContent, WeatherInfo } from '@/types/daily-brief';
+import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, WeatherError, WeatherInfo } from '@/types/daily-brief';
 import { ACTIVITY_CATEGORIES } from '@/lib/constants';
 
 interface Meetup {
@@ -47,6 +47,7 @@ interface HomeData {
   weekendActivities: WeekendActivity[];
   yesterdayMemory: { content: string } | null;
   weather: WeatherInfo | null;
+  weatherError?: WeatherError;
 }
 
 export default function HomePage() {
@@ -56,22 +57,34 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [sectionLoading, setSectionLoading] = useState(false);
   const [imagesLoading, setImagesLoading] = useState(false);
+  const illustrationBriefKey = useRef<string | null>(null);
+
+  const briefIllustrationKey = (brief: DailyBriefContent) =>
+    `${brief.recipe.subtitle}|${brief.play.title}|${brief.bedtimeStory.title}`;
 
   const loadBrief = useCallback(() => {
     return fetch('/api/daily-brief').then((r) => r.json()).then(setData);
   }, []);
 
-  const generateIllustrations = useCallback(async () => {
+  const generateIllustrations = useCallback(async (sections?: string[]) => {
     setImagesLoading(true);
+    const sectionOrder = sections ?? ['recipe', 'play', 'story', 'development', 'tip'];
     try {
-      const res = await fetch('/api/daily-brief', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate-illustrations' }),
-      });
-      const json = await res.json();
-      if (json.brief) {
-        setData((prev) => (prev ? { ...prev, brief: json.brief, needsIllustrations: false } : prev));
+      for (const section of sectionOrder) {
+        const res = await fetch('/api/daily-brief', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'generate-illustrations', sections: [section] }),
+        });
+        if (!res.ok) continue;
+        const json = await res.json();
+        if (json.brief) {
+          setData((prev) =>
+            prev
+              ? { ...prev, brief: json.brief, needsIllustrations: json.needsIllustrations ?? false }
+              : prev
+          );
+        }
       }
     } finally {
       setImagesLoading(false);
@@ -95,10 +108,12 @@ export default function HomePage() {
   }, [status, router, loadBrief]);
 
   useEffect(() => {
-    if (data?.needsIllustrations && !imagesLoading) {
-      generateIllustrations();
-    }
-  }, [data?.needsIllustrations, imagesLoading, generateIllustrations]);
+    if (!data?.needsIllustrations || imagesLoading || !data.brief) return;
+    const key = briefIllustrationKey(data.brief);
+    if (illustrationBriefKey.current === key) return;
+    illustrationBriefKey.current = key;
+    generateIllustrations();
+  }, [data?.needsIllustrations, data?.brief, imagesLoading, generateIllustrations]);
 
   const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
     setSectionLoading(true);
@@ -108,11 +123,16 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...extra }),
       });
+      if (!res.ok) return;
       const json = await res.json();
       if (json.brief) {
         setData((prev) => (prev ? { ...prev, brief: json.brief, needsIllustrations: true } : prev));
-        if (action === 'regenerate-recipe' || action === 'regenerate-play') {
-          generateIllustrations();
+        if (action === 'regenerate-recipe') {
+          illustrationBriefKey.current = null;
+          generateIllustrations(['recipe']);
+        } else if (action === 'regenerate-play') {
+          illustrationBriefKey.current = null;
+          generateIllustrations(['play']);
         }
       }
     } finally {
@@ -171,6 +191,7 @@ export default function HomePage() {
             weather={data?.weather ?? null}
             weatherNote={brief?.weatherNote}
             hasLocation={!!data?.profile?.location}
+            weatherError={data?.weatherError}
           />
         </AnimatedSection>
 

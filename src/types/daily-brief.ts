@@ -53,6 +53,8 @@ export interface WeatherInfo {
   playSuggestion: string;
 }
 
+export type WeatherError = "missing_key" | "invalid_key" | "city_not_found" | "api_error";
+
 export interface DailyBriefContent {
   greeting: string;
   childAgeDisplay: string;

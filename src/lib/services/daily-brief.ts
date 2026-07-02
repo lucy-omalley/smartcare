@@ -2,13 +2,16 @@ import { prisma } from "@/lib/db";
 import { generateDailyBrief, regeneratePlay, regenerateRecipe } from "@/lib/services/mumbot";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
-import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, WeatherInfo } from "@/types/daily-brief";
-import { enrichBriefWithIllustrations, needsBriefIllustrations } from "@/lib/services/card-illustrations";
+import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe } from "@/types/daily-brief";
+import { enrichBriefWithIllustrations, needsBriefIllustrations, type IllustrationSection } from "@/lib/services/card-illustrations";
 import type { BriefProfile } from "@/lib/daily-brief-context";
 
 export { needsBriefIllustrations };
 
-export async function generateAndSaveBriefIllustrations(userId: string): Promise<DailyBriefContent> {
+export async function generateAndSaveBriefIllustrations(
+  userId: string,
+  sections?: IllustrationSection[]
+): Promise<DailyBriefContent> {
   const today = toDateKey();
   let brief = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
@@ -19,7 +22,7 @@ export async function generateAndSaveBriefIllustrations(userId: string): Promise
   }
 
   const content = brief.content as unknown as DailyBriefContent;
-  if (!needsBriefIllustrations(content)) {
+  if (!sections?.length && !needsBriefIllustrations(content)) {
     return content;
   }
 
@@ -28,7 +31,11 @@ export async function generateAndSaveBriefIllustrations(userId: string): Promise
     select: { childNickname: true },
   });
 
-  const enriched = await enrichBriefWithIllustrations(content, profile?.childNickname);
+  const enriched = await enrichBriefWithIllustrations(
+    content,
+    profile?.childNickname,
+    sections?.length ? sections : undefined
+  );
   await prisma.dailyBrief.update({
     where: { userId_date: { userId, date: today } },
     data: { content: enriched as object },
@@ -91,7 +98,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
 
   const { profile, memories, recentMessages, weeklyFocus } = await fetchBriefContext(userId);
   const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
-  const content = await generateDailyBrief(profile, memories, recentMessages, weeklyFocus, weather);
+  const content = await generateDailyBrief(profile, memories, recentMessages, weeklyFocus, weather?.weather ?? null);
 
   await prisma.dailyBrief.create({
     data: { userId, date: today, content: content as object },
@@ -149,10 +156,12 @@ export async function regenerateDailyBriefSection(userId: string, section: "reci
 
   if (section === "recipe") {
     const recipe = await regenerateRecipe(profile, memories, content.recipe);
+    delete recipe.imageData;
     return updateDailyBriefSection(userId, "recipe", recipe);
   }
 
-  const play = await regeneratePlay(profile, memories, content.play, weather);
+  const play = await regeneratePlay(profile, memories, content.play, weather?.weather ?? null);
+  delete play.imageData;
   return updateDailyBriefSection(userId, "play", play);
 }
 
@@ -179,7 +188,7 @@ export async function getHomeSupplementaryData(userId: string) {
   weekendStart.setDate(now.getDate() + (day === 0 ? 0 : daysUntilSaturday));
   weekendStart.setHours(0, 0, 0, 0);
 
-  const [meetups, weekendActivities, profile, yesterdayMemory, weather] = await Promise.all([
+  const [meetups, weekendActivities, profile, yesterdayMemory, weatherResult] = await Promise.all([
     prisma.meetup.findMany({
       where: { date: { gte: now } },
       orderBy: { date: "asc" },
@@ -199,8 +208,10 @@ export async function getHomeSupplementaryData(userId: string) {
     getYesterdayJournalMemory(userId),
     prisma.user
       .findUnique({ where: { id: userId }, select: { location: true } })
-      .then((u) => (u?.location ? fetchWeatherForLocation(u.location) : null)),
+      .then((u) => (u?.location ? fetchWeatherForLocation(u.location) : { weather: null })),
   ]);
 
-  return { meetups, weekendActivities, profile, yesterdayMemory, weather: weather as WeatherInfo | null };
+  const { weather, error: weatherError } = weatherResult;
+
+  return { meetups, weekendActivities, profile, yesterdayMemory, weather, weatherError };
 }
