@@ -4,12 +4,21 @@ import { prisma } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name } = await req.json();
+    const { email: rawEmail, password, name } = await req.json();
+    const email = rawEmail?.trim().toLowerCase();
+    const trimmedName = name?.trim();
 
     // Validate input
-    if (!email || !password || !name) {
+    if (!email || !password || !trimmedName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters' },
         { status: 400 }
       );
     }
@@ -20,6 +29,12 @@ export async function POST(req: Request) {
     });
 
     if (existingUser) {
+      if (!existingUser.password) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Please sign in with Google or GitHub.' },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: 'User already exists' },
         { status: 400 }
@@ -33,7 +48,7 @@ export async function POST(req: Request) {
     const user = await prisma.user.create({
       data: {
         email,
-        name,
+        name: trimmedName,
         password: hashedPassword,
       },
     });
@@ -50,9 +65,10 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Error creating user' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error && error.message.includes('Unique constraint')
+        ? 'User already exists'
+        : 'Error creating user';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 } 

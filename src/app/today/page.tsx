@@ -17,6 +17,18 @@ import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { trackEvent } from '@/lib/analytics';
 
+async function parseApiJson<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text.trim()) {
+    throw new Error(`Server returned an empty response (${response.status})`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Server returned an invalid response (${response.status})`);
+  }
+}
+
 interface HomeData {
   brief: DailyBriefContent;
   needsIllustrations?: boolean;
@@ -55,11 +67,13 @@ export default function TodayPage() {
   const loadBrief = useCallback(() => {
     return Promise.all([
       fetch('/api/daily-brief', { cache: 'no-store' }).then(async (r) => {
-        const json = await r.json();
+        const json = await parseApiJson<HomeData & { error?: string }>(r);
         if (!r.ok) throw new Error(json.error || `Failed to load (${r.status})`);
-        return json as HomeData;
+        return json;
       }),
-      fetch('/api/connect/status').then((r) => r.ok ? r.json() : { statuses: [] }).catch(() => ({ statuses: [] })),
+      fetch('/api/connect/status')
+        .then(async (r) => (r.ok ? parseApiJson<{ statuses: unknown[] }>(r) : { statuses: [] }))
+        .catch(() => ({ statuses: [] })),
     ])
       .then(([briefData, connectData]) => {
         setLoadError(null);

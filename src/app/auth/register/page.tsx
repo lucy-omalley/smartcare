@@ -32,7 +32,7 @@ export default function Register() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || 'Registration failed');
+        throw new Error(data.error || data.message || 'Registration failed');
       }
 
       router.push('/auth/signin?registered=true');
@@ -81,6 +81,7 @@ export default function Register() {
                 id="password"
                 name="password"
                 type="password"
+                minLength={8}
                 required
                 disabled={isLoading}
               />
