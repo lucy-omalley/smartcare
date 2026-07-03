@@ -3,7 +3,8 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bookmark, Loader2, ImageIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Bookmark, Loader2, ImageIcon, ChefHat } from 'lucide-react';
 import type {
   DailyBriefRecipe,
   DailyBriefPlay,
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 import { useStoryAudio } from '@/hooks/use-story-audio';
 import { getTodayStoryAudioFetch } from '@/lib/story-audio-prefetch';
 import { fetchTodayStoryIllustration, prefetchTodayStoryIllustration, warmTodayStoryIllustration } from '@/lib/story-illustration-prefetch';
+import { fetchTodayRecipeIllustration, prefetchTodayRecipeIllustration, warmTodayRecipeIllustration } from '@/lib/recipe-illustration-prefetch';
 import { StoryListenButton } from '@/components/story/story-listen-button';
 
 type DetailPart = 'content' | 'footer';
@@ -26,57 +28,211 @@ function normalizeIllustrationSrc(data?: string | null): string | undefined {
   return `data:image/png;base64,${data}`;
 }
 
-export function MealDetailView({
+export function MealDetailProvider({
   recipe,
   childAgeDisplay,
   onSave,
   onBack,
-  part = 'content',
+  onFridgeRecipe,
+  children,
 }: {
   recipe: DailyBriefRecipe;
   childAgeDisplay?: string;
   onSave: () => Promise<void>;
   onBack: () => void;
-  part?: DetailPart;
+  onFridgeRecipe: (ingredients: string[]) => Promise<void>;
+  children: React.ReactNode;
 }) {
   const [saving, setSaving] = useState(false);
+  const media = useMealDetailMedia(recipe);
 
-  const footer = (
-    <div className="flex gap-2">
-      <Button
-        className="flex-1 rounded-full touch-target"
-        disabled={saving}
-        onClick={async () => {
-          setSaving(true);
-          try {
-            await onSave();
-            toast.success('Meal saved!');
-          } catch {
-            toast.error('Could not save meal.');
-          } finally {
-            setSaving(false);
-          }
-        }}
-      >
-        <Bookmark className="h-4 w-4 mr-1" />
-        {saving ? 'Saving...' : 'Save meal'}
-      </Button>
-      <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
-        Back to Today
-      </Button>
-    </div>
+  return (
+    <MealDetailContext.Provider
+      value={{
+        ...media,
+        recipe,
+        childAgeDisplay,
+        onSave,
+        onBack,
+        onFridgeRecipe,
+        saving,
+        setSaving,
+      }}
+    >
+      {children}
+    </MealDetailContext.Provider>
   );
+}
 
-  if (part === 'footer') return footer;
+type MealDetailContextValue = Omit<ReturnType<typeof useMealDetailMedia>, never> & {
+  recipe: DailyBriefRecipe;
+  childAgeDisplay?: string;
+  onSave: () => Promise<void>;
+  onBack: () => void;
+  onFridgeRecipe: (ingredients: string[]) => Promise<void>;
+  saving: boolean;
+  setSaving: (saving: boolean) => void;
+};
+
+const MealDetailContext = createContext<MealDetailContextValue | null>(null);
+
+function useMealDetailContext() {
+  const ctx = useContext(MealDetailContext);
+  if (!ctx) throw new Error('MealDetailProvider required');
+  return ctx;
+}
+
+function useMealDetailMedia(recipe: DailyBriefRecipe) {
+  const [illustrating, setIllustrating] = useState(false);
+  const [imageData, setImageData] = useState<string | undefined>(
+    normalizeIllustrationSrc(recipe.imageData)
+  );
+  const coverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setImageData(normalizeIllustrationSrc(recipe.imageData));
+  }, [recipe.imageData, recipe.subtitle]);
+
+  useEffect(() => {
+    if (recipe.imageData) return;
+    void prefetchTodayRecipeIllustration().then((data) => {
+      if (data) setImageData(normalizeIllustrationSrc(data));
+    });
+    void warmTodayRecipeIllustration().then((data) => {
+      if (data) setImageData(normalizeIllustrationSrc(data));
+    }).catch(() => {});
+  }, [recipe.subtitle, recipe.imageData]);
+
+  const handleIllustrate = async () => {
+    setIllustrating(true);
+    try {
+      const data = await fetchTodayRecipeIllustration();
+      setImageData(normalizeIllustrationSrc(data));
+      toast.success('Recipe photo ready!');
+      requestAnimationFrame(() => {
+        coverRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    } catch {
+      toast.error('Could not generate recipe photo.');
+    } finally {
+      setIllustrating(false);
+    }
+  };
+
+  return { illustrating, imageData, coverRef, handleIllustrate };
+}
+
+export function MealDetailContent() {
+  const {
+    recipe,
+    childAgeDisplay,
+    onFridgeRecipe,
+    illustrating,
+    imageData,
+    coverRef,
+    handleIllustrate,
+  } = useMealDetailContext();
+  const [fridgeInput, setFridgeInput] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const handleFridgeRecipe = async () => {
+    const ingredients = fridgeInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ingredients.length === 0) {
+      toast.error('Add at least one ingredient from your fridge.');
+      return;
+    }
+    setGenerating(true);
+    try {
+      await onFridgeRecipe(ingredients);
+      toast.success('New meal plan ready!');
+    } catch {
+      toast.error('Could not create meal from those ingredients.');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-4 text-sm pb-2">
+      <div ref={coverRef} className="space-y-2">
+        {imageData ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageData}
+            alt={`Photo of ${recipe.subtitle}`}
+            className="w-full rounded-2xl max-h-44 object-cover"
+          />
+        ) : (
+          <div className="w-full rounded-2xl max-h-44 min-h-[8rem] bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center text-muted-foreground text-xs px-4 text-center">
+            Tap Recipe photo to generate an appetising picture
+          </div>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-full touch-target w-full"
+          disabled={illustrating}
+          onClick={handleIllustrate}
+        >
+          {illustrating ? (
+            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+          ) : (
+            <ImageIcon className="h-3.5 w-3.5 mr-1" />
+          )}
+          Recipe photo
+        </Button>
+      </div>
+
       <div>
         <h3 className="text-lg font-bold">{recipe.subtitle}</h3>
         {childAgeDisplay && (
           <p className="text-xs text-muted-foreground mt-1">Suitable for {childAgeDisplay}</p>
         )}
+        {recipe.prepTimeMinutes > 0 && (
+          <Badge variant="secondary" className="rounded-full mt-2">
+            {recipe.prepTimeMinutes} min
+          </Badge>
+        )}
       </div>
+
+      <div className="bg-amber-50/80 rounded-xl p-3 space-y-2 border border-amber-100">
+        <p className="text-xs font-medium text-amber-900 flex items-center gap-1.5">
+          <ChefHat className="h-3.5 w-3.5" />
+          What&apos;s in your fridge?
+        </p>
+        <p className="text-xs text-amber-800/80">
+          List ingredients you have on hand — we&apos;ll suggest a child-friendly meal.
+        </p>
+        <Input
+          value={fridgeInput}
+          onChange={(e) => setFridgeInput(e.target.value)}
+          placeholder="e.g. salmon, broccoli, rice"
+          className="rounded-xl bg-white border-amber-200"
+          disabled={generating}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void handleFridgeRecipe();
+          }}
+        />
+        <Button
+          size="sm"
+          className="rounded-full w-full touch-target"
+          disabled={generating || !fridgeInput.trim()}
+          onClick={() => void handleFridgeRecipe()}
+        >
+          {generating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              Creating meal plan…
+            </>
+          ) : (
+            'Create meal from fridge'
+          )}
+        </Button>
+      </div>
+
       <div>
         <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Why it helps</p>
         <p className="leading-relaxed">{recipe.whyThisMeal}</p>
@@ -103,6 +259,36 @@ export function MealDetailView({
           ))}
         </ol>
       </div>
+    </div>
+  );
+}
+
+export function MealDetailFooter() {
+  const { onSave, onBack, saving, setSaving } = useMealDetailContext();
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        className="flex-1 rounded-full touch-target"
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          try {
+            await onSave();
+            toast.success('Meal saved!');
+          } catch {
+            toast.error('Could not save meal.');
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Bookmark className="h-4 w-4 mr-1" />
+        {saving ? 'Saving...' : 'Save meal'}
+      </Button>
+      <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
+        Back to Today
+      </Button>
     </div>
   );
 }

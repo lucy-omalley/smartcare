@@ -410,6 +410,35 @@ export async function regenerateRecipe(
   }
 }
 
+export async function generateRecipeFromFridge(
+  profile: BriefProfile,
+  memories: BriefMemory[],
+  ingredients: string[]
+): Promise<DailyBriefRecipe> {
+  const context = buildDailyBriefContext(profile, memories, []);
+  const fridgeList = ingredients.join(", ");
+
+  const completion = await openai.chat.completions.create({
+    model: OPENAI_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed. Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional" }. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
+      },
+      { role: "user", content: `${context}\n\nAvailable from the fridge: ${fridgeList}` },
+    ],
+    temperature: 0.85,
+    max_tokens: 550,
+    response_format: { type: "json_object" },
+  });
+
+  try {
+    return JSON.parse(completion.choices[0]?.message?.content || "{}") as DailyBriefRecipe;
+  } catch {
+    return defaultDailyBrief(profile).recipe;
+  }
+}
+
 export async function regeneratePlay(
   profile: BriefProfile,
   memories: BriefMemory[],
