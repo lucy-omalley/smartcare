@@ -14,12 +14,12 @@ export function HomeNav() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center gap-2">
           <Bot className="h-6 w-6 text-primary" />
-          <span className="font-semibold">SmartCare</span>
+          <span className="font-semibold">Parenfy</span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
           {session ? (
             <>
-              <Link href="/home">
+              <Link href="/today">
                 <Button variant="ghost">Home</Button>
               </Link>
               <Link href="/mumbot">

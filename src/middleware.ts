@@ -46,13 +46,18 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    '/today/:path*',
     '/home/:path*',
     '/mumbot/:path*',
     '/memory/:path*',
     '/profile/:path*',
+    '/connect/:path*',
     '/community/:path*',
+    '/more/:path*',
     '/activities/:path*',
     '/exchange/:path*',
+    '/saved/:path*',
+    '/library/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',
     '/chat/:path*',

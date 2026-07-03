@@ -45,6 +45,19 @@ enum ConnectionStatus {
   PENDING
   ACCEPTED
   DECLINED
+  EXPIRED
+}
+
+enum ConnectRequestType {
+  STATUS_INTEREST
+  EVENT_JOIN
+}
+
+enum EventParticipantStatus {
+  JOINED
+  REQUESTED
+  DECLINED
+  CANCELLED
 }
 
 model User {
@@ -55,10 +68,19 @@ model User {
   image              String?
   childNickname      String?
   childAge           String?
+  childBirthday      String?
+  childInterests     String[] @default([])
+  foodPreferences    String[] @default([])
+  routineNotes       String?
+  developmentNotes   String?
   parentingGoal      String?
+  parentingGoals     String[] @default([])
+  currentChallenges  String[] @default([])
   location           String?
+  broadArea          String?
   bio                String?
   interests          String[] @default([])
+  visibilityPreference String @default("public")
   openToConnect      Boolean  @default(true)
   onboardingComplete Boolean  @default(false)
   createdAt          DateTime @default(now())
@@ -80,9 +102,15 @@ model User {
   sentConnections     ParentConnection[] @relation("SentConnections")
   receivedConnections ParentConnection[] @relation("ReceivedConnections")
   parentMessages      ParentMessage[]
+  parentStatuses      ParentStatus[]
+  connectEvents       ConnectEvent[]
+  eventParticipations EventParticipant[]
+  sentConnectRequests ConnectRequest[] @relation("SentConnectRequests")
+  receivedConnectRequests ConnectRequest[] @relation("ReceivedConnectRequests")
 
   @@index([email])
   @@index([location])
+  @@index([broadArea])
   @@index([openToConnect])
 }
 
@@ -295,6 +323,87 @@ model ParentConnection {
   @@index([requesterId])
   @@index([recipientId])
   @@index([status])
+}
+
+model ParentStatus {
+  id            String   @id @default(cuid())
+  userId        String
+  broadArea     String
+  timeWindow    String
+  interest      String
+  childAgeRange String
+  note          String?
+  isOpen        Boolean  @default(true)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests      ConnectRequest[]
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isOpen])
+}
+
+model ConnectEvent {
+  id               String   @id @default(cuid())
+  organiserId      String
+  title            String
+  broadArea        String
+  exactLocation    String?
+  date             DateTime @db.Date
+  timeWindow       String
+  activityType     String
+  childAgeRange    String
+  maxParticipants  Int?
+  description      String?
+  visibility       String   @default("public")
+  joinApprovalType String   @default("auto")
+  status           String   @default("published")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  organiser        User     @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  participants     EventParticipant[]
+  requests         ConnectRequest[]
+
+  @@index([organiserId])
+  @@index([date])
+  @@index([status])
+}
+
+model EventParticipant {
+  id        String                 @id @default(cuid())
+  eventId   String
+  userId    String
+  status    EventParticipantStatus @default(JOINED)
+  createdAt DateTime               @default(now())
+  event     ConnectEvent           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model ConnectRequest {
+  id          String             @id @default(cuid())
+  requesterId String
+  recipientId String
+  statusId    String?
+  eventId     String?
+  requestType ConnectRequestType
+  status      ConnectionStatus   @default(PENDING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  requester   User               @relation("SentConnectRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User               @relation("ReceivedConnectRequests", fields: [recipientId], references: [id], onDelete: Cascade)
+  parentStatus ParentStatus?     @relation(fields: [statusId], references: [id], onDelete: SetNull)
+  event       ConnectEvent?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([requesterId])
+  @@index([recipientId])
+  @@index([status])
+  @@index([statusId])
+  @@index([eventId])
 }
 
 model ParentThread {

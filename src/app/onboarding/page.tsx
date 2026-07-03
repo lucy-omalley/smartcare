@@ -3,56 +3,114 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Bot, ArrowRight } from 'lucide-react';
+import { Bot, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PARENTING_GOALS } from '@/lib/constants';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  PARENTING_GOAL_CATEGORIES,
+  CURRENT_CHALLENGES,
+  MAX_PARENTING_GOALS,
+  MAX_CURRENT_CHALLENGES,
+} from '@/lib/constants';
+import { trackEvent } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
+
+const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'done'] as const;
+type Step = (typeof STEPS)[number];
 
 export default function OnboardingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [step, setStep] = useState<Step>('welcome');
+  const [loading, setLoading] = useState(false);
+
   const [name, setName] = useState(session?.user?.name || '');
   const [childNickname, setChildNickname] = useState('');
   const [childAge, setChildAge] = useState('');
-  const [parentingGoal, setParentingGoal] = useState('');
+  const [childInterests, setChildInterests] = useState('');
+  const [foodPreferences, setFoodPreferences] = useState('');
+  const [routineNotes, setRoutineNotes] = useState('');
+  const [parentingGoals, setParentingGoals] = useState<string[]>([]);
+  const [currentChallenges, setCurrentChallenges] = useState<string[]>([]);
+  const [broadArea, setBroadArea] = useState('');
   const [location, setLocation] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/onboarding')
         .then((r) => r.json())
         .then(({ profile }) => {
-          if (profile) {
-            if (profile.name) setName(profile.name);
-            if (profile.childNickname) setChildNickname(profile.childNickname);
-            if (profile.childAge) setChildAge(profile.childAge);
-            if (profile.parentingGoal) setParentingGoal(profile.parentingGoal);
-            if (profile.location) setLocation(profile.location);
-          }
+          if (!profile) return;
+          if (profile.name) setName(profile.name);
+          if (profile.childNickname) setChildNickname(profile.childNickname);
+          if (profile.childAge) setChildAge(profile.childAge);
+          if (profile.childInterests?.length) setChildInterests(profile.childInterests.join(', '));
+          if (profile.foodPreferences?.length) setFoodPreferences(profile.foodPreferences.join(', '));
+          if (profile.routineNotes) setRoutineNotes(profile.routineNotes);
+          if (profile.parentingGoals?.length) setParentingGoals(profile.parentingGoals);
+          if (profile.currentChallenges?.length) setCurrentChallenges(profile.currentChallenges);
+          if (profile.broadArea) setBroadArea(profile.broadArea);
+          if (profile.location) setLocation(profile.location);
         });
     }
   }, [status]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !childAge.trim() || !parentingGoal) return;
+  const toggleGoal = (goal: string) => {
+    setParentingGoals((prev) => {
+      if (prev.includes(goal)) return prev.filter((g) => g !== goal);
+      if (prev.length >= MAX_PARENTING_GOALS) return prev;
+      return [...prev, goal];
+    });
+  };
 
+  const toggleChallenge = (challenge: string) => {
+    setCurrentChallenges((prev) => {
+      if (prev.includes(challenge)) return prev.filter((c) => c !== challenge);
+      if (prev.length >= MAX_CURRENT_CHALLENGES) return prev;
+      return [...prev, challenge];
+    });
+  };
+
+  const saveProgress = async (complete = false) => {
     setLoading(true);
     try {
       await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, childNickname, childAge, parentingGoal, location }),
+        body: JSON.stringify({
+          name,
+          childNickname,
+          childAge,
+          childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
+          foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
+          routineNotes,
+          parentingGoals,
+          currentChallenges,
+          broadArea,
+          location,
+          onboardingComplete: complete,
+        }),
       });
-      router.push('/home');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleFinish = async () => {
+    await saveProgress(true);
+    trackEvent('signup_completed');
+    if (childNickname || childAge) trackEvent('child_profile_created');
+    if (parentingGoals.length) trackEvent('parenting_goals_selected');
+    if (currentChallenges.length) trackEvent('current_challenges_selected');
+    router.push('/today');
+  };
+
+  const stepIndex = STEPS.indexOf(step);
+  const progress = ((stepIndex + 1) / STEPS.length) * 100;
 
   if (status === 'loading') {
     return (
@@ -68,80 +126,165 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/5 to-background">
-      <Card className="w-full max-w-md rounded-2xl shadow-lg">
-        <CardHeader className="text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-            <Bot className="h-8 w-8 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Welcome to SmartCare</CardTitle>
-          <CardDescription>
-            Meet MumBot — Your AI Co-Parent. Let&apos;s get to know your family.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Your name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Lucy"
-                required
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="nickname">Child&apos;s nickname <span className="text-muted-foreground">(optional)</span></Label>
-              <Input
-                id="nickname"
-                value={childNickname}
-                onChange={(e) => setChildNickname(e.target.value)}
-                placeholder="Emma"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="age">Child&apos;s age</Label>
-              <Input
-                id="age"
-                value={childAge}
-                onChange={(e) => setChildAge(e.target.value)}
-                placeholder="2 years old"
-                required
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Current parenting goal</Label>
-              <Select value={parentingGoal} onValueChange={setParentingGoal} required>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a goal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PARENTING_GOALS.map((goal) => (
-                    <SelectItem key={goal} value={goal}>{goal}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="location">Your city <span className="text-muted-foreground">(for local weather)</span></Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Dublin, IE"
-                className="mt-1"
-              />
-            </div>
-            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={loading}>
-              {loading ? 'Setting up...' : 'Start with MumBot'}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </form>
-        </CardContent>
+    <div className="min-h-screen flex flex-col p-4 bg-gradient-to-br from-primary/5 to-background">
+      <div className="w-full max-w-md mx-auto mb-4">
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <Card className="w-full max-w-md mx-auto rounded-2xl shadow-lg flex-1">
+        {step === 'welcome' && (
+          <>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <Bot className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Welcome to Parenfy</CardTitle>
+              <CardDescription>
+                Your AI parenting companion. Know what to do next each day, and connect with other parents when you want support.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="name">Your first name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lucy" required className="mt-1" />
+              </div>
+              <Button className="w-full rounded-xl" size="lg" onClick={() => setStep('child')} disabled={!name.trim()}>
+                Get started <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </>
+        )}
+
+        {step === 'child' && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-xl">Create child profile</CardTitle>
+              <CardDescription>Help Parenfy personalise your daily plan.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="nickname">Child&apos;s nickname</Label>
+                <Input id="nickname" value={childNickname} onChange={(e) => setChildNickname(e.target.value)} placeholder="Emma" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="age">Child&apos;s age</Label>
+                <Input id="age" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="2 years old" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="interests">Interests <span className="text-muted-foreground">(optional)</span></Label>
+                <Input id="interests" value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="Dinosaurs, painting, music" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="food">Food preferences <span className="text-muted-foreground">(optional)</span></Label>
+                <Input id="food" value={foodPreferences} onChange={(e) => setFoodPreferences(e.target.value)} placeholder="Vegetarian, loves pasta" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="routine">Routine notes <span className="text-muted-foreground">(optional)</span></Label>
+                <Textarea id="routine" value={routineNotes} onChange={(e) => setRoutineNotes(e.target.value)} placeholder="Bedtime around 7:30pm..." className="mt-1" rows={2} />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="rounded-xl" onClick={() => setStep('welcome')}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button className="flex-1 rounded-xl" onClick={() => setStep('goals')}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 'goals' && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-xl">What would you like Parenfy to help you with?</CardTitle>
+              <CardDescription>Choose up to {MAX_PARENTING_GOALS} goals. You can change these anytime.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 max-h-[50vh] overflow-y-auto">
+              {PARENTING_GOAL_CATEGORIES.map((cat) => (
+                <div key={cat.title}>
+                  <p className="text-sm font-medium mb-2">{cat.emoji} {cat.title}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {cat.goals.map((goal) => (
+                      <button
+                        key={goal}
+                        type="button"
+                        onClick={() => toggleGoal(goal)}
+                        className={cn(
+                          'text-xs px-3 py-1.5 rounded-full border transition-colors',
+                          parentingGoals.includes(goal)
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background hover:bg-muted'
+                        )}
+                      >
+                        {parentingGoals.includes(goal) && <Check className="inline h-3 w-3 mr-1" />}
+                        {goal}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="rounded-xl" onClick={() => setStep('child')}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button className="flex-1 rounded-xl" onClick={() => setStep('challenges')} disabled={parentingGoals.length === 0}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 'challenges' && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-xl">What is your biggest parenting challenge right now?</CardTitle>
+              <CardDescription>Choose 1–2 that feel most relevant.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {CURRENT_CHALLENGES.map((challenge) => (
+                <label key={challenge} className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-muted/50">
+                  <Checkbox
+                    checked={currentChallenges.includes(challenge)}
+                    onCheckedChange={() => toggleChallenge(challenge)}
+                  />
+                  <span className="text-sm">{challenge}</span>
+                </label>
+              ))}
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="rounded-xl" onClick={() => setStep('goals')}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button className="flex-1 rounded-xl" onClick={() => setStep('area')}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 'area' && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-xl">Set your broad area</CardTitle>
+              <CardDescription>Optional — helps Connect show nearby parents. Only broad areas are shown publicly.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="broadArea">Broad area for Connect</Label>
+                <Input id="broadArea" value={broadArea} onChange={(e) => setBroadArea(e.target.value)} placeholder="Clontarf, Dublin" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="location">City <span className="text-muted-foreground">(for weather)</span></Label>
+                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Dublin, IE" className="mt-1" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="rounded-xl" onClick={() => setStep('challenges')}><ArrowLeft className="h-4 w-4" /></Button>
+                <Button variant="ghost" className="rounded-xl" onClick={handleFinish}>Skip for now</Button>
+                <Button className="flex-1 rounded-xl" onClick={handleFinish} disabled={loading}>
+                  {loading ? 'Setting up...' : 'Go to Today'}
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
       </Card>
     </div>
   );

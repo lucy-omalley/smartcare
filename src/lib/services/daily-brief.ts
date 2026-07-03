@@ -48,7 +48,20 @@ async function fetchBriefContext(userId: string) {
   const [user, memories, recentMessages, reflection] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, childNickname: true, childAge: true, parentingGoal: true, location: true },
+      select: {
+        name: true,
+        childNickname: true,
+        childAge: true,
+        childInterests: true,
+        foodPreferences: true,
+        routineNotes: true,
+        developmentNotes: true,
+        parentingGoal: true,
+        parentingGoals: true,
+        currentChallenges: true,
+        location: true,
+        broadArea: true,
+      },
     }),
     prisma.familyMemory.findMany({
       where: { userId },
@@ -220,7 +233,20 @@ export async function getHomeSupplementaryData(userId: string) {
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, childNickname: true, childAge: true, parentingGoal: true, location: true },
+      select: {
+        name: true,
+        childNickname: true,
+        childAge: true,
+        childInterests: true,
+        foodPreferences: true,
+        routineNotes: true,
+        developmentNotes: true,
+        parentingGoal: true,
+        parentingGoals: true,
+        currentChallenges: true,
+        location: true,
+        broadArea: true,
+      },
     }),
     getYesterdayJournalMemory(userId),
     prisma.user

@@ -52,7 +52,7 @@ export default function SignIn() {
           <CardDescription className="text-center">
             {searchParams.get('registered') 
               ? 'Your account has been created. Please sign in.'
-              : 'Sign in to your SmartCare account'}
+              : 'Sign in to your Parenfy account'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,7 +107,7 @@ export default function SignIn() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              onClick={() => signIn('google', { callbackUrl: '/today' })}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -132,7 +132,7 @@ export default function SignIn() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
+              onClick={() => signIn('github', { callbackUrl: '/today' })}
             >
               <Github className="w-5 h-5 mr-2" />
               Continue with GitHub

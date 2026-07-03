@@ -43,7 +43,7 @@ export default function LibraryPage() {
     <AppShell>
       <div className="container max-w-lg mx-auto p-4 space-y-4">
         <div className="flex items-center gap-3 pt-2">
-          <Link href="/home">
+          <Link href="/today">
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <ArrowLeft className="h-4 w-4" />
             </Button>

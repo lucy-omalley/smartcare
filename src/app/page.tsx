@@ -52,7 +52,7 @@ export default function Home() {
               </div>
               <div className="space-y-4">
                 <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-                  SmartCare — Every parent deserves a village
+                  Parenfy — Every parent deserves a village
                 </div>
                 {session && firstName ? (
                   <>
@@ -80,13 +80,13 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 {session ? (
                   <>
-                    <Link href="/home">
+                    <Link href="/today">
                       <Button size="lg" className="rounded-xl group">
                         Start Chatting
                         <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </Button>
                     </Link>
-                    <Link href="/community">
+                    <Link href="/connect">
                       <Button variant="outline" size="lg" className="rounded-xl">
                         Explore Community
                       </Button>
@@ -117,7 +117,7 @@ export default function Home() {
             <div className="text-center space-y-2 mb-12">
               <h2 className="text-3xl font-bold tracking-tight">Built for parents, not trackers</h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                SmartCare is AI-first. Everything supports your ongoing conversation with someone who genuinely understands your family.
+                Parenfy is AI-first. Everything supports your daily plan, MumBot, and safe parent connections.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -146,9 +146,9 @@ export default function Home() {
             <p className="text-primary-foreground/90">
               Join parents who chat with MumBot, save family memories, and connect with their community.
             </p>
-            <Link href={session ? "/home" : "/auth/signin"}>
+            <Link href={session ? "/today" : "/auth/signin"}>
               <Button size="lg" variant="secondary" className="rounded-xl bg-white hover:bg-white/90 text-primary">
-                {session ? "Go to Home" : "Start Free"}
+                {session ? "Go to Today" : "Start Free"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

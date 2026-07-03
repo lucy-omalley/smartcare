@@ -54,8 +54,8 @@ export function JournalPrompt({ yesterdayMemory, onSubmit }: JournalPromptProps)
         <article className="visual-card animate-fade-in-up">
           <div className="bg-gradient-to-br from-amber-100 via-rose-50 to-pink-100 px-5 py-6">
             <span className="text-3xl">✨</span>
-            <p className="font-semibold mt-2">What made you smile today?</p>
-            <p className="text-sm text-muted-foreground mt-1">One sentence is all it takes.</p>
+            <p className="font-semibold mt-2">Parent Check-in</p>
+            <p className="text-sm text-muted-foreground mt-1">What made you smile today? One sentence is all it takes.</p>
           </div>
           <div className="p-5 space-y-3">
             <Textarea

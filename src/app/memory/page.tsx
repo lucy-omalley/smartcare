@@ -205,7 +205,7 @@ export default function MemoryPage() {
         )}
 
         <div className="text-center">
-          <Link href="/home">
+          <Link href="/today">
             <Button variant="link" className="text-muted-foreground text-sm">← Back to today&apos;s plan</Button>
           </Link>
         </div>

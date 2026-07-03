@@ -24,7 +24,13 @@ export async function POST(request: Request) {
           name: true,
           childNickname: true,
           childAge: true,
+          childInterests: true,
+          foodPreferences: true,
+          routineNotes: true,
+          developmentNotes: true,
           parentingGoal: true,
+          parentingGoals: true,
+          currentChallenges: true,
         },
       });
       profile = user ?? undefined;

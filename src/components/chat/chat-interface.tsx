@@ -2,21 +2,30 @@
 
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Menu, X } from 'lucide-react';
+import Link from 'next/link';
+import { Bot, Menu, X, UtensilsCrossed, BookOpen, Puzzle, StickyNote, Users } from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { TypingIndicator } from './typing-indicator';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import { messagesAtom, type ChatMessage as ChatMessageType } from '@/lib/store/chat';
-import { cn } from '@/lib/utils';
 import { generateWelcomeMessage } from '@/lib/mumbot-messages';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
+import { trackEvent } from '@/lib/analytics';
 
 interface SuggestedMemory {
   content: string;
   category: string;
 }
+
+const ACTION_CARDS = [
+  { id: 'meal', label: 'Suggest a meal idea', icon: UtensilsCrossed, prompt: 'Can you suggest a meal idea for my child today?' },
+  { id: 'story', label: 'Create a bedtime story', icon: BookOpen, prompt: 'Can you create a short bedtime story for my child?' },
+  { id: 'activity', label: 'Suggest an activity', icon: Puzzle, prompt: 'Can you suggest a fun activity for us today?' },
+  { id: 'notes', label: 'Save to child notes', icon: StickyNote, prompt: 'I want to save something to my child\'s notes.' },
+  { id: 'connect', label: 'Explore Connect', icon: Users, href: '/connect' },
+] as const;
 
 export function ChatInterface() {
   const { data: session } = useSession();
@@ -26,6 +35,7 @@ export function ChatInterface() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [pendingMemory, setPendingMemory] = useState<SuggestedMemory | null>(null);
+  const [showActions, setShowActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +72,7 @@ export function ChatInterface() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, showTypingIndicator, pendingMemory]);
+  }, [messages, showTypingIndicator, pendingMemory, showActions]);
 
   useEffect(() => {
     if (isLoading) {
@@ -91,6 +101,8 @@ export function ChatInterface() {
     try {
       setIsLoading(true);
       setPendingMemory(null);
+      setShowActions(false);
+      trackEvent('mumbot_question_asked');
 
       const userMessage: ChatMessageType = {
         id: Date.now().toString(),
@@ -127,6 +139,7 @@ export function ChatInterface() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+      setShowActions(true);
 
       if (data.suggestedMemory && session?.user) {
         setPendingMemory(data.suggestedMemory);
@@ -144,6 +157,9 @@ export function ChatInterface() {
     }
   };
 
+  const lastMessage = messages[messages.length - 1];
+  const showActionCards = showActions && lastMessage && !lastMessage.isUser && !isLoading;
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[700px] w-full max-w-2xl mx-auto border rounded-2xl bg-background shadow-lg overflow-hidden">
       <div className="border-b p-4 bg-muted/50 flex items-center justify-between">
@@ -151,7 +167,7 @@ export function ChatInterface() {
           <Bot className="h-6 w-6 text-primary" />
           <div>
             <h3 className="font-semibold">MumBot</h3>
-            <p className="text-sm text-muted-foreground">Your AI Co-Parent</p>
+            <p className="text-sm text-muted-foreground">Ask anything about parenting</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -176,25 +192,42 @@ export function ChatInterface() {
             />
           </div>
         ))}
+
+        {showActionCards && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {ACTION_CARDS.map(({ id, label, icon: Icon, ...rest }) =>
+              'href' in rest ? (
+                <Link key={id} href={rest.href}>
+                  <Button size="sm" variant="outline" className="rounded-full text-xs h-8">
+                    <Icon className="h-3.5 w-3.5 mr-1" /> {label}
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full text-xs h-8"
+                  onClick={() => handleSendMessage(rest.prompt)}
+                >
+                  <Icon className="h-3.5 w-3.5 mr-1" /> {label}
+                </Button>
+              )
+            )}
+          </div>
+        )}
+
         <TypingIndicator isVisible={showTypingIndicator} />
         <div ref={messagesEndRef} />
       </div>
 
       {pendingMemory && (
         <div className="border-t bg-accent/30 p-4 space-y-3">
-          <p className="text-sm font-medium">
-            Would you like me to remember that?
-          </p>
-          <p className="text-sm text-muted-foreground italic">
-            &ldquo;{pendingMemory.content}&rdquo;
-          </p>
+          <p className="text-sm font-medium">Would you like me to remember that?</p>
+          <p className="text-sm text-muted-foreground italic">&ldquo;{pendingMemory.content}&rdquo;</p>
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleRemember}>
-              Remember
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setPendingMemory(null)}>
-              Not now
-            </Button>
+            <Button size="sm" onClick={handleRemember}>Remember</Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingMemory(null)}>Not now</Button>
           </div>
         </div>
       )}

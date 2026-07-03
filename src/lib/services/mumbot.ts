@@ -47,7 +47,17 @@ export interface MumBotResponse {
 
 function buildMemoryContext(
   memories: { content: string; category: MemoryCategory }[],
-  profile?: { name?: string | null; childNickname?: string | null; childAge?: string | null; parentingGoal?: string | null }
+  profile?: {
+    name?: string | null;
+    childNickname?: string | null;
+    childAge?: string | null;
+    childInterests?: string[];
+    foodPreferences?: string[];
+    routineNotes?: string | null;
+    parentingGoal?: string | null;
+    parentingGoals?: string[];
+    currentChallenges?: string[];
+  }
 ): string {
   const parts: string[] = [];
 
@@ -55,7 +65,17 @@ function buildMemoryContext(
     parts.push(`Parent name: ${profile.name ?? "Parent"}`);
     if (profile.childNickname) parts.push(`Child nickname: ${profile.childNickname}`);
     if (profile.childAge) parts.push(`Child age: ${profile.childAge}`);
-    if (profile.parentingGoal) parts.push(`Current parenting goal: ${profile.parentingGoal}`);
+    if (profile.childInterests?.length) parts.push(`Child interests: ${profile.childInterests.join(", ")}`);
+    if (profile.foodPreferences?.length) parts.push(`Food preferences: ${profile.foodPreferences.join(", ")}`);
+    if (profile.routineNotes) parts.push(`Routine notes: ${profile.routineNotes}`);
+    if (profile.parentingGoals?.length) {
+      parts.push(`Parenting goals: ${profile.parentingGoals.join(", ")}`);
+    } else if (profile.parentingGoal) {
+      parts.push(`Current parenting goal: ${profile.parentingGoal}`);
+    }
+    if (profile.currentChallenges?.length) {
+      parts.push(`Current challenges: ${profile.currentChallenges.join(", ")}`);
+    }
   }
 
   if (memories.length > 0) {
@@ -70,7 +90,17 @@ export async function getMumBotResponse(
   messages: ChatMessageInput[],
   context: {
     memories: { content: string; category: MemoryCategory }[];
-    profile?: { name?: string | null; childNickname?: string | null; childAge?: string | null; parentingGoal?: string | null };
+    profile?: {
+      name?: string | null;
+      childNickname?: string | null;
+      childAge?: string | null;
+      childInterests?: string[];
+      foodPreferences?: string[];
+      routineNotes?: string | null;
+      parentingGoal?: string | null;
+      parentingGoals?: string[];
+      currentChallenges?: string[];
+    };
   }
 ): Promise<MumBotResponse> {
   const memoryContext = buildMemoryContext(context.memories, context.profile);

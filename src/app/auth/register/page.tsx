@@ -49,7 +49,7 @@ export default function Register() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
           <CardDescription className="text-center">
-            Enter your details to create your SmartCare account
+            Enter your details to create your Parenfy account
           </CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>

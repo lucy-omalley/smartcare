@@ -1,4 +1,5 @@
-/** Default chat model — override with OPENAI_MODEL in .env.local */
+/** Default chat model — override with OPENAI_MODEL in Vercel env */
+// TODO: Configure OPENAI_API_KEY in Vercel project settings (server-side only)
 export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 export const OPENAI_TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || "0.7");

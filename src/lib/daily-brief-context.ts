@@ -4,8 +4,15 @@ export interface BriefProfile {
   name?: string | null;
   childNickname?: string | null;
   childAge?: string | null;
+  childInterests?: string[];
+  foodPreferences?: string[];
+  routineNotes?: string | null;
+  developmentNotes?: string | null;
   parentingGoal?: string | null;
+  parentingGoals?: string[];
+  currentChallenges?: string[];
   location?: string | null;
+  broadArea?: string | null;
 }
 
 export interface BriefMemory {
@@ -24,8 +31,20 @@ export function buildDailyBriefContext(
   parts.push(`Parent name: ${profile.name ?? "Parent"}`);
   if (profile.childNickname) parts.push(`Child nickname: ${profile.childNickname}`);
   if (profile.childAge) parts.push(`Child age: ${profile.childAge}`);
-  if (profile.parentingGoal) parts.push(`Current parenting goal: ${profile.parentingGoal}`);
+  if (profile.childInterests?.length) parts.push(`Child interests: ${profile.childInterests.join(", ")}`);
+  if (profile.foodPreferences?.length) parts.push(`Food preferences: ${profile.foodPreferences.join(", ")}`);
+  if (profile.routineNotes) parts.push(`Routine notes: ${profile.routineNotes}`);
+  if (profile.developmentNotes) parts.push(`Development notes: ${profile.developmentNotes}`);
+  if (profile.parentingGoals?.length) {
+    parts.push(`Parenting goals: ${profile.parentingGoals.join(", ")}`);
+  } else if (profile.parentingGoal) {
+    parts.push(`Current parenting goal: ${profile.parentingGoal}`);
+  }
+  if (profile.currentChallenges?.length) {
+    parts.push(`Current challenges: ${profile.currentChallenges.join(", ")}`);
+  }
   if (profile.location) parts.push(`Location: ${profile.location}`);
+  if (profile.broadArea) parts.push(`Broad area: ${profile.broadArea}`);
   if (weeklyFocus) parts.push(`Weekly focus: ${weeklyFocus}`);
 
   if (memories.length > 0) {
