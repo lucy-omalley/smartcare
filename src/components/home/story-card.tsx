@@ -71,7 +71,7 @@ export function StoryCard({ story, onSave, imagesLoading }: StoryCardProps) {
       const res = await fetch('/api/stories/narrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story: story.story, cache: false }),
+        body: JSON.stringify({ story: story.story, cache: true, source: 'today' }),
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();

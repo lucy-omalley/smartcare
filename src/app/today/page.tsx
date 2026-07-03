@@ -25,6 +25,7 @@ import { buildFocusCards, truncateWords } from '@/lib/today-focus';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { prefetchTodayStoryAudio, invalidateTodayStoryAudioCache } from '@/lib/story-audio-prefetch';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -116,6 +117,13 @@ export default function TodayPage() {
     loadToday().finally(() => setLoading(false));
   }, [status, router, loadToday]);
 
+  useEffect(() => {
+    if (!data?.brief?.bedtimeStory?.story) return;
+    prefetchTodayStoryAudio().catch(() => {
+      // Warm happens in background; Listen will retry if this fails.
+    });
+  }, [data?.brief?.bedtimeStory?.story]);
+
   const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
     const res = await fetch('/api/daily-brief', {
       method: 'PATCH',
@@ -140,6 +148,10 @@ export default function TodayPage() {
     setRotating(section);
     try {
       await patchBrief(actionMap[section]);
+      if (section === 'story') {
+        invalidateTodayStoryAudioCache();
+        prefetchTodayStoryAudio().catch(() => {});
+      }
       toast.success('Here\'s another idea!');
     } catch {
       toast.error('Could not rotate suggestion.');

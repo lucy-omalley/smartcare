@@ -5,8 +5,10 @@ import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
 import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, DailyBriefStory, DailyBriefDevelopment } from "@/types/daily-brief";
 import { enrichBriefWithIllustrations, needsBriefIllustrations, type IllustrationSection } from "@/lib/services/card-illustrations";
 import type { BriefProfile } from "@/lib/daily-brief-context";
+import { clearTodayStoryAudio, warmTodayStoryAudio } from "@/lib/services/story-audio-cache";
 
 export { needsBriefIllustrations };
+export { warmTodayStoryAudio };
 
 export async function generateAndSaveBriefIllustrations(
   userId: string,
@@ -131,6 +133,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
     await prisma.dailyBrief.create({
       data: { userId, date: today, content: content as object },
     });
+    warmTodayStoryAudio(userId);
   } catch (error) {
     console.error("Failed to persist daily brief:", error);
   }
@@ -162,6 +165,7 @@ export async function updateDailyBriefSection(
   if (section === "story") {
     content.bedtimeStory = value as DailyBriefStory;
     delete content.bedtimeStory.illustrationData;
+    await clearTodayStoryAudio(userId);
   }
   if (section === "language") {
     const lang = value as DailyBriefDevelopment;
