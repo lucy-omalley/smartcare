@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 export function BetaFeedbackButton() {
   const [open, setOpen] = useState(false);
-  const [liked, setLiked] = useState("");
+  const [enjoyed, setEnjoyed] = useState("");
   const [confused, setConfused] = useState("");
-  const [comeback, setComeback] = useState("");
+  const [improve, setImprove] = useState("");
+  const [recommend, setRecommend] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -21,11 +23,13 @@ export function BetaFeedbackButton() {
     try {
       // TODO: Persist feedback via Supabase, Formspree, or Resend in Vercel production
       await new Promise((r) => setTimeout(r, 400));
-      toast.success("Thank you for your feedback!");
+      trackEvent("feedback_submitted", { rating, recommend });
+      toast.success("Thank you — your feedback helps us improve!");
       setOpen(false);
-      setLiked("");
+      setEnjoyed("");
       setConfused("");
-      setComeback("");
+      setImprove("");
+      setRecommend("");
       setRating(null);
     } finally {
       setSubmitting(false);
@@ -54,12 +58,12 @@ export function BetaFeedbackButton() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <Label htmlFor="liked">What did you like?</Label>
+                <Label htmlFor="enjoyed">What did you enjoy?</Label>
                 <Textarea
-                  id="liked"
-                  value={liked}
-                  onChange={(e) => setLiked(e.target.value)}
-                  placeholder="Tell us what worked well..."
+                  id="enjoyed"
+                  value={enjoyed}
+                  onChange={(e) => setEnjoyed(e.target.value)}
+                  placeholder="What felt helpful or delightful..."
                   className="mt-1"
                   rows={2}
                 />
@@ -70,24 +74,35 @@ export function BetaFeedbackButton() {
                   id="confused"
                   value={confused}
                   onChange={(e) => setConfused(e.target.value)}
-                  placeholder="Anything unclear or frustrating..."
+                  placeholder="Anything unclear..."
                   className="mt-1"
                   rows={2}
                 />
               </div>
               <div>
-                <Label htmlFor="comeback">What would make you come back tomorrow?</Label>
+                <Label htmlFor="improve">What should we improve?</Label>
                 <Textarea
-                  id="comeback"
-                  value={comeback}
-                  onChange={(e) => setComeback(e.target.value)}
-                  placeholder="One thing that would help..."
+                  id="improve"
+                  value={improve}
+                  onChange={(e) => setImprove(e.target.value)}
+                  placeholder="One thing we could do better..."
                   className="mt-1"
                   rows={2}
                 />
               </div>
               <div>
-                <Label>Rating</Label>
+                <Label htmlFor="recommend">Would you recommend Parenfy?</Label>
+                <Textarea
+                  id="recommend"
+                  value={recommend}
+                  onChange={(e) => setRecommend(e.target.value)}
+                  placeholder="Yes / Maybe / Not yet — and why..."
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label>Rating (1–5)</Label>
                 <div className="flex gap-2 mt-2">
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button

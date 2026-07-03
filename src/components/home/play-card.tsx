@@ -43,7 +43,7 @@ export function PlayCard({ play, onRegenerate, loading, imagesLoading }: PlayCar
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🎮</span>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Adventure</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Activity</p>
         </div>
         <h2 className="text-xl font-bold leading-tight">{play.title}</h2>
         <div className="flex flex-wrap gap-2">
