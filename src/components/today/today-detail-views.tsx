@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bookmark, Volume2, Square, Loader2, ImageIcon } from 'lucide-react';
+import { Bookmark, Loader2, ImageIcon } from 'lucide-react';
 import type {
   DailyBriefRecipe,
   DailyBriefPlay,
@@ -11,7 +11,8 @@ import type {
   DailyBriefDevelopment,
 } from '@/types/daily-brief';
 import { toast } from 'sonner';
-import { unlockStoryAudio, useStoryAudio } from '@/hooks/use-story-audio';
+import { useStoryAudio } from '@/hooks/use-story-audio';
+import { StoryListenButton } from '@/components/story/story-listen-button';
 
 type DetailPart = 'content' | 'footer';
 
@@ -237,11 +238,22 @@ function useStoryDetailMedia(story: DailyBriefStory) {
     setIllustrationData(normalizeIllustrationSrc(story.illustrationData));
   }, [story.illustrationData]);
 
+  const storyKeyRef = useRef(`${story.title}|${story.story}`);
+  const stopAudioRef = useRef(storyAudio.stop);
+  stopAudioRef.current = storyAudio.stop;
+
   useEffect(() => {
-    storyAudio.stop();
-  }, [story.title, story.story]); // eslint-disable-line react-hooks/exhaustive-deps
+    const key = `${story.title}|${story.story}`;
+    if (storyKeyRef.current === key) return;
+    storyKeyRef.current = key;
+    stopAudioRef.current();
+  }, [story.title, story.story]);
 
   const handleNarrate = () => {
+    if (!story.story?.trim()) {
+      toast.error('Story text is missing.');
+      return;
+    }
     void storyAudio.toggle(async (signal) => {
       const res = await fetch('/api/stories/narrate', {
         method: 'POST',
@@ -249,8 +261,13 @@ function useStoryDetailMedia(story: DailyBriefStory) {
         body: JSON.stringify({ story: story.story, cache: false }),
         signal,
       });
-      if (!res.ok) throw new Error('Narration failed');
-      return res.blob();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(typeof err.error === 'string' ? err.error : 'Narration failed');
+      }
+      const blob = await res.blob();
+      if (!blob.size) throw new Error('Empty audio response');
+      return blob;
     });
   };
 
@@ -286,7 +303,6 @@ function useStoryDetailMedia(story: DailyBriefStory) {
     handleNarrate,
     handleIllustrate,
     stopAudio: storyAudio.stop,
-    unlockAudio: unlockStoryAudio,
   };
 }
 
@@ -333,7 +349,6 @@ export function StoryDetailFooter() {
     handleNarrate,
     handleIllustrate,
     stopAudio,
-    unlockAudio,
   } = useStoryDetailContext();
   const mediaActive = isNarrating;
 
@@ -367,27 +382,11 @@ export function StoryDetailFooter() {
             )}
             Cover art
           </Button>
-          <Button
-            size="sm"
-            variant={mediaActive ? 'default' : 'outline'}
-            className="rounded-full touch-target"
-            type="button"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              unlockAudio();
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNarrate();
-            }}
-          >
-            {mediaActive ? (
-              <Square className="h-3.5 w-3.5 mr-1" />
-            ) : (
-              <Volume2 className="h-3.5 w-3.5 mr-1" />
-            )}
-            {mediaActive ? 'Stop' : 'Listen'}
-          </Button>
+          <StoryListenButton
+            active={mediaActive}
+            onToggle={handleNarrate}
+            className="rounded-full"
+          />
         </div>
       </div>
       <div className="flex gap-2">

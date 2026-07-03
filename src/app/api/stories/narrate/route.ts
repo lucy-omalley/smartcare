@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { generateStoryNarration } from "@/lib/services/story-media";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
       select: { audioData: true },
     });
     if (existing?.audioData) {
-      return new NextResponse(existing.audioData, {
+      return new NextResponse(new Uint8Array(existing.audioData), {
         headers: {
           "Content-Type": "audio/mpeg",
           "Cache-Control": "private, max-age=86400",
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     });
   }
 
-  return new NextResponse(audioBuffer, {
+  return new NextResponse(new Uint8Array(audioBuffer), {
     headers: {
       "Content-Type": "audio/mpeg",
       "Cache-Control": "private, max-age=3600",
