@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft, ChefHat, BookOpen, Trash2, Volume2, Square,
+  ArrowLeft, ChefHat, BookOpen, Trash2,
   Loader2, ImageIcon, ChevronDown, ChevronUp
 } from 'lucide-react';
 import type { DailyBriefRecipe } from '@/types/daily-brief';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { unlockStoryAudio, useStoryAudio } from '@/hooks/use-story-audio';
+import { useStoryAudio } from '@/hooks/use-story-audio';
+import { StoryListenButton } from '@/components/story/story-listen-button';
 
 interface SavedRecipe {
   id: string;
@@ -319,27 +320,11 @@ function SavedPageContent() {
                         )}
                         {item.illustrationData ? 'New Art' : 'Illustrate'}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant={isAudioActive ? 'default' : 'outline'}
-                        className="rounded-xl touch-target"
-                        type="button"
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          unlockStoryAudio();
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleStoryAudio(item);
-                        }}
-                      >
-                        {isAudioActive ? (
-                          <Square className="h-3.5 w-3.5 mr-1" />
-                        ) : (
-                          <Volume2 className="h-3.5 w-3.5 mr-1" />
-                        )}
-                        {isAudioActive ? 'Stop' : 'Listen'}
-                      </Button>
+                      <StoryListenButton
+                        active={isAudioActive}
+                        onToggle={() => toggleStoryAudio(item)}
+                        className="rounded-xl"
+                      />
                     </div>
                   </CardContent>
                 </Card>
