@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
-import { defaultDailyBrief, generateDailyBrief, regeneratePlay, regenerateRecipe } from "@/lib/services/mumbot";
+import { defaultDailyBrief, generateDailyBrief, regeneratePlay, regenerateRecipe, regenerateStory, regenerateLanguage } from "@/lib/services/mumbot";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
-import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe } from "@/types/daily-brief";
+import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, DailyBriefStory, DailyBriefDevelopment } from "@/types/daily-brief";
 import { enrichBriefWithIllustrations, needsBriefIllustrations, type IllustrationSection } from "@/lib/services/card-illustrations";
 import type { BriefProfile } from "@/lib/daily-brief-context";
 
@@ -140,8 +140,8 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
 
 export async function updateDailyBriefSection(
   userId: string,
-  section: "recipe" | "play",
-  value: DailyBriefRecipe | DailyBriefPlay
+  section: "recipe" | "play" | "story" | "language",
+  value: DailyBriefRecipe | DailyBriefPlay | DailyBriefStory | DailyBriefDevelopment
 ) {
   const today = toDateKey();
   const existing = await prisma.dailyBrief.findUnique({
@@ -159,6 +159,18 @@ export async function updateDailyBriefSection(
   const content = brief!.content as unknown as DailyBriefContent;
   if (section === "recipe") content.recipe = value as DailyBriefRecipe;
   if (section === "play") content.play = value as DailyBriefPlay;
+  if (section === "story") {
+    content.bedtimeStory = value as DailyBriefStory;
+    delete content.bedtimeStory.illustrationData;
+  }
+  if (section === "language") {
+    const lang = value as DailyBriefDevelopment;
+    const idx = content.development.findIndex((d) =>
+      /language|speech/i.test(d.domain)
+    );
+    if (idx >= 0) content.development[idx] = lang;
+    else content.development.unshift(lang);
+  }
 
   await prisma.dailyBrief.update({
     where: { userId_date: { userId, date: today } },
@@ -168,7 +180,10 @@ export async function updateDailyBriefSection(
   return content;
 }
 
-export async function regenerateDailyBriefSection(userId: string, section: "recipe" | "play") {
+export async function regenerateDailyBriefSection(
+  userId: string,
+  section: "recipe" | "play" | "story" | "language"
+) {
   const today = toDateKey();
   let brief = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
@@ -191,9 +206,23 @@ export async function regenerateDailyBriefSection(userId: string, section: "reci
     return updateDailyBriefSection(userId, "recipe", recipe);
   }
 
-  const play = await regeneratePlay(profile, memories, content.play, weather?.weather ?? null);
-  delete play.imageData;
-  return updateDailyBriefSection(userId, "play", play);
+  if (section === "play") {
+    const play = await regeneratePlay(profile, memories, content.play, weather?.weather ?? null);
+    delete play.imageData;
+    return updateDailyBriefSection(userId, "play", play);
+  }
+
+  if (section === "story") {
+    const story = await regenerateStory(profile, memories, content.bedtimeStory);
+    delete story.illustrationData;
+    return updateDailyBriefSection(userId, "story", story);
+  }
+
+  const languageItem =
+    content.development.find((d) => /language|speech/i.test(d.domain)) ??
+    content.development[0];
+  const language = await regenerateLanguage(profile, memories, languageItem);
+  return updateDailyBriefSection(userId, "language", language);
 }
 
 export async function getYesterdayJournalMemory(userId: string) {

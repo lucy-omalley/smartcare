@@ -83,6 +83,29 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ brief });
     }
 
+    if (action === "regenerate-story") {
+      const brief = await regenerateDailyBriefSection(session.user.id, "story");
+      return NextResponse.json({ brief });
+    }
+
+    if (action === "regenerate-language") {
+      const brief = await regenerateDailyBriefSection(session.user.id, "language");
+      return NextResponse.json({ brief });
+    }
+
+    if (action === "save-activity") {
+      const brief = await getOrCreateDailyBrief(session.user.id);
+      const play = brief.play;
+      await prisma.familyMemory.create({
+        data: {
+          userId: session.user.id,
+          content: `Activity: ${play.title}\n${play.instructions.join(" ")}`,
+          category: "LEARNING",
+        },
+      });
+      return NextResponse.json({ brief });
+    }
+
     if (action === "save-recipe") {
       const brief = await getOrCreateDailyBrief(session.user.id);
       const recipe = brief.recipe;
