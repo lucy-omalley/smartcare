@@ -11,6 +11,7 @@ export type AnalyticsEvent =
   | "today_dashboard_viewed"
   | "mumbot_question"
   | "meal_clicked"
+  | "meal_from_fridge"
   | "story_clicked"
   | "activity_clicked"
   | "connect_status_created"

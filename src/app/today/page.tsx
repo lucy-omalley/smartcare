@@ -11,7 +11,9 @@ import { TodaySectionHeader, TodayFocusCard, TodayConnectCard } from '@/componen
 import { TodayPlanCard } from '@/components/today/today-plan-card';
 import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
-  MealDetailView,
+  MealDetailProvider,
+  MealDetailContent,
+  MealDetailFooter,
   ActivityDetailView,
   StoryDetailProvider,
   StoryDetailContent,
@@ -31,6 +33,11 @@ import {
   warmTodayStoryIllustration,
   invalidateTodayStoryIllustrationCache,
 } from '@/lib/story-illustration-prefetch';
+import {
+  prefetchTodayRecipeIllustration,
+  warmTodayRecipeIllustration,
+  invalidateTodayRecipeIllustrationCache,
+} from '@/lib/recipe-illustration-prefetch';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -129,9 +136,19 @@ export default function TodayPage() {
   }, [data?.brief?.bedtimeStory?.story]);
 
   useEffect(() => {
+    if (!data?.brief?.recipe?.subtitle) return;
+    prefetchTodayRecipeIllustration().catch(() => {});
+  }, [data?.brief?.recipe?.subtitle]);
+
+  useEffect(() => {
     if (activeDetail !== 'story' || !data?.brief?.bedtimeStory?.story) return;
     warmTodayStoryIllustration().catch(() => {});
   }, [activeDetail, data?.brief?.bedtimeStory?.story]);
+
+  useEffect(() => {
+    if (activeDetail !== 'meal' || !data?.brief?.recipe?.subtitle) return;
+    warmTodayRecipeIllustration().catch(() => {});
+  }, [activeDetail, data?.brief?.recipe?.subtitle]);
 
   const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
     const res = await fetch('/api/daily-brief', {
@@ -168,6 +185,11 @@ export default function TodayPage() {
         prefetchTodayStoryIllustration().catch(() => {});
         warmTodayStoryIllustration().catch(() => {});
       }
+      if (section === 'recipe') {
+        invalidateTodayRecipeIllustrationCache();
+        prefetchTodayRecipeIllustration().catch(() => {});
+        warmTodayRecipeIllustration().catch(() => {});
+      }
       toast.success('Here\'s another idea!', { id: toastId });
     } catch {
       toast.error('Could not rotate suggestion.', { id: toastId });
@@ -179,6 +201,23 @@ export default function TodayPage() {
   const askMumbot = (prompt: string) => {
     sessionStorage.setItem('mumbot_prefill', prompt);
     router.push('/mumbot');
+  };
+
+  const createFridgeRecipe = async (ingredients: string[]) => {
+    const res = await fetch('/api/today/meal/from-fridge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingredients }),
+    });
+    if (!res.ok) throw new Error('Request failed');
+    const json = await res.json();
+    if (json.brief) {
+      setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+    }
+    invalidateTodayRecipeIllustrationCache();
+    prefetchTodayRecipeIllustration().catch(() => {});
+    warmTodayRecipeIllustration().catch(() => {});
+    trackEvent('meal_from_fridge');
   };
 
   const closeDetail = () => setActiveDetail(null);
@@ -225,15 +264,7 @@ export default function TodayPage() {
   };
 
   const detailFooter =
-    activeDetail === 'meal' && brief ? (
-      <MealDetailView
-        part="footer"
-        recipe={brief.recipe}
-        childAgeDisplay={brief.childAgeDisplay}
-        onSave={() => patchBrief('save-recipe')}
-        onBack={closeDetail}
-      />
-    ) : activeDetail === 'activity' && brief ? (
+    activeDetail === 'activity' && brief ? (
       <ActivityDetailView
         part="footer"
         play={brief.play}
@@ -245,14 +276,7 @@ export default function TodayPage() {
     ) : null;
 
   const detailContent =
-    activeDetail === 'meal' && brief ? (
-      <MealDetailView
-        recipe={brief.recipe}
-        childAgeDisplay={brief.childAgeDisplay}
-        onSave={() => patchBrief('save-recipe')}
-        onBack={closeDetail}
-      />
-    ) : activeDetail === 'activity' && brief ? (
+    activeDetail === 'activity' && brief ? (
       <ActivityDetailView
         play={brief.play}
         onSave={() => patchBrief('save-activity')}
@@ -414,6 +438,23 @@ export default function TodayPage() {
             <StoryDetailContent childAgeDisplay={brief.childAgeDisplay} />
           </TodayBottomSheet>
         </StoryDetailProvider>
+      ) : activeDetail === 'meal' && brief ? (
+        <MealDetailProvider
+          recipe={brief.recipe}
+          childAgeDisplay={brief.childAgeDisplay}
+          onSave={() => patchBrief('save-recipe')}
+          onBack={closeDetail}
+          onFridgeRecipe={createFridgeRecipe}
+        >
+          <TodayBottomSheet
+            open={activeDetail !== null}
+            title={detailTitles.meal}
+            onClose={closeDetail}
+            footer={<MealDetailFooter />}
+          >
+            <MealDetailContent />
+          </TodayBottomSheet>
+        </MealDetailProvider>
       ) : (
         <TodayBottomSheet
           open={activeDetail !== null}
