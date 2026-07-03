@@ -129,6 +129,15 @@ Only suggest a memory if it's genuinely useful and was clearly stated. Do not su
     messages: openAIMessages,
     temperature: OPENAI_TEMPERATURE,
     max_tokens: OPENAI_MAX_TOKENS,
+  }).catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Incorrect API key") || msg.includes("invalid_api_key")) {
+      throw new Error("OpenAI API key is invalid. Check OPENAI_API_KEY in Vercel settings.");
+    }
+    if (msg.includes("quota") || msg.includes("billing")) {
+      throw new Error("OpenAI quota exceeded. Please check your OpenAI billing.");
+    }
+    throw err;
   });
 
   const raw = completion.choices[0]?.message?.content || "I'm here whenever you need parenting advice or someone to think things through with. What's on your mind?";

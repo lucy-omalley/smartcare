@@ -4,21 +4,46 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { getMumBotResponse } from "@/lib/services/mumbot";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+type IncomingMessage = { content: string; isUser: boolean; id?: string };
+
+function toChatMessages(messages: IncomingMessage[]) {
+  return messages
+    .filter((m) => m.id !== "welcome" && m.content?.trim())
+    .map((m) => ({ content: m.content.trim(), isUser: m.isUser }));
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!process.env.OPENAI_API_KEY?.trim()) {
+      return NextResponse.json(
+        { error: "MumBot is not configured. Please set OPENAI_API_KEY in Vercel environment variables." },
+        { status: 503 }
+      );
+    }
+
     const { messages, conversationId } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid request: messages array is required" }, { status: 400 });
     }
 
-    const userId = session?.user?.id;
-    let memories: { content: string; category: import("@prisma/client").MemoryCategory }[] = [];
-    let profile = undefined;
+    const chatMessages = toChatMessages(messages);
+    if (!chatMessages.some((m) => m.isUser)) {
+      return NextResponse.json({ error: "No user message to respond to" }, { status: 400 });
+    }
 
-    if (userId) {
-      const user = await prisma.user.findUnique({
+    const userId = session.user.id;
+
+    const [user, memories] = await Promise.all([
+      prisma.user.findUnique({
         where: { id: userId },
         select: {
           name: true,
@@ -32,54 +57,56 @@ export async function POST(request: Request) {
           parentingGoals: true,
           currentChallenges: true,
         },
-      });
-      profile = user ?? undefined;
-
-      memories = await prisma.familyMemory.findMany({
+      }),
+      prisma.familyMemory.findMany({
         where: { userId },
         select: { content: true, category: true },
         orderBy: { createdAt: "desc" },
         take: 20,
+      }),
+    ]);
+
+    const { response, suggestedMemory } = await getMumBotResponse(chatMessages, {
+      memories,
+      profile: user ?? undefined,
+    });
+
+    let activeConversationId = conversationId as string | undefined;
+
+    if (activeConversationId) {
+      const existing = await prisma.conversation.findFirst({
+        where: { id: activeConversationId, userId },
+        select: { id: true },
       });
+      if (!existing) activeConversationId = undefined;
     }
 
-    const chatMessages = messages.map((m: { content: string; isUser: boolean }) => ({
-      content: m.content,
-      isUser: m.isUser,
-    }));
+    const lastUserMsg = chatMessages.filter((m) => m.isUser).pop();
 
-    const { response, suggestedMemory } = await getMumBotResponse(chatMessages, { memories, profile });
+    if (!activeConversationId) {
+      const conv = await prisma.conversation.create({
+        data: { userId, title: lastUserMsg?.content?.slice(0, 50) || "Chat with MumBot" },
+      });
+      activeConversationId = conv.id;
+    }
 
-    let activeConversationId = conversationId;
-
-    if (userId) {
-      const lastUserMsg = messages.filter((m: { isUser: boolean }) => m.isUser).pop();
-
-      if (!activeConversationId) {
-        const conv = await prisma.conversation.create({
-          data: { userId, title: lastUserMsg?.content?.slice(0, 50) || "Chat with MumBot" },
-        });
-        activeConversationId = conv.id;
-      }
-
-      if (lastUserMsg) {
-        await prisma.message.create({
-          data: {
-            conversationId: activeConversationId,
-            content: lastUserMsg.content,
-            isUser: true,
-          },
-        });
-      }
-
+    if (lastUserMsg) {
       await prisma.message.create({
         data: {
           conversationId: activeConversationId,
-          content: response,
-          isUser: false,
+          content: lastUserMsg.content,
+          isUser: true,
         },
       });
     }
+
+    await prisma.message.create({
+      data: {
+        conversationId: activeConversationId,
+        content: response,
+        isUser: false,
+      },
+    });
 
     return NextResponse.json({
       response,
@@ -88,7 +115,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Chat API error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message =
+      error instanceof Error && error.message.includes("API key")
+        ? "MumBot could not reach OpenAI. Please check OPENAI_API_KEY in Vercel settings."
+        : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

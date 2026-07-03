@@ -117,15 +117,25 @@ export function ChatInterface() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages, conversationId }),
+        body: JSON.stringify({
+          messages: updatedMessages
+            .filter((m) => m.id !== 'welcome')
+            .map((m) => ({ content: m.content, isUser: m.isUser, id: m.id })),
+          conversationId,
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get AI response');
+      const responseText = await response.text();
+      let data: { response?: string; conversationId?: string; suggestedMemory?: SuggestedMemory; error?: string };
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error(`Server returned an invalid response (${response.status})`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get AI response');
+      }
 
       if (data.conversationId) {
         setConversationId(data.conversationId);
@@ -133,7 +143,7 @@ export function ChatInterface() {
 
       const aiMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: data.response ?? 'Sorry, I could not generate a response.',
         isUser: false,
         timestamp: new Date(),
       };
