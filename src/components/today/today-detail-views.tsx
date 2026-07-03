@@ -13,6 +13,7 @@ import type {
 import { toast } from 'sonner';
 import { useStoryAudio } from '@/hooks/use-story-audio';
 import { getTodayStoryAudioFetch } from '@/lib/story-audio-prefetch';
+import { fetchTodayStoryIllustration, prefetchTodayStoryIllustration, warmTodayStoryIllustration } from '@/lib/story-illustration-prefetch';
 import { StoryListenButton } from '@/components/story/story-listen-button';
 
 type DetailPart = 'content' | 'footer';
@@ -239,6 +240,16 @@ function useStoryDetailMedia(story: DailyBriefStory) {
     setIllustrationData(normalizeIllustrationSrc(story.illustrationData));
   }, [story.illustrationData]);
 
+  useEffect(() => {
+    if (story.illustrationData) return;
+    void prefetchTodayStoryIllustration().then((data) => {
+      if (data) setIllustrationData(normalizeIllustrationSrc(data));
+    });
+    void warmTodayStoryIllustration().then((data) => {
+      if (data) setIllustrationData(normalizeIllustrationSrc(data));
+    }).catch(() => {});
+  }, [story.title, story.story, story.illustrationData]);
+
   const storyKeyRef = useRef(`${story.title}|${story.story}`);
   const stopAudioRef = useRef(storyAudio.stop);
   stopAudioRef.current = storyAudio.stop;
@@ -261,15 +272,8 @@ function useStoryDetailMedia(story: DailyBriefStory) {
   const handleIllustrate = async () => {
     setIllustrating(true);
     try {
-      const res = await fetch('/api/stories/illustrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: story.title, story: story.story, moral: story.moral }),
-      });
-      if (!res.ok) throw new Error();
-      const { illustrationData: data } = await res.json();
-      const normalized = normalizeIllustrationSrc(data);
-      setIllustrationData(normalized);
+      const data = await fetchTodayStoryIllustration();
+      setIllustrationData(normalizeIllustrationSrc(data));
       toast.success('Cover ready!');
       requestAnimationFrame(() => {
         coverRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

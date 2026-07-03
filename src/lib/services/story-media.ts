@@ -10,13 +10,14 @@ export async function generateStoryIllustration(
   title: string,
   storyExcerpt: string,
   childName?: string | null,
-  moral?: string | null
+  moral?: string | null,
+  fast = false
 ): Promise<string> {
   const prompt = storyIllustrationPrompt(
     { title, story: storyExcerpt, lengthMinutes: 5, moral: moral ?? undefined },
     childName ?? "the child"
   );
-  return generateCardIllustration(prompt);
+  return generateCardIllustration(prompt, fast);
 }
 
 export async function generateStoryNarration(storyText: string): Promise<Buffer> {

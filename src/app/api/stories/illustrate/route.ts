@@ -25,7 +25,8 @@ export async function POST(request: Request) {
       title.trim(),
       story.trim(),
       user?.childNickname,
-      moral?.trim() || null
+      moral?.trim() || null,
+      true
     );
 
     if (savedStoryId) {
