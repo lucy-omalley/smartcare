@@ -11,11 +11,11 @@ import { RecipeCard } from '@/components/home/recipe-card';
 import { PlayCard } from '@/components/home/play-card';
 import { TipCard } from '@/components/home/tip-card';
 import { StoryCard } from '@/components/home/story-card';
-import { JournalPrompt } from '@/components/home/journal-prompt';
+import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 import { AnimatedSection } from '@/components/visual/animated-section';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -45,12 +45,19 @@ interface HomeData {
     name: string;
     childNickname?: string | null;
     childAge?: string | null;
-    location?: string | null;
     parentingGoals?: string[];
     currentChallenges?: string[];
   };
   connectPreview?: ConnectStatusPreview[];
-  yesterdayMemory: { content: string } | null;
+  yesterdayMemory?: { content: string } | null;
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
+      {children}
+    </p>
+  );
 }
 
 export default function TodayPage() {
@@ -83,9 +90,10 @@ export default function TodayPage() {
         setLoadError(null);
         setData({
           ...briefData,
-          connectPreview: (connectData.statuses || []).slice(0, 3),
+          connectPreview: (connectData.statuses || []).slice(0, 2),
         });
-        trackEvent('daily_plan_viewed');
+        trackEvent('today_dashboard_viewed');
+        trackReturnVisit();
       })
       .catch((err: unknown) => {
         setLoadError(err instanceof Error ? err.message : 'Failed to load today\'s plan');
@@ -164,24 +172,26 @@ export default function TodayPage() {
     }
   };
 
-  const submitJournal = async (sentence: string) => {
-    await fetch('/api/journal', {
+  const submitCheckIn = async (checkIn: { feeling: string; win: string; challenge: string }) => {
+    const res = await fetch('/api/journal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sentence }),
+      body: JSON.stringify(checkIn),
     });
+    if (!res.ok) throw new Error('Failed');
+    const json = await res.json();
     trackEvent('parent_checkin_completed');
-    loadBrief();
+    return { encouragement: json.encouragement as string | undefined };
   };
 
   if (status === 'loading' || loading) {
     return (
       <AppShell>
         <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center animate-gentle-bounce">
-            <Sun className="h-8 w-8 text-primary" />
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center animate-gentle-bounce">
+            <Sun className="h-7 w-7 text-primary" />
           </div>
-          <p className="text-muted-foreground text-sm text-center">Preparing today&apos;s parenting plan...</p>
+          <p className="text-muted-foreground text-sm text-center">What should I do with my child today?</p>
         </div>
       </AppShell>
     );
@@ -195,136 +205,147 @@ export default function TodayPage() {
 
   return (
     <AppShell>
-      <div className="container max-w-lg mx-auto px-4 pt-5 pb-10 space-y-5">
-        <AnimatedSection>
-          <header className="space-y-1 py-2">
-            <p className="text-sm text-muted-foreground">{greeting}, {firstName}</p>
-            <h1 className="text-2xl font-bold tracking-tight">Today&apos;s Parenting Plan</h1>
-            {hasChildProfile && childName && brief?.childAgeDisplay ? (
-              <p className="text-muted-foreground text-sm">
-                For <span className="font-medium text-foreground">{childName}</span> · {brief.childAgeDisplay}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-sm">What should I do with my child today?</p>
-            )}
-            {imagesLoading && (
-              <p className="text-xs text-primary/70 animate-pulse">Personalising your plan...</p>
-            )}
-          </header>
-        </AnimatedSection>
+      <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-4">
+        {/* Greeting */}
+        <header className="space-y-0.5 py-1">
+          <p className="text-sm text-muted-foreground">{greeting}, {firstName}</p>
+          <h1 className="text-xl font-bold tracking-tight">Today&apos;s Parenting Plan</h1>
+          {hasChildProfile && childName && brief?.childAgeDisplay ? (
+            <p className="text-muted-foreground text-sm">
+              For {childName} · {brief.childAgeDisplay}
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-sm">Personalised ideas for your day together</p>
+          )}
+        </header>
 
         {!hasChildProfile && (
-          <AnimatedSection delay={60}>
-            <div className="visual-card p-5 text-center space-y-3">
-              <UserPlus className="h-8 w-8 text-primary mx-auto" />
-              <p className="text-sm">Create a child profile to personalise your daily plan.</p>
-              <Link href="/profile?edit=child">
-                <Button className="rounded-full">Create Profile</Button>
-              </Link>
+          <div className="visual-card p-4 flex items-center gap-3">
+            <UserPlus className="h-6 w-6 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Add a child profile</p>
+              <p className="text-xs text-muted-foreground">Personalise meals, stories &amp; activities</p>
             </div>
-          </AnimatedSection>
+            <Link href="/profile?edit=child">
+              <Button size="sm" className="rounded-full shrink-0">Add</Button>
+            </Link>
+          </div>
         )}
 
         {loadError && !brief && (
-          <AnimatedSection delay={100}>
-            <div className="visual-card p-5 text-center space-y-3 border border-destructive/20 bg-destructive/5">
-              <p className="text-sm text-destructive font-medium">Could not load today&apos;s plan</p>
-              <p className="text-xs text-muted-foreground">{loadError}</p>
-              <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
-                setLoading(true);
-                loadBrief().finally(() => setLoading(false));
-              }}>
-                Try again
-              </Button>
-            </div>
-          </AnimatedSection>
+          <div className="visual-card p-4 text-center space-y-2 border border-destructive/20 bg-destructive/5">
+            <p className="text-sm text-destructive font-medium">Could not load today&apos;s plan</p>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
+              setLoading(true);
+              loadBrief().finally(() => setLoading(false));
+            }}>
+              Try again
+            </Button>
+          </div>
         )}
+
+        {/* Quick MumBot */}
+        <Link href="/mumbot">
+          <div className="visual-card p-3.5 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.99] bg-primary/5 border-primary/10">
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm">Ask MumBot anything</p>
+              <p className="text-xs text-muted-foreground truncate">Meals, stories, activities &amp; more</p>
+            </div>
+            <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+          </div>
+        </Link>
 
         {brief && (
-          <>
-            <AnimatedSection delay={100}>
-              <TipCard tip={brief.tip} imagesLoading={imagesLoading} />
+          <div className="space-y-4">
+            <AnimatedSection delay={40}>
+              <div className="space-y-2">
+                <SectionLabel>Today&apos;s Meal</SectionLabel>
+                <RecipeCard
+                  recipe={brief.recipe}
+                  loading={sectionLoading}
+                  imagesLoading={imagesLoading}
+                  onRegenerate={() => patchBrief('regenerate-recipe')}
+                  onSave={async () => {
+                    await patchBrief('save-recipe');
+                    trackEvent('meal_clicked');
+                  }}
+                />
+              </div>
             </AnimatedSection>
 
-            <AnimatedSection delay={140}>
-              <RecipeCard
-                recipe={brief.recipe}
-                loading={sectionLoading}
-                imagesLoading={imagesLoading}
-                onRegenerate={() => patchBrief('regenerate-recipe')}
-                onSave={async () => {
-                  await patchBrief('save-recipe');
-                  trackEvent('recipe_clicked');
-                }}
-              />
+            <AnimatedSection delay={80}>
+              <div className="space-y-2">
+                <SectionLabel>Today&apos;s Activity</SectionLabel>
+                <PlayCard
+                  play={brief.play}
+                  loading={sectionLoading}
+                  imagesLoading={imagesLoading}
+                  onRegenerate={async () => {
+                    await patchBrief('regenerate-play');
+                    trackEvent('activity_clicked');
+                  }}
+                />
+              </div>
             </AnimatedSection>
 
-            <AnimatedSection delay={180}>
-              <PlayCard
-                play={brief.play}
-                loading={sectionLoading}
-                imagesLoading={imagesLoading}
-                onRegenerate={() => patchBrief('regenerate-play')}
-              />
+            <AnimatedSection delay={120}>
+              <div className="space-y-2">
+                <SectionLabel>Today&apos;s Story</SectionLabel>
+                <StoryCard
+                  story={brief.bedtimeStory}
+                  imagesLoading={imagesLoading}
+                  onSave={async (extras) => {
+                    await patchBrief('save-story', extras);
+                    trackEvent('story_clicked');
+                  }}
+                />
+              </div>
             </AnimatedSection>
 
-            <AnimatedSection delay={220}>
-              <StoryCard
-                story={brief.bedtimeStory}
-                imagesLoading={imagesLoading}
-                onSave={async (extras) => {
-                  await patchBrief('save-story', extras);
-                  trackEvent('story_clicked');
-                }}
-              />
+            <AnimatedSection delay={160}>
+              <div className="space-y-2">
+                <SectionLabel>Today&apos;s Parenting Tip</SectionLabel>
+                <TipCard tip={brief.tip} imagesLoading={imagesLoading} />
+              </div>
             </AnimatedSection>
-          </>
+          </div>
         )}
 
-        <AnimatedSection delay={260}>
-          <JournalPrompt yesterdayMemory={data?.yesterdayMemory} onSubmit={submitJournal} />
-        </AnimatedSection>
-
-        <AnimatedSection delay={300}>
-          <Link href="/mumbot">
-            <div className="visual-card p-5 flex items-center justify-between cursor-pointer hover:shadow-lg transition-shadow active:scale-[0.99]">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-6 w-6 text-primary" />
+        {/* Connect suggestion */}
+        <AnimatedSection delay={200}>
+          <div className="space-y-2">
+            <SectionLabel>Today&apos;s Connect</SectionLabel>
+            <Link href="/connect">
+              <div className="visual-card p-4 space-y-2 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <p className="font-medium text-sm">Meet a parent nearby</p>
+                  </div>
+                  <span className="text-xs text-primary">Connect →</span>
                 </div>
-                <div>
-                  <p className="font-semibold">Ask MumBot</p>
-                  <p className="text-xs text-muted-foreground">Ask anything about parenting</p>
-                </div>
-              </div>
-              <MessageCircle className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </Link>
-        </AnimatedSection>
-
-        <AnimatedSection delay={340}>
-          <Link href="/connect">
-            <div className="visual-card p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <p className="font-semibold">Connect</p>
-                </div>
-                <span className="text-xs text-primary">See all →</span>
-              </div>
-              {(data?.connectPreview?.length ?? 0) > 0 ? (
-                <div className="space-y-2">
-                  {data!.connectPreview!.map((s) => (
+                {(data?.connectPreview?.length ?? 0) > 0 ? (
+                  data!.connectPreview!.map((s) => (
                     <p key={s.id} className="text-xs text-muted-foreground">
-                      {s.broadArea} · {s.timeWindow} · {s.interest} · {s.childAgeRange} · Open to connect
+                      {s.broadArea} · {s.timeWindow} · {s.interest} · {s.childAgeRange}
                     </p>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Set broad availability or join parent-led events safely.</p>
-              )}
-            </div>
-          </Link>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Set broad availability or join a parent-led event — privacy-first.
+                  </p>
+                )}
+              </div>
+            </Link>
+          </div>
+        </AnimatedSection>
+
+        {/* Parent Check-in */}
+        <AnimatedSection delay={240}>
+          <ParentCheckInCard onSubmit={submitCheckIn} />
         </AnimatedSection>
       </div>
     </AppShell>

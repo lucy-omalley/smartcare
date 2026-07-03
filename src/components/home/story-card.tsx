@@ -100,7 +100,7 @@ export function StoryCard({ story, onSave, imagesLoading }: StoryCardProps) {
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">📚</span>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tonight&apos;s Story</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Story</p>
         </div>
         <h2 className="text-xl font-bold leading-tight">{story.title}</h2>
         <Badge variant="secondary" className="rounded-full">~{story.lengthMinutes} min read</Badge>

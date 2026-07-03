@@ -11,17 +11,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { sentence } = await request.json();
-  if (!sentence?.trim()) {
-    return NextResponse.json({ error: "Please share what made you smile today." }, { status: 400 });
+  const body = await request.json();
+  const { sentence, feeling, win, challenge } = body;
+
+  let checkInSentence = sentence?.trim();
+  if (!checkInSentence && feeling?.trim()) {
+    const parts = [`Feeling: ${feeling.trim()}`];
+    if (win?.trim()) parts.push(`Today's win: ${win.trim()}`);
+    if (challenge?.trim()) parts.push(`Today's challenge: ${challenge.trim()}`);
+    checkInSentence = parts.join(". ");
+  }
+
+  if (!checkInSentence) {
+    return NextResponse.json({ error: "Please complete your check-in." }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, childNickname: true, childAge: true, parentingGoal: true },
+    select: {
+      name: true,
+      childNickname: true,
+      childAge: true,
+      parentingGoal: true,
+      parentingGoals: true,
+      currentChallenges: true,
+    },
   });
 
-  const journalEntry = await generateJournalEntry(user ?? {}, sentence.trim());
+  const journalEntry = await generateJournalEntry(user ?? {}, checkInSentence);
 
   const memory = await prisma.familyMemory.create({
     data: {
@@ -31,5 +48,7 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ memory, journalEntry });
+  const encouragement = journalEntry.split(".").slice(-2).join(".").trim() || journalEntry;
+
+  return NextResponse.json({ memory, journalEntry, encouragement });
 }

@@ -120,16 +120,17 @@ export const ALL_PARENTING_GOALS = PARENTING_GOAL_CATEGORIES.flatMap((c) => c.go
 export const MAX_PARENTING_GOALS = 5;
 
 export const CURRENT_CHALLENGES = [
-  "Sleep is difficult",
-  "Mealtimes are stressful",
-  "Behaviour is challenging",
-  "I need activity ideas",
-  "I feel isolated",
-  "I'm worried about development",
-  "I want more routine",
-  "I need emotional support",
-  "I want to meet other parents",
-  "Not sure yet",
+  "Sleep",
+  "Tantrums",
+  "Picky eating",
+  "Activities",
+  "Speech",
+  "Behaviour",
+  "Toilet training",
+  "Meeting other parents",
+  "Feeling overwhelmed",
+  "Development concerns",
+  "Not sure",
 ] as const;
 
 export const MAX_CURRENT_CHALLENGES = 2;
@@ -137,13 +138,13 @@ export const MAX_CURRENT_CHALLENGES = 2;
 export const TIME_WINDOWS = ["Morning", "Afternoon", "Evening", "Flexible"] as const;
 
 export const CONNECT_INTERESTS = [
-  "Outdoor play",
-  "Park walk",
+  "Park",
   "Coffee",
   "Library",
-  "Indoor play",
+  "Indoor Play",
   "Playground",
-  "Parent chat",
+  "Walk",
+  "Parent Chat",
 ] as const;
 
 export const CONNECT_AGE_RANGES = ["Baby", "Toddler", "Preschool", "Primary school"] as const;
@@ -210,12 +211,9 @@ export const ACTIVITY_CATEGORIES = {
 } as const;
 
 export const PRIVACY_COPY = {
-  broadAvailability:
-    "Parenfy only shows broad availability and broad area publicly.",
-  exactMeetup:
-    "Exact meetup details should only be shared when both parents feel comfortable.",
-  noHomeAddress:
-    "Do not share your home address or sensitive personal information.",
+  broadAvailability: "Parenfy only shares broad availability.",
+  exactMeetup: "Exact meetup details are only shared if you choose.",
+  noHomeAddress: "Block · Report · Moderation · Verified Parent (coming soon)",
 } as const;
 
 export function weatherIconUrl(icon: string): string {

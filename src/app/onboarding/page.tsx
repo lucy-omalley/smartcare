@@ -7,7 +7,6 @@ import { Bot, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -19,7 +18,7 @@ import {
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
-const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'done'] as const;
+const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'ready'] as const;
 type Step = (typeof STEPS)[number];
 
 export default function OnboardingPage() {
@@ -160,8 +159,8 @@ export default function OnboardingPage() {
         {step === 'child' && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl">Create child profile</CardTitle>
-              <CardDescription>Help Parenfy personalise your daily plan.</CardDescription>
+              <CardTitle className="text-xl">Child profile</CardTitle>
+              <CardDescription>Just the basics — MumBot can learn more over time.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -170,23 +169,11 @@ export default function OnboardingPage() {
               </div>
               <div>
                 <Label htmlFor="age">Child&apos;s age</Label>
-                <Input id="age" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="2 years old" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="interests">Interests <span className="text-muted-foreground">(optional)</span></Label>
-                <Input id="interests" value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="Dinosaurs, painting, music" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="food">Food preferences <span className="text-muted-foreground">(optional)</span></Label>
-                <Input id="food" value={foodPreferences} onChange={(e) => setFoodPreferences(e.target.value)} placeholder="Vegetarian, loves pasta" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="routine">Routine notes <span className="text-muted-foreground">(optional)</span></Label>
-                <Textarea id="routine" value={routineNotes} onChange={(e) => setRoutineNotes(e.target.value)} placeholder="Bedtime around 7:30pm..." className="mt-1" rows={2} />
+                <Input id="age" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="2 years old" required className="mt-1" />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('welcome')}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button className="flex-1 rounded-xl" onClick={() => setStep('goals')}>
+                <Button className="flex-1 rounded-xl" onClick={() => setStep('goals')} disabled={!childAge.trim()}>
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -263,25 +250,41 @@ export default function OnboardingPage() {
         {step === 'area' && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl">Set your broad area</CardTitle>
-              <CardDescription>Optional — helps Connect show nearby parents. Only broad areas are shown publicly.</CardDescription>
+              <CardTitle className="text-xl">Broad area for Connect</CardTitle>
+              <CardDescription>Optional — only broad areas are shown publicly. Skip if you prefer.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="broadArea">Broad area for Connect</Label>
+                <Label htmlFor="broadArea">Your broad area</Label>
                 <Input id="broadArea" value={broadArea} onChange={(e) => setBroadArea(e.target.value)} placeholder="Clontarf, Dublin" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="location">City <span className="text-muted-foreground">(for weather)</span></Label>
-                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Dublin, IE" className="mt-1" />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('challenges')}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button variant="ghost" className="rounded-xl" onClick={handleFinish}>Skip for now</Button>
-                <Button className="flex-1 rounded-xl" onClick={handleFinish} disabled={loading}>
-                  {loading ? 'Setting up...' : 'Go to Today'}
+                <Button variant="ghost" className="rounded-xl" onClick={() => setStep('ready')}>Skip</Button>
+                <Button className="flex-1 rounded-xl" onClick={() => setStep('ready')} disabled={!broadArea.trim()}>
+                  Continue
                 </Button>
               </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 'ready' && (
+          <>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <span className="text-3xl">🌞</span>
+              </div>
+              <CardTitle className="text-xl">You&apos;re all set!</CardTitle>
+              <CardDescription>
+                Your personalised Today dashboard is ready. Ask MumBot anything — we&apos;ll learn more as you go.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full rounded-xl" size="lg" onClick={handleFinish} disabled={loading}>
+                {loading ? 'Opening...' : 'Open Today Dashboard'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </>
         )}

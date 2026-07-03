@@ -84,7 +84,7 @@ function ConnectContent() {
 
   const [broadArea, setBroadArea] = useState('');
   const [timeWindow, setTimeWindow] = useState('Morning');
-  const [interest, setInterest] = useState('Outdoor play');
+  const [interest, setInterest] = useState('Park');
   const [childAgeRange, setChildAgeRange] = useState('Toddler');
   const [note, setNote] = useState('');
   const [isOpen, setIsOpen] = useState(true);
@@ -152,7 +152,7 @@ function ConnectContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ broadArea, timeWindow, interest, childAgeRange, note, isOpen }),
     });
-    trackEvent('available_status_created');
+    trackEvent('connect_status_created');
     toast.success(isOpen ? 'You\'re open to connect today!' : 'Status saved as private');
     setShowStatusForm(false);
     loadAvailable();
@@ -172,7 +172,6 @@ function ConnectContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusId }),
     });
-    trackEvent('connection_interest_sent');
     toast.success('Interest sent!');
     loadRequests();
   };
@@ -206,7 +205,6 @@ function ConnectContent() {
     const res = await fetch(`/api/connect/events/${eventId}/join`, { method: 'POST' });
     const data = await res.json();
     if (data.pending) {
-      trackEvent('event_join_requested');
       toast.success('Join request sent');
     } else if (data.joined) {
       trackEvent('event_joined');
@@ -222,7 +220,6 @@ function ConnectContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     });
-    if (action === 'accept') trackEvent('connection_request_accepted');
     loadRequests();
     loadMy();
   };
@@ -251,7 +248,6 @@ function ConnectContent() {
             <p className="flex items-start gap-2"><Shield className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />{PRIVACY_COPY.broadAvailability}</p>
             <p>{PRIVACY_COPY.exactMeetup}</p>
             <p>{PRIVACY_COPY.noHomeAddress}</p>
-            <p className="text-[10px] pt-1 opacity-70">TODO: Report user · Block user · Moderation · Verified parent account</p>
           </CardContent>
         </Card>
 

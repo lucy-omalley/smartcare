@@ -3,7 +3,7 @@
 import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bot, Menu, X, UtensilsCrossed, BookOpen, Puzzle, StickyNote, Users } from 'lucide-react';
+import { Bot, Menu, X, UtensilsCrossed, BookOpen, Puzzle, Users, HeartHandshake } from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { TypingIndicator } from './typing-indicator';
@@ -20,11 +20,11 @@ interface SuggestedMemory {
 }
 
 const ACTION_CARDS = [
-  { id: 'meal', label: 'Suggest a meal idea', icon: UtensilsCrossed, prompt: 'Can you suggest a meal idea for my child today?' },
-  { id: 'story', label: 'Create a bedtime story', icon: BookOpen, prompt: 'Can you create a short bedtime story for my child?' },
-  { id: 'activity', label: 'Suggest an activity', icon: Puzzle, prompt: 'Can you suggest a fun activity for us today?' },
-  { id: 'notes', label: 'Save to child notes', icon: StickyNote, prompt: 'I want to save something to my child\'s notes.' },
-  { id: 'connect', label: 'Explore Connect', icon: Users, href: '/connect' },
+  { id: 'meal', label: 'Meal idea', icon: UtensilsCrossed, prompt: 'Can you suggest a meal idea for my child today?' },
+  { id: 'story', label: 'Bedtime story', icon: BookOpen, prompt: 'Can you create a short bedtime story for my child?' },
+  { id: 'activity', label: 'Activity', icon: Puzzle, prompt: 'Can you suggest a fun activity for us today?' },
+  { id: 'connect', label: 'Community', icon: Users, href: '/connect' },
+  { id: 'checkin', label: 'Parent Check-in', icon: HeartHandshake, href: '/today' },
 ] as const;
 
 export function ChatInterface() {
@@ -102,7 +102,7 @@ export function ChatInterface() {
       setIsLoading(true);
       setPendingMemory(null);
       setShowActions(false);
-      trackEvent('mumbot_question_asked');
+      trackEvent('mumbot_question');
 
       const userMessage: ChatMessageType = {
         id: Date.now().toString(),

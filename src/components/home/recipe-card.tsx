@@ -49,7 +49,7 @@ export function RecipeCard({ recipe, onRegenerate, onSave, loading, imagesLoadin
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🍳</span>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Recipe</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Today&apos;s Meal</p>
         </div>
         <div>
           <h2 className="text-xl font-bold leading-tight">{recipe.subtitle}</h2>
