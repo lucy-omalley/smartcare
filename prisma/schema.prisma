@@ -75,6 +75,7 @@ model User {
   developmentNotes   String?
   parentingGoal      String?
   parentingGoals     String[] @default([])
+  priorityGoal       String?
   currentChallenges  String[] @default([])
   location           String?
   broadArea          String?

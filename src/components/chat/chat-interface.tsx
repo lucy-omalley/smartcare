@@ -37,6 +37,7 @@ export function ChatInterface() {
   const [pendingMemory, setPendingMemory] = useState<SuggestedMemory | null>(null);
   const [showActions, setShowActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sendMessageRef = useRef<(content: string) => Promise<void>>();
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -166,6 +167,15 @@ export function ChatInterface() {
       setIsLoading(false);
     }
   };
+
+  sendMessageRef.current = handleSendMessage;
+
+  useEffect(() => {
+    const prefill = sessionStorage.getItem('mumbot_prefill');
+    if (!prefill || !session?.user) return;
+    sessionStorage.removeItem('mumbot_prefill');
+    void sendMessageRef.current?.(prefill);
+  }, [session?.user]);
 
   const lastMessage = messages[messages.length - 1];
   const showActionCards = showActions && lastMessage && !lastMessage.isUser && !isLoading;

@@ -29,6 +29,7 @@ interface Profile {
   routineNotes?: string | null;
   developmentNotes?: string | null;
   parentingGoals?: string[];
+  priorityGoal?: string | null;
   parentingGoal?: string | null;
   currentChallenges?: string[];
   location?: string | null;
@@ -78,6 +79,7 @@ function ProfileContent() {
   const [routineNotes, setRoutineNotes] = useState('');
   const [developmentNotes, setDevelopmentNotes] = useState('');
   const [parentingGoals, setParentingGoals] = useState<string[]>([]);
+  const [priorityGoal, setPriorityGoal] = useState<string | null>(null);
   const [currentChallenges, setCurrentChallenges] = useState<string[]>([]);
   const [broadArea, setBroadArea] = useState('');
   const [bio, setBio] = useState('');
@@ -101,6 +103,7 @@ function ProfileContent() {
             setRoutineNotes(p.routineNotes || '');
             setDevelopmentNotes(p.developmentNotes || '');
             setParentingGoals(p.parentingGoals || []);
+            setPriorityGoal(p.priorityGoal || null);
             setCurrentChallenges(p.currentChallenges || []);
             setBroadArea(p.broadArea || '');
             setBio(p.bio || '');
@@ -125,10 +128,18 @@ function ProfileContent() {
 
   const toggleGoal = (goal: string) => {
     setParentingGoals((prev) => {
-      if (prev.includes(goal)) return prev.filter((g) => g !== goal);
+      if (prev.includes(goal)) {
+        if (priorityGoal === goal) setPriorityGoal(null);
+        return prev.filter((g) => g !== goal);
+      }
       if (prev.length >= MAX_PARENTING_GOALS) return prev;
       return [...prev, goal];
     });
+  };
+
+  const setAsPriority = (goal: string) => {
+    if (!parentingGoals.includes(goal)) return;
+    setPriorityGoal((p) => (p === goal ? null : goal));
   };
 
   const toggleChallenge = (challenge: string) => {
@@ -153,6 +164,7 @@ function ProfileContent() {
           routineNotes,
           developmentNotes,
           parentingGoals,
+          priorityGoal,
           currentChallenges,
           broadArea,
           bio,
@@ -210,22 +222,39 @@ function ProfileContent() {
 
               <div>
                 <Label className="text-xs">Parenting goals (up to {MAX_PARENTING_GOALS})</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">Tap ⭐ on a selected goal to set current priority.</p>
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                   {PARENTING_GOAL_CATEGORIES.map((cat) => (
                     <div key={cat.title} className="flex flex-wrap gap-1">
-                      {cat.goals.map((goal) => (
-                        <button
-                          key={goal}
-                          type="button"
-                          onClick={() => toggleGoal(goal)}
-                          className={cn(
-                            'text-[10px] px-2 py-1 rounded-full border',
-                            parentingGoals.includes(goal) ? 'bg-primary text-primary-foreground' : 'bg-background'
-                          )}
-                        >
-                          {goal}
-                        </button>
-                      ))}
+                      {cat.goals.map((goal) => {
+                        const selected = parentingGoals.includes(goal);
+                        const isPriority = priorityGoal === goal;
+                        return (
+                          <div key={goal} className="inline-flex items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleGoal(goal)}
+                              className={cn(
+                                'text-[10px] px-2 py-1 rounded-full border',
+                                selected ? 'bg-primary text-primary-foreground' : 'bg-background',
+                                isPriority && 'ring-2 ring-primary ring-offset-1'
+                              )}
+                            >
+                              {goal}
+                            </button>
+                            {selected && (
+                              <button
+                                type="button"
+                                aria-label={`Set ${goal} as priority`}
+                                onClick={() => setAsPriority(goal)}
+                                className={cn('text-xs px-1', isPriority ? 'opacity-100' : 'opacity-40')}
+                              >
+                                ⭐
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -305,7 +334,9 @@ function ProfileContent() {
                 {profile?.parentingGoals?.length ? (
                   <div className="flex flex-wrap gap-1">
                     {profile.parentingGoals.map((g) => (
-                      <Badge key={g} variant="secondary" className="rounded-full text-xs">{g}</Badge>
+                      <Badge key={g} variant={profile.priorityGoal === g ? 'default' : 'secondary'} className="rounded-full text-xs">
+                        {profile.priorityGoal === g ? '⭐ ' : ''}{g}
+                      </Badge>
                     ))}
                   </div>
                 ) : profile?.parentingGoal ? (

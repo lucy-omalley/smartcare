@@ -1,96 +1,100 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, MessageCircle, Users, Sun, UserPlus } from 'lucide-react';
+import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
-import { RecipeCard } from '@/components/home/recipe-card';
-import { PlayCard } from '@/components/home/play-card';
-import { TipCard } from '@/components/home/tip-card';
-import { StoryCard } from '@/components/home/story-card';
-import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
-import { AnimatedSection } from '@/components/visual/animated-section';
+import {
+  TodayCompactCard,
+  TodaySectionHeader,
+  TodayFocusCard,
+  TodayConnectCard,
+} from '@/components/today/today-cards';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
+import { buildFocusCards, truncateWords } from '@/lib/today-focus';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
+import { format } from 'date-fns';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
-  if (!text.trim()) {
-    throw new Error(`Server returned an empty response (${response.status})`);
-  }
+  if (!text.trim()) throw new Error(`Empty response (${response.status})`);
   try {
     return JSON.parse(text) as T;
   } catch {
-    throw new Error(`Server returned an invalid response (${response.status})`);
+    throw new Error(`Invalid response (${response.status})`);
   }
 }
 
-interface ConnectStatusPreview {
+interface ConnectEventPreview {
   id: string;
-  parentFirstName: string;
+  title: string;
   broadArea: string;
+  date: string;
   timeWindow: string;
-  interest: string;
-  childAgeRange: string;
 }
 
-interface HomeData {
+interface TodayData {
   brief: DailyBriefContent;
-  needsIllustrations?: boolean;
   profile: {
     name: string;
     childNickname?: string | null;
     childAge?: string | null;
     parentingGoals?: string[];
+    priorityGoal?: string | null;
     currentChallenges?: string[];
   };
-  connectPreview?: ConnectStatusPreview[];
-  yesterdayMemory?: { content: string } | null;
+  connectAvailableCount: number;
+  upcomingEvent: ConnectEventPreview | null;
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-      {children}
-    </p>
-  );
+function milestoneSummary(brief: DailyBriefContent): { title: string; summary: string; detail: string } {
+  const dev = brief.development?.[0];
+  if (dev) {
+    return {
+      title: dev.domain,
+      summary: truncateWords(dev.tryToday || dev.insight, 12),
+      detail: `${dev.insight}\n\nTry today: ${dev.tryToday}`,
+    };
+  }
+  return {
+    title: brief.tip.topic,
+    summary: truncateWords(brief.tip.content, 12),
+    detail: brief.tip.content,
+  };
 }
 
 export default function TodayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [data, setData] = useState<HomeData | null>(null);
+  const [data, setData] = useState<TodayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [sectionLoading, setSectionLoading] = useState(false);
-  const [imagesLoading, setImagesLoading] = useState(false);
-  const illustrationBriefKey = useRef<string | null>(null);
 
-  const briefIllustrationKey = (brief: DailyBriefContent) =>
-    `${brief.recipe.subtitle}|${brief.play.title}|${brief.bedtimeStory.title}`;
-
-  const loadBrief = useCallback(() => {
+  const loadToday = useCallback(() => {
     return Promise.all([
       fetch('/api/daily-brief', { cache: 'no-store' }).then(async (r) => {
-        const json = await parseApiJson<HomeData & { error?: string }>(r);
-        if (!r.ok) throw new Error(json.error || `Failed to load (${r.status})`);
+        const json = await parseApiJson<{ brief: DailyBriefContent; profile: TodayData['profile']; error?: string }>(r);
+        if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
         return json;
       }),
       fetch('/api/connect/status')
-        .then(async (r) =>
-          r.ok ? parseApiJson<{ statuses: ConnectStatusPreview[] }>(r) : { statuses: [] }
-        )
-        .catch(() => ({ statuses: [] as ConnectStatusPreview[] })),
+        .then(async (r) => (r.ok ? parseApiJson<{ statuses: unknown[] }>(r) : { statuses: [] }))
+        .catch(() => ({ statuses: [] })),
+      fetch('/api/connect/events')
+        .then(async (r) => (r.ok ? parseApiJson<{ events: ConnectEventPreview[] }>(r) : { events: [] }))
+        .catch(() => ({ events: [] })),
     ])
-      .then(([briefData, connectData]) => {
+      .then(([briefData, statusData, eventsData]) => {
         setLoadError(null);
         setData({
-          ...briefData,
-          connectPreview: (connectData.statuses || []).slice(0, 2),
+          brief: briefData.brief,
+          profile: briefData.profile,
+          connectAvailableCount: statusData.statuses?.length ?? 0,
+          upcomingEvent: eventsData.events?.[0] ?? null,
         });
         trackEvent('today_dashboard_viewed');
         trackReturnVisit();
@@ -98,29 +102,6 @@ export default function TodayPage() {
       .catch((err: unknown) => {
         setLoadError(err instanceof Error ? err.message : 'Failed to load today\'s plan');
       });
-  }, []);
-
-  const generateIllustrations = useCallback(async (sections?: string[]) => {
-    setImagesLoading(true);
-    const sectionOrder = sections ?? ['recipe', 'play', 'story', 'tip'];
-    try {
-      for (const section of sectionOrder) {
-        const res = await fetch('/api/daily-brief', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'generate-illustrations', sections: [section] }),
-        });
-        if (!res.ok) continue;
-        const json = await res.json();
-        if (json.brief) {
-          setData((prev) =>
-            prev ? { ...prev, brief: json.brief, needsIllustrations: json.needsIllustrations ?? false } : prev
-          );
-        }
-      }
-    } finally {
-      setImagesLoading(false);
-    }
   }, []);
 
   useEffect(() => {
@@ -136,62 +117,22 @@ export default function TodayPage() {
         if (!profile?.onboardingComplete) router.push('/onboarding');
       });
 
-    loadBrief().finally(() => setLoading(false));
-  }, [status, router, loadBrief]);
+    loadToday().finally(() => setLoading(false));
+  }, [status, router, loadToday]);
 
-  useEffect(() => {
-    if (!data?.needsIllustrations || imagesLoading || !data.brief) return;
-    const key = briefIllustrationKey(data.brief);
-    if (illustrationBriefKey.current === key) return;
-    illustrationBriefKey.current = key;
-    generateIllustrations();
-  }, [data?.needsIllustrations, data?.brief, imagesLoading, generateIllustrations]);
-
-  const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
-    setSectionLoading(true);
-    try {
-      const res = await fetch('/api/daily-brief', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...extra }),
-      });
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json.brief) {
-        setData((prev) => (prev ? { ...prev, brief: json.brief, needsIllustrations: true } : prev));
-        if (action === 'regenerate-recipe') {
-          illustrationBriefKey.current = null;
-          generateIllustrations(['recipe']);
-        } else if (action === 'regenerate-play') {
-          illustrationBriefKey.current = null;
-          generateIllustrations(['play']);
-        }
-      }
-    } finally {
-      setSectionLoading(false);
-    }
-  };
-
-  const submitCheckIn = async (checkIn: { feeling: string; win: string; challenge: string }) => {
-    const res = await fetch('/api/journal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(checkIn),
-    });
-    if (!res.ok) throw new Error('Failed');
-    const json = await res.json();
-    trackEvent('parent_checkin_completed');
-    return { encouragement: json.encouragement as string | undefined };
+  const askMumbot = (prompt: string) => {
+    sessionStorage.setItem('mumbot_prefill', prompt);
+    router.push('/mumbot');
   };
 
   if (status === 'loading' || loading) {
     return (
       <AppShell>
-        <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-3">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center animate-gentle-bounce">
             <Sun className="h-7 w-7 text-primary" />
           </div>
-          <p className="text-muted-foreground text-sm text-center">What should I do with my child today?</p>
+          <p className="text-muted-foreground text-sm text-center">What can I do with my child today?</p>
         </div>
       </AppShell>
     );
@@ -202,151 +143,161 @@ export default function TodayPage() {
   const brief = data?.brief;
   const hasChildProfile = !!(childName || data?.profile?.childAge);
   const greeting = getTimeGreeting();
+  const goals = data?.profile?.parentingGoals ?? [];
+  const challenges = data?.profile?.currentChallenges ?? [];
+  const focusCards = buildFocusCards(goals, challenges, data?.profile?.priorityGoal);
+  const milestone = brief ? milestoneSummary(brief) : null;
+
+  const connectAvailableText =
+    data?.connectAvailableCount === 0
+      ? 'No parents nearby yet — set your availability.'
+      : data?.connectAvailableCount === 1
+        ? '1 parent nearby is open to connect.'
+        : `${data?.connectAvailableCount} parents nearby are open to connect.`;
+
+  const upcomingText = data?.upcomingEvent
+    ? `1 ${data.upcomingEvent.title.toLowerCase()} · ${data.upcomingEvent.broadArea} · ${format(new Date(data.upcomingEvent.date), 'EEE')}.`
+    : 'No upcoming events — browse or create one.';
 
   return (
     <AppShell>
-      <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-4">
-        {/* Greeting */}
-        <header className="space-y-0.5 py-1">
-          <p className="text-sm text-muted-foreground">{greeting}, {firstName}</p>
-          <h1 className="text-xl font-bold tracking-tight">Today&apos;s Parenting Plan</h1>
+      <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-5">
+        <header className="space-y-1">
+          <p className="text-base font-medium">
+            {greeting} {firstName} 👋
+          </p>
+          <h1 className="text-lg font-bold tracking-tight">Today&apos;s Parenting Plan</h1>
           {hasChildProfile && childName && brief?.childAgeDisplay ? (
-            <p className="text-muted-foreground text-sm">
-              For {childName} · {brief.childAgeDisplay}
-            </p>
+            <p className="text-sm text-muted-foreground">{childName} is {brief.childAgeDisplay}.</p>
           ) : (
-            <p className="text-muted-foreground text-sm">Personalised ideas for your day together</p>
+            <p className="text-sm text-muted-foreground">What can I do with my child today?</p>
           )}
         </header>
 
         {!hasChildProfile && (
-          <div className="visual-card p-4 flex items-center gap-3">
-            <UserPlus className="h-6 w-6 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Add a child profile</p>
-              <p className="text-xs text-muted-foreground">Personalise meals, stories &amp; activities</p>
-            </div>
+          <div className="visual-card p-3.5 flex items-center gap-3">
+            <UserPlus className="h-5 w-5 text-primary shrink-0" />
+            <p className="text-sm flex-1">Add a child profile for age-based ideas.</p>
             <Link href="/profile?edit=child">
-              <Button size="sm" className="rounded-full shrink-0">Add</Button>
+              <Button size="sm" className="rounded-full">Add</Button>
             </Link>
           </div>
         )}
 
         {loadError && !brief && (
-          <div className="visual-card p-4 text-center space-y-2 border border-destructive/20 bg-destructive/5">
-            <p className="text-sm text-destructive font-medium">Could not load today&apos;s plan</p>
+          <div className="visual-card p-4 text-center space-y-2 border border-destructive/20">
+            <p className="text-sm text-destructive">{loadError}</p>
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
               setLoading(true);
-              loadBrief().finally(() => setLoading(false));
+              loadToday().finally(() => setLoading(false));
             }}>
               Try again
             </Button>
           </div>
         )}
 
-        {/* Quick MumBot */}
-        <Link href="/mumbot">
-          <div className="visual-card p-3.5 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow active:scale-[0.99] bg-primary/5 border-primary/10">
-            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-              <Bot className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm">Ask MumBot anything</p>
-              <p className="text-xs text-muted-foreground truncate">Meals, stories, activities &amp; more</p>
-            </div>
-            <MessageCircle className="h-4 w-4 text-primary shrink-0" />
-          </div>
-        </Link>
-
         {brief && (
-          <div className="space-y-4">
-            <AnimatedSection delay={40}>
-              <div className="space-y-2">
-                <SectionLabel>Today&apos;s Meal</SectionLabel>
-                <RecipeCard
-                  recipe={brief.recipe}
-                  loading={sectionLoading}
-                  imagesLoading={imagesLoading}
-                  onRegenerate={() => patchBrief('regenerate-recipe')}
-                  onSave={async () => {
-                    await patchBrief('save-recipe');
-                    trackEvent('meal_clicked');
-                  }}
-                />
-              </div>
-            </AnimatedSection>
-
-            <AnimatedSection delay={80}>
-              <div className="space-y-2">
-                <SectionLabel>Today&apos;s Activity</SectionLabel>
-                <PlayCard
-                  play={brief.play}
-                  loading={sectionLoading}
-                  imagesLoading={imagesLoading}
-                  onRegenerate={async () => {
-                    await patchBrief('regenerate-play');
-                    trackEvent('activity_clicked');
-                  }}
-                />
-              </div>
-            </AnimatedSection>
-
-            <AnimatedSection delay={120}>
-              <div className="space-y-2">
-                <SectionLabel>Today&apos;s Story</SectionLabel>
-                <StoryCard
-                  story={brief.bedtimeStory}
-                  imagesLoading={imagesLoading}
-                  onSave={async (extras) => {
-                    await patchBrief('save-story', extras);
-                    trackEvent('story_clicked');
-                  }}
-                />
-              </div>
-            </AnimatedSection>
-
-            <AnimatedSection delay={160}>
-              <div className="space-y-2">
-                <SectionLabel>Today&apos;s Parenting Tip</SectionLabel>
-                <TipCard tip={brief.tip} imagesLoading={imagesLoading} />
-              </div>
-            </AnimatedSection>
-          </div>
-        )}
-
-        {/* Connect suggestion */}
-        <AnimatedSection delay={200}>
-          <div className="space-y-2">
-            <SectionLabel>Today&apos;s Connect</SectionLabel>
-            <Link href="/connect">
-              <div className="visual-card p-4 space-y-2 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <p className="font-medium text-sm">Meet a parent nearby</p>
+          <>
+            {/* Section 1: Today's Plan (70% age-based) */}
+            <section className="space-y-2.5">
+              <TodaySectionHeader emoji="🌟" title="Today's Plan" />
+              <TodayCompactCard
+                emoji="🍎"
+                label="Meal"
+                title={brief.recipe.subtitle}
+                summary={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 12)}
+                ctaLabel="View"
+                onCta={() => trackEvent('meal_clicked')}
+                detail={
+                  <div className="space-y-2 text-xs">
+                    <p>{brief.recipe.whyThisMeal}</p>
+                    <ul className="list-disc pl-4">
+                      {brief.recipe.ingredients.slice(0, 6).map((i) => (
+                        <li key={i}>{i}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <span className="text-xs text-primary">Connect →</span>
-                </div>
-                {(data?.connectPreview?.length ?? 0) > 0 ? (
-                  data!.connectPreview!.map((s) => (
-                    <p key={s.id} className="text-xs text-muted-foreground">
-                      {s.broadArea} · {s.timeWindow} · {s.interest} · {s.childAgeRange}
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Set broad availability or join a parent-led event — privacy-first.
-                  </p>
-                )}
-              </div>
-            </Link>
-          </div>
-        </AnimatedSection>
+                }
+              />
+              <TodayCompactCard
+                emoji="🎨"
+                label="Activity"
+                title={brief.play.title}
+                summary={truncateWords(brief.play.instructions[0] || brief.play.ageRecommendation || '', 12)}
+                ctaLabel="Start"
+                onCta={() => trackEvent('activity_clicked')}
+                detail={
+                  <ol className="list-decimal pl-4 text-xs space-y-1">
+                    {brief.play.instructions.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                }
+              />
+              <TodayCompactCard
+                emoji="📖"
+                label="Story"
+                title={brief.bedtimeStory.title}
+                summary={truncateWords(brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 12)}
+                ctaLabel="Read"
+                onCta={() => trackEvent('story_clicked')}
+                detail={<p className="text-xs whitespace-pre-wrap leading-relaxed">{brief.bedtimeStory.story}</p>}
+              />
+              {milestone && (
+                <TodayCompactCard
+                  emoji="🌱"
+                  label="Milestone"
+                  title={milestone.title}
+                  summary={milestone.summary}
+                  ctaLabel="Learn"
+                  detail={<p className="text-xs whitespace-pre-wrap">{milestone.detail}</p>}
+                />
+              )}
+            </section>
 
-        {/* Parent Check-in */}
-        <AnimatedSection delay={240}>
-          <ParentCheckInCard onSubmit={submitCheckIn} />
-        </AnimatedSection>
+            {/* Section 2: Your Focus (30% goals/challenges) */}
+            <section className="space-y-2.5">
+              <TodaySectionHeader emoji="🎯" title="Your Focus" />
+              {focusCards.length > 0 ? (
+                focusCards.map((card) => (
+                  <TodayFocusCard
+                    key={`${card.type}-${card.title}`}
+                    type={card.type}
+                    title={card.title}
+                    tip={card.tip}
+                    onAskMumbot={() => askMumbot(card.mumbotPrompt)}
+                  />
+                ))
+              ) : (
+                <div className="visual-card p-3.5 flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">Add parenting goals to personalise your focus.</p>
+                  <Link href="/profile?settings=1">
+                    <Button size="sm" variant="outline" className="rounded-full shrink-0">Add Goals</Button>
+                  </Link>
+                </div>
+              )}
+            </section>
+
+            {/* Section 3: Connect */}
+            <section className="space-y-2.5">
+              <TodaySectionHeader emoji="👥" title="Connect" />
+              <TodayConnectCard
+                emoji="👥"
+                label="Available Today"
+                summary={connectAvailableText}
+                ctaLabel="View"
+                href="/connect"
+              />
+              <TodayConnectCard
+                emoji="📅"
+                label="Upcoming"
+                summary={upcomingText}
+                ctaLabel="Join"
+                href="/connect?tab=events"
+              />
+            </section>
+          </>
+        )}
       </div>
     </AppShell>
   );
