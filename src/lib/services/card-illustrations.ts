@@ -12,9 +12,12 @@ const ALL_SECTIONS: IllustrationSection[] = ["recipe", "play", "story", "develop
 
 export type { IllustrationSection };
 
-export async function generateCardIllustration(sceneDescription: string): Promise<string> {
+export async function generateCardIllustration(
+  sceneDescription: string,
+  fast = false
+): Promise<string> {
   const prompt = `${ILLUSTRATION_STYLE}. ${sceneDescription}`;
-  return generateOpenAIImage(prompt);
+  return generateOpenAIImage(prompt, { fast });
 }
 
 function sectionNeedsImage(brief: DailyBriefContent, section: IllustrationSection): boolean {

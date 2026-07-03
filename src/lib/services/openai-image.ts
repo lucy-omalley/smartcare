@@ -27,8 +27,13 @@ function buildModelList(): string[] {
   return [preferred, ...defaults.filter((m) => m !== preferred)];
 }
 
-export async function generateOpenAIImage(prompt: string): Promise<string> {
-  const models = buildModelList();
+export async function generateOpenAIImage(
+  prompt: string,
+  options?: { fast?: boolean }
+): Promise<string> {
+  const models = options?.fast
+    ? ["gpt-image-1-mini", "gpt-image-1", "dall-e-2", "dall-e-3"]
+    : buildModelList();
   let lastError: unknown;
 
   for (const model of models) {
@@ -38,7 +43,10 @@ export async function generateOpenAIImage(prompt: string): Promise<string> {
         prompt,
         size: "1024x1024",
         ...(isGptImageModel(model)
-          ? { quality: "medium" as const, output_format: "png" as const }
+          ? {
+              quality: (options?.fast ? "low" : "medium") as "low" | "medium",
+              output_format: "png" as const,
+            }
           : model === "dall-e-3"
             ? { quality: "standard" as const }
             : {}),

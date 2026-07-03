@@ -26,6 +26,11 @@ import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { prefetchTodayStoryAudio, invalidateTodayStoryAudioCache } from '@/lib/story-audio-prefetch';
+import {
+  prefetchTodayStoryIllustration,
+  warmTodayStoryIllustration,
+  invalidateTodayStoryIllustrationCache,
+} from '@/lib/story-illustration-prefetch';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -73,7 +78,7 @@ export default function TodayPage() {
 
   const loadToday = useCallback(() => {
     return Promise.all([
-      fetch('/api/daily-brief', { cache: 'no-store' }).then(async (r) => {
+      fetch('/api/today', { cache: 'no-store' }).then(async (r) => {
         const json = await parseApiJson<{ brief: DailyBriefContent; profile: TodayData['profile']; error?: string }>(r);
         if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
         return json;
@@ -119,10 +124,14 @@ export default function TodayPage() {
 
   useEffect(() => {
     if (!data?.brief?.bedtimeStory?.story) return;
-    prefetchTodayStoryAudio().catch(() => {
-      // Warm happens in background; Listen will retry if this fails.
-    });
+    prefetchTodayStoryAudio().catch(() => {});
+    prefetchTodayStoryIllustration().catch(() => {});
   }, [data?.brief?.bedtimeStory?.story]);
+
+  useEffect(() => {
+    if (activeDetail !== 'story' || !data?.brief?.bedtimeStory?.story) return;
+    warmTodayStoryIllustration().catch(() => {});
+  }, [activeDetail, data?.brief?.bedtimeStory?.story]);
 
   const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
     const res = await fetch('/api/daily-brief', {
@@ -150,7 +159,10 @@ export default function TodayPage() {
       await patchBrief(actionMap[section]);
       if (section === 'story') {
         invalidateTodayStoryAudioCache();
+        invalidateTodayStoryIllustrationCache();
         prefetchTodayStoryAudio().catch(() => {});
+        prefetchTodayStoryIllustration().catch(() => {});
+        warmTodayStoryIllustration().catch(() => {});
       }
       toast.success('Here\'s another idea!');
     } catch {

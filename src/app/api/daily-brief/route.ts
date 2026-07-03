@@ -12,6 +12,7 @@ import {
 } from "@/lib/services/daily-brief";
 import type { DailyBriefContent } from "@/types/daily-brief";
 import type { IllustrationSection } from "@/lib/services/card-illustrations";
+import { warmTodayStoryIllustration } from "@/lib/services/today-page";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -87,6 +88,7 @@ export async function PATCH(request: Request) {
     if (action === "regenerate-story") {
       const brief = await regenerateDailyBriefSection(session.user.id, "story");
       warmTodayStoryAudio(session.user.id);
+      warmTodayStoryIllustration(session.user.id);
       return NextResponse.json({ brief });
     }
 
