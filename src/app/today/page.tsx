@@ -29,6 +29,15 @@ async function parseApiJson<T>(response: Response): Promise<T> {
   }
 }
 
+interface ConnectStatusPreview {
+  id: string;
+  parentFirstName: string;
+  broadArea: string;
+  timeWindow: string;
+  interest: string;
+  childAgeRange: string;
+}
+
 interface HomeData {
   brief: DailyBriefContent;
   needsIllustrations?: boolean;
@@ -40,14 +49,7 @@ interface HomeData {
     parentingGoals?: string[];
     currentChallenges?: string[];
   };
-  connectPreview?: Array<{
-    id: string;
-    parentFirstName: string;
-    broadArea: string;
-    timeWindow: string;
-    interest: string;
-    childAgeRange: string;
-  }>;
+  connectPreview?: ConnectStatusPreview[];
   yesterdayMemory: { content: string } | null;
 }
 
@@ -72,8 +74,10 @@ export default function TodayPage() {
         return json;
       }),
       fetch('/api/connect/status')
-        .then(async (r) => (r.ok ? parseApiJson<{ statuses: unknown[] }>(r) : { statuses: [] }))
-        .catch(() => ({ statuses: [] })),
+        .then(async (r) =>
+          r.ok ? parseApiJson<{ statuses: ConnectStatusPreview[] }>(r) : { statuses: [] }
+        )
+        .catch(() => ({ statuses: [] as ConnectStatusPreview[] })),
     ])
       .then(([briefData, connectData]) => {
         setLoadError(null);
