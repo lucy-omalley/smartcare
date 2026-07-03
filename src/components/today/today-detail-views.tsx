@@ -12,6 +12,7 @@ import type {
 } from '@/types/daily-brief';
 import { toast } from 'sonner';
 import { useStoryAudio } from '@/hooks/use-story-audio';
+import { getTodayStoryAudioFetch } from '@/lib/story-audio-prefetch';
 import { StoryListenButton } from '@/components/story/story-listen-button';
 
 type DetailPart = 'content' | 'footer';
@@ -254,21 +255,7 @@ function useStoryDetailMedia(story: DailyBriefStory) {
       toast.error('Story text is missing.');
       return;
     }
-    void storyAudio.toggle(async (signal) => {
-      const res = await fetch('/api/stories/narrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ story: story.story, cache: false }),
-        signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(typeof err.error === 'string' ? err.error : 'Narration failed');
-      }
-      const blob = await res.blob();
-      if (!blob.size) throw new Error('Empty audio response');
-      return blob;
-    });
+    void storyAudio.toggle(async (signal) => getTodayStoryAudioFetch(signal));
   };
 
   const handleIllustrate = async () => {

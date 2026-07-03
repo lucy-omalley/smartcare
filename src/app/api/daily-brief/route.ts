@@ -8,6 +8,7 @@ import {
   getHomeSupplementaryData,
   generateAndSaveBriefIllustrations,
   needsBriefIllustrations,
+  warmTodayStoryAudio,
 } from "@/lib/services/daily-brief";
 import type { DailyBriefContent } from "@/types/daily-brief";
 import type { IllustrationSection } from "@/lib/services/card-illustrations";
@@ -85,6 +86,7 @@ export async function PATCH(request: Request) {
 
     if (action === "regenerate-story") {
       const brief = await regenerateDailyBriefSection(session.user.id, "story");
+      warmTodayStoryAudio(session.user.id);
       return NextResponse.json({ brief });
     }
 
