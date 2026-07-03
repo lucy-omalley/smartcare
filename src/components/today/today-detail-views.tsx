@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bookmark, Volume2, Square, Loader2, ImageIcon } from 'lucide-react';
@@ -11,6 +11,7 @@ import type {
   DailyBriefDevelopment,
 } from '@/types/daily-brief';
 import { toast } from 'sonner';
+import { unlockStoryAudio, useStoryAudio } from '@/hooks/use-story-audio';
 
 type DetailPart = 'content' | 'footer';
 
@@ -184,7 +185,7 @@ export function ActivityDetailView({
   );
 }
 
-type StoryDetailContextValue = ReturnType<typeof useStoryDetailMedia> & {
+type StoryDetailContextValue = Omit<ReturnType<typeof useStoryDetailMedia>, never> & {
   story: DailyBriefStory;
   onSave: (extras?: { illustrationData?: string }) => Promise<void>;
   onBack: () => void;
@@ -223,77 +224,34 @@ export function StoryDetailProvider({
 
 function useStoryDetailMedia(story: DailyBriefStory) {
   const [illustrating, setIllustrating] = useState(false);
-  const [narrating, setNarrating] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [illustrationData, setIllustrationData] = useState<string | undefined>(
     normalizeIllustrationSrc(story.illustrationData)
   );
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
   const coverRef = useRef<HTMLDivElement | null>(null);
+
+  const storyAudio = useStoryAudio({
+    onError: (message) => toast.error(message),
+  });
 
   useEffect(() => {
     setIllustrationData(normalizeIllustrationSrc(story.illustrationData));
   }, [story.illustrationData]);
 
-  const stopAudio = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-    setIsPlaying(false);
-    setNarrating(false);
-  }, []);
+  useEffect(() => {
+    storyAudio.stop();
+  }, [story.title, story.story]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => () => stopAudio(), [stopAudio]);
-
-  const handleNarrate = async () => {
-    if (isPlaying || narrating) {
-      stopAudio();
-      return;
-    }
-    setNarrating(true);
-    const controller = new AbortController();
-    abortRef.current = controller;
-    try {
+  const handleNarrate = () => {
+    void storyAudio.toggle(async (signal) => {
       const res = await fetch('/api/stories/narrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ story: story.story, cache: false }),
-        signal: controller.signal,
+        signal,
       });
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      if (controller.signal.aborted) return;
-      const url = URL.createObjectURL(blob);
-      audioUrlRef.current = url;
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
-        setIsPlaying(false);
-        if (audioUrlRef.current) {
-          URL.revokeObjectURL(audioUrlRef.current);
-          audioUrlRef.current = null;
-        }
-        audioRef.current = null;
-      };
-      await audio.play();
-      setIsPlaying(true);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      toast.error('Could not generate narration.');
-    } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setNarrating(false);
-    }
+      if (!res.ok) throw new Error('Narration failed');
+      return res.blob();
+    });
   };
 
   const handleIllustrate = async () => {
@@ -321,13 +279,14 @@ function useStoryDetailMedia(story: DailyBriefStory) {
 
   return {
     illustrating,
-    narrating,
-    isPlaying,
+    isPlaying: storyAudio.isPlaying,
+    isNarrating: storyAudio.isActive,
     illustrationData,
     coverRef,
     handleNarrate,
     handleIllustrate,
-    stopAudio,
+    stopAudio: storyAudio.stop,
+    unlockAudio: unlockStoryAudio,
   };
 }
 
@@ -368,15 +327,15 @@ export function StoryDetailFooter() {
     saving,
     setSaving,
     illustrating,
-    narrating,
-    isPlaying,
+    isNarrating,
     illustrationData,
     coverRef,
     handleNarrate,
     handleIllustrate,
     stopAudio,
+    unlockAudio,
   } = useStoryDetailContext();
-  const mediaActive = isPlaying || narrating;
+  const mediaActive = isNarrating;
 
   return (
     <div className="space-y-3">
@@ -412,14 +371,22 @@ export function StoryDetailFooter() {
             size="sm"
             variant={mediaActive ? 'default' : 'outline'}
             className="rounded-full touch-target"
-            onClick={handleNarrate}
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              unlockAudio();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNarrate();
+            }}
           >
             {mediaActive ? (
               <Square className="h-3.5 w-3.5 mr-1" />
             ) : (
               <Volume2 className="h-3.5 w-3.5 mr-1" />
             )}
-            {narrating && !isPlaying ? 'Stop' : isPlaying ? 'Stop' : 'Listen'}
+            {mediaActive ? 'Stop' : 'Listen'}
           </Button>
         </div>
       </div>

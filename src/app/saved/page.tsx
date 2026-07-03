@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
 import type { DailyBriefRecipe } from '@/types/daily-brief';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { unlockStoryAudio, useStoryAudio } from '@/hooks/use-story-audio';
 
 interface SavedRecipe {
   id: string;
@@ -35,18 +36,29 @@ interface SavedStory {
 
 type Tab = 'recipes' | 'stories';
 
-export default function SavedPage() {
+function SavedPageContent() {
   const { status } = useSession();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('recipes');
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(
+    searchParams.get('tab') === 'stories' ? 'stories' : 'recipes'
+  );
   const [recipes, setRecipes] = useState<SavedRecipe[]>([]);
   const [stories, setStories] = useState<SavedStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [illustratingId, setIllustratingId] = useState<string | null>(null);
+  const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const activeStoryIdRef = useRef<string | null>(null);
+
+  const storyAudio = useStoryAudio({
+    onError: (message) => toast.error(message),
+    onIdle: () => {
+      activeStoryIdRef.current = null;
+      setActiveStoryId(null);
+    },
+  });
 
   const load = () => {
     Promise.all([
@@ -66,10 +78,15 @@ export default function SavedPage() {
     if (status === 'authenticated') load();
   }, [status, router]);
 
-  const stopAudio = () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-    setPlayingId(null);
+  useEffect(() => {
+    const nextTab = searchParams.get('tab') === 'stories' ? 'stories' : 'recipes';
+    setTab(nextTab);
+  }, [searchParams]);
+
+  const stopStoryAudio = () => {
+    storyAudio.stop();
+    activeStoryIdRef.current = null;
+    setActiveStoryId(null);
   };
 
   const deleteRecipe = async (id: string) => {
@@ -79,14 +96,14 @@ export default function SavedPage() {
   };
 
   const deleteStory = async (id: string) => {
-    if (playingId === id) stopAudio();
+    if (activeStoryIdRef.current === id) stopStoryAudio();
     await fetch(`/api/saved/stories/${id}`, { method: 'DELETE' });
     setStories((prev) => prev.filter((s) => s.id !== id));
     toast.success('Story removed');
   };
 
   const illustrateStory = async (story: SavedStory) => {
-    setBusyId(story.id);
+    setIllustratingId(story.id);
     try {
       const res = await fetch('/api/stories/illustrate', {
         method: 'POST',
@@ -102,35 +119,25 @@ export default function SavedPage() {
     } catch {
       toast.error('Could not generate illustration.');
     } finally {
-      setBusyId(null);
+      setIllustratingId(null);
     }
   };
 
-  const playStory = async (story: SavedStory) => {
-    if (playingId === story.id) {
-      stopAudio();
+  const toggleStoryAudio = (story: SavedStory) => {
+    if (activeStoryIdRef.current === story.id && storyAudio.isActive) {
+      stopStoryAudio();
       return;
     }
-    stopAudio();
-    setBusyId(story.id);
-    try {
-      const res = await fetch(`/api/saved/stories/${story.id}/audio`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
-        setPlayingId(null);
-        URL.revokeObjectURL(url);
-      };
-      await audio.play();
-      setPlayingId(story.id);
-    } catch {
-      toast.error('Could not play narration.');
-    } finally {
-      setBusyId(null);
-    }
+
+    stopStoryAudio();
+    activeStoryIdRef.current = story.id;
+    setActiveStoryId(story.id);
+
+    void storyAudio.toggle(async (signal) => {
+      const res = await fetch(`/api/saved/stories/${story.id}/audio`, { signal });
+      if (!res.ok) throw new Error('Audio failed');
+      return res.blob();
+    });
   };
 
   if (status === 'loading' || loading) {
@@ -143,7 +150,7 @@ export default function SavedPage() {
 
   return (
     <AppShell>
-      <div className="container max-w-lg mx-auto p-4 space-y-4">
+      <div className="container max-w-lg mx-auto p-4 space-y-4 pb-24">
         <div className="flex items-center gap-3 pt-2">
           <Link href="/today">
             <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -246,7 +253,8 @@ export default function SavedPage() {
           ) : (
             stories.map((item) => {
               const open = expandedStory === item.id;
-              const isBusy = busyId === item.id;
+              const isIllustrating = illustratingId === item.id;
+              const isAudioActive = activeStoryId === item.id && storyAudio.isActive;
               return (
                 <Card key={item.id} className="rounded-2xl">
                   {item.illustrationData && (
@@ -299,11 +307,12 @@ export default function SavedPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="rounded-xl"
-                        disabled={isBusy}
+                        className="rounded-xl touch-target"
+                        type="button"
+                        disabled={isIllustrating}
                         onClick={() => illustrateStory(item)}
                       >
-                        {isBusy && !playingId ? (
+                        {isIllustrating ? (
                           <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                         ) : (
                           <ImageIcon className="h-3.5 w-3.5 mr-1" />
@@ -312,19 +321,24 @@ export default function SavedPage() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="rounded-xl"
-                        disabled={isBusy && playingId !== item.id}
-                        onClick={() => playStory(item)}
+                        variant={isAudioActive ? 'default' : 'outline'}
+                        className="rounded-xl touch-target"
+                        type="button"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          unlockStoryAudio();
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleStoryAudio(item);
+                        }}
                       >
-                        {playingId === item.id ? (
+                        {isAudioActive ? (
                           <Square className="h-3.5 w-3.5 mr-1" />
-                        ) : isBusy ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                         ) : (
                           <Volume2 className="h-3.5 w-3.5 mr-1" />
                         )}
-                        {playingId === item.id ? 'Stop' : 'Listen'}
+                        {isAudioActive ? 'Stop' : 'Listen'}
                       </Button>
                     </div>
                   </CardContent>
@@ -335,5 +349,17 @@ export default function SavedPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function SavedPage() {
+  return (
+    <Suspense fallback={
+      <AppShell>
+        <div className="container max-w-lg mx-auto p-6 text-center text-muted-foreground">Loading...</div>
+      </AppShell>
+    }>
+      <SavedPageContent />
+    </Suspense>
   );
 }

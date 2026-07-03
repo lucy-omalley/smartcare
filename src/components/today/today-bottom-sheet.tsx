@@ -58,7 +58,7 @@ export function TodayBottomSheet({ open, title, onClose, children, footer }: Tod
       />
       <div
         className={cn(
-          'relative bg-background rounded-t-3xl shadow-xl flex flex-col min-h-0',
+          'relative z-10 bg-background rounded-t-3xl shadow-xl flex flex-col min-h-0',
           'max-h-[min(88dvh,calc(100dvh-1rem))]',
           'animate-in slide-in-from-bottom duration-300'
         )}
