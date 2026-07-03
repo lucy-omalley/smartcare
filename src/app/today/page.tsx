@@ -148,15 +148,19 @@ export default function TodayPage() {
   };
 
   const rotate = async (section: RotateSection) => {
-    const actionMap: Record<RotateSection, string> = {
-      recipe: 'regenerate-recipe',
-      play: 'regenerate-play',
-      story: 'regenerate-story',
-      language: 'regenerate-language',
-    };
     setRotating(section);
+    const toastId = toast.loading('Finding another idea…');
     try {
-      await patchBrief(actionMap[section]);
+      const res = await fetch('/api/today/rotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      const json = await res.json();
+      if (json.brief) {
+        setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+      }
       if (section === 'story') {
         invalidateTodayStoryAudioCache();
         invalidateTodayStoryIllustrationCache();
@@ -164,9 +168,9 @@ export default function TodayPage() {
         prefetchTodayStoryIllustration().catch(() => {});
         warmTodayStoryIllustration().catch(() => {});
       }
-      toast.success('Here\'s another idea!');
+      toast.success('Here\'s another idea!', { id: toastId });
     } catch {
-      toast.error('Could not rotate suggestion.');
+      toast.error('Could not rotate suggestion.', { id: toastId });
     } finally {
       setRotating(null);
     }

@@ -17,6 +17,11 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useStoryAudio } from '@/hooks/use-story-audio';
 import { StoryListenButton } from '@/components/story/story-listen-button';
+import {
+  getSavedStoryAudioFetch,
+  prefetchSavedStoryAudio,
+  prefetchSavedStoriesAudio,
+} from '@/lib/saved-story-prefetch';
 
 interface SavedRecipe {
   id: string;
@@ -84,6 +89,16 @@ function SavedPageContent() {
     setTab(nextTab);
   }, [searchParams]);
 
+  useEffect(() => {
+    if (tab !== 'stories' || stories.length === 0) return;
+    prefetchSavedStoriesAudio(stories.map((s) => s.id));
+  }, [tab, stories]);
+
+  useEffect(() => {
+    if (!expandedStory) return;
+    prefetchSavedStoryAudio(expandedStory).catch(() => {});
+  }, [expandedStory]);
+
   const stopStoryAudio = () => {
     storyAudio.stop();
     activeStoryIdRef.current = null;
@@ -105,20 +120,26 @@ function SavedPageContent() {
 
   const illustrateStory = async (story: SavedStory) => {
     setIllustratingId(story.id);
+    const toastId = toast.loading(story.illustrationData ? 'Creating new art…' : 'Creating cover art…');
     try {
       const res = await fetch('/api/stories/illustrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: story.title, story: story.story, moral: story.moral, savedStoryId: story.id }),
+        body: JSON.stringify({
+          title: story.title,
+          story: story.story,
+          moral: story.moral,
+          savedStoryId: story.id,
+        }),
       });
       if (!res.ok) throw new Error();
       const { illustrationData } = await res.json();
       setStories((prev) =>
-        prev.map((s) => (s.id === story.id ? { ...s, illustrationData } : s))
+        prev.map((s) => (s.id === story.id ? { ...s, illustrationData, hasAudio: s.hasAudio } : s))
       );
-      toast.success('Illustration added!');
+      toast.success('Illustration ready!', { id: toastId });
     } catch {
-      toast.error('Could not generate illustration.');
+      toast.error('Could not generate illustration.', { id: toastId });
     } finally {
       setIllustratingId(null);
     }
@@ -134,11 +155,7 @@ function SavedPageContent() {
     activeStoryIdRef.current = story.id;
     setActiveStoryId(story.id);
 
-    void storyAudio.toggle(async (signal) => {
-      const res = await fetch(`/api/saved/stories/${story.id}/audio`, { signal });
-      if (!res.ok) throw new Error('Audio failed');
-      return res.blob();
-    });
+    void storyAudio.toggle(async (signal) => getSavedStoryAudioFetch(story.id, signal));
   };
 
   if (status === 'loading' || loading) {

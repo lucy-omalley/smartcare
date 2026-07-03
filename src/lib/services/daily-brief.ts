@@ -101,6 +101,41 @@ async function fetchBriefContext(userId: string) {
   };
 }
 
+/** Lighter profile + memories fetch for Try another — skips chat history and journal. */
+export async function fetchRotateContext(userId: string) {
+  const [user, memories] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        childNickname: true,
+        childAge: true,
+        childInterests: true,
+        foodPreferences: true,
+        routineNotes: true,
+        developmentNotes: true,
+        parentingGoal: true,
+        parentingGoals: true,
+        priorityGoal: true,
+        currentChallenges: true,
+        location: true,
+        broadArea: true,
+      },
+    }),
+    prisma.familyMemory.findMany({
+      where: { userId },
+      select: { content: true, category: true },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+  ]);
+
+  return {
+    profile: (user ?? {}) as BriefProfile,
+    memories,
+  };
+}
+
 export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefContent> {
   const today = toDateKey();
 
@@ -201,8 +236,11 @@ export async function regenerateDailyBriefSection(
   }
 
   const content = brief!.content as unknown as DailyBriefContent;
-  const { profile, memories } = await fetchBriefContext(userId);
-  const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
+  const { profile, memories } = await fetchRotateContext(userId);
+  const weather =
+    section === "play" && profile.location
+      ? await fetchWeatherForLocation(profile.location)
+      : null;
 
   if (section === "recipe") {
     const recipe = await regenerateRecipe(profile, memories, content.recipe);
