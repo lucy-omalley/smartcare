@@ -394,12 +394,12 @@ export async function regenerateRecipe(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [] }. ${BRIEF_TONE_RULES}${avoid}`,
+        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional" }. Keep steps short (3-4). ${BRIEF_TONE_RULES}${avoid}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.9,
-    max_tokens: 800,
+    temperature: 0.85,
+    max_tokens: 550,
     response_format: { type: "json_object" },
   });
 
@@ -427,12 +427,12 @@ export async function regeneratePlay(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation" }. ${BRIEF_TONE_RULES}${avoid}`,
+        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation" }. Keep instructions to 3-4 short steps. ${BRIEF_TONE_RULES}${avoid}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.9,
-    max_tokens: 800,
+    temperature: 0.85,
+    max_tokens: 550,
     response_format: { type: "json_object" },
   });
 
@@ -457,12 +457,12 @@ export async function regenerateStory(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised bedtime story as JSON: { "title", "story": "full story text 3-5 min read", "lengthMinutes": 5, "moral": "gentle moral" }. ${child} is the hero. ${BRIEF_TONE_RULES}${avoid}`,
+        content: `Generate ONE new personalised bedtime story as JSON: { "title", "story": "concise story ~2 min read", "lengthMinutes": 2, "moral": "gentle moral" }. ${child} is the hero. Keep story under 400 words. ${BRIEF_TONE_RULES}${avoid}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.9,
-    max_tokens: 1200,
+    temperature: 0.85,
+    max_tokens: 650,
     response_format: { type: "json_object" },
   });
 
@@ -490,8 +490,8 @@ export async function regenerateLanguage(
       },
       { role: "user", content: context },
     ],
-    temperature: 0.9,
-    max_tokens: 500,
+    temperature: 0.85,
+    max_tokens: 320,
     response_format: { type: "json_object" },
   });
 
