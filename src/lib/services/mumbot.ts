@@ -3,7 +3,7 @@ import { MemoryCategory } from "@prisma/client";
 import { generateParentingTipStatic } from "@/lib/mumbot-messages";
 import { OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS } from "@/lib/openai-config";
 import { buildDailyBriefContext, type BriefProfile, type BriefMemory } from "@/lib/daily-brief-context";
-import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, LibraryRecommendation, WeatherInfo } from "@/types/daily-brief";
+import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, DailyBriefStory, DailyBriefDevelopment, LibraryRecommendation, WeatherInfo } from "@/types/daily-brief";
 import { weatherContextLine } from "@/lib/services/weather";
 
 const openai = new OpenAI({
@@ -427,7 +427,7 @@ export async function regeneratePlay(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor" }. ${BRIEF_TONE_RULES}${avoid}`,
+        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation" }. ${BRIEF_TONE_RULES}${avoid}`,
       },
       { role: "user", content: context },
     ],
@@ -440,6 +440,66 @@ export async function regeneratePlay(
     return JSON.parse(completion.choices[0]?.message?.content || "{}") as DailyBriefPlay;
   } catch {
     return defaultDailyBrief(profile).play;
+  }
+}
+
+export async function regenerateStory(
+  profile: BriefProfile,
+  memories: BriefMemory[],
+  currentStory?: DailyBriefStory
+): Promise<DailyBriefStory> {
+  const context = buildDailyBriefContext(profile, memories, []);
+  const avoid = currentStory ? `\nAvoid repeating title or plot: ${currentStory.title}` : "";
+  const child = profile.childNickname || "the child";
+
+  const completion = await openai.chat.completions.create({
+    model: OPENAI_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: `Generate ONE new personalised bedtime story as JSON: { "title", "story": "full story text 3-5 min read", "lengthMinutes": 5, "moral": "gentle moral" }. ${child} is the hero. ${BRIEF_TONE_RULES}${avoid}`,
+      },
+      { role: "user", content: context },
+    ],
+    temperature: 0.9,
+    max_tokens: 1200,
+    response_format: { type: "json_object" },
+  });
+
+  try {
+    return JSON.parse(completion.choices[0]?.message?.content || "{}") as DailyBriefStory;
+  } catch {
+    return defaultDailyBrief(profile).bedtimeStory;
+  }
+}
+
+export async function regenerateLanguage(
+  profile: BriefProfile,
+  memories: BriefMemory[],
+  current?: DailyBriefDevelopment
+): Promise<DailyBriefDevelopment> {
+  const context = buildDailyBriefContext(profile, memories, []);
+  const avoid = current ? `\nAvoid repeating: ${current.tryToday}` : "";
+
+  const completion = await openai.chat.completions.create({
+    model: OPENAI_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: `Generate ONE language/speech development focus as JSON: { "domain": "Language", "icon": "💬", "insight": "Many children around this age...", "tryToday": "practical words/phrases or game to try today" }. Focus on speech, language, communication. ${BRIEF_TONE_RULES}${avoid}`,
+      },
+      { role: "user", content: context },
+    ],
+    temperature: 0.9,
+    max_tokens: 500,
+    response_format: { type: "json_object" },
+  });
+
+  try {
+    return JSON.parse(completion.choices[0]?.message?.content || "{}") as DailyBriefDevelopment;
+  } catch {
+    const fallback = defaultDailyBrief(profile).development[0];
+    return fallback;
   }
 }
 

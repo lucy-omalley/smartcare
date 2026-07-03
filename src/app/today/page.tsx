@@ -7,17 +7,22 @@ import Link from 'next/link';
 import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
+import { TodaySectionHeader, TodayFocusCard, TodayConnectCard } from '@/components/today/today-cards';
+import { TodayPlanCard } from '@/components/today/today-plan-card';
+import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
-  TodayCompactCard,
-  TodaySectionHeader,
-  TodayFocusCard,
-  TodayConnectCard,
-} from '@/components/today/today-cards';
+  MealDetailView,
+  ActivityDetailView,
+  StoryDetailView,
+  LanguageDetailView,
+  getLanguageItem,
+} from '@/components/today/today-detail-views';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { buildFocusCards, truncateWords } from '@/lib/today-focus';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -28,6 +33,9 @@ async function parseApiJson<T>(response: Response): Promise<T> {
     throw new Error(`Invalid response (${response.status})`);
   }
 }
+
+type DetailType = 'meal' | 'activity' | 'story' | 'language' | null;
+type RotateSection = 'recipe' | 'play' | 'story' | 'language';
 
 interface ConnectEventPreview {
   id: string;
@@ -51,28 +59,14 @@ interface TodayData {
   upcomingEvent: ConnectEventPreview | null;
 }
 
-function milestoneSummary(brief: DailyBriefContent): { title: string; summary: string; detail: string } {
-  const dev = brief.development?.[0];
-  if (dev) {
-    return {
-      title: dev.domain,
-      summary: truncateWords(dev.tryToday || dev.insight, 12),
-      detail: `${dev.insight}\n\nTry today: ${dev.tryToday}`,
-    };
-  }
-  return {
-    title: brief.tip.topic,
-    summary: truncateWords(brief.tip.content, 12),
-    detail: brief.tip.content,
-  };
-}
-
 export default function TodayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState<TodayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeDetail, setActiveDetail] = useState<DetailType>(null);
+  const [rotating, setRotating] = useState<RotateSection | null>(null);
 
   const loadToday = useCallback(() => {
     return Promise.all([
@@ -120,10 +114,44 @@ export default function TodayPage() {
     loadToday().finally(() => setLoading(false));
   }, [status, router, loadToday]);
 
+  const patchBrief = async (action: string, extra?: Record<string, unknown>) => {
+    const res = await fetch('/api/daily-brief', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...extra }),
+    });
+    if (!res.ok) throw new Error('Request failed');
+    const json = await res.json();
+    if (json.brief) {
+      setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+    }
+    return json;
+  };
+
+  const rotate = async (section: RotateSection) => {
+    const actionMap: Record<RotateSection, string> = {
+      recipe: 'regenerate-recipe',
+      play: 'regenerate-play',
+      story: 'regenerate-story',
+      language: 'regenerate-language',
+    };
+    setRotating(section);
+    try {
+      await patchBrief(actionMap[section]);
+      toast.success('Here\'s another idea!');
+    } catch {
+      toast.error('Could not rotate suggestion.');
+    } finally {
+      setRotating(null);
+    }
+  };
+
   const askMumbot = (prompt: string) => {
     sessionStorage.setItem('mumbot_prefill', prompt);
     router.push('/mumbot');
   };
+
+  const closeDetail = () => setActiveDetail(null);
 
   if (status === 'loading' || loading) {
     return (
@@ -146,7 +174,7 @@ export default function TodayPage() {
   const goals = data?.profile?.parentingGoals ?? [];
   const challenges = data?.profile?.currentChallenges ?? [];
   const focusCards = buildFocusCards(goals, challenges, data?.profile?.priorityGoal);
-  const milestone = brief ? milestoneSummary(brief) : null;
+  const languageItem = brief ? getLanguageItem(brief.development) : null;
 
   const connectAvailableText =
     data?.connectAvailableCount === 0
@@ -158,6 +186,13 @@ export default function TodayPage() {
   const upcomingText = data?.upcomingEvent
     ? `1 ${data.upcomingEvent.title.toLowerCase()} · ${data.upcomingEvent.broadArea} · ${format(new Date(data.upcomingEvent.date), 'EEE')}.`
     : 'No upcoming events — browse or create one.';
+
+  const detailTitles: Record<Exclude<DetailType, null>, string> = {
+    meal: 'Today\'s Meal',
+    activity: 'Today\'s Activity',
+    story: 'Read Story',
+    language: 'Language & Speech',
+  };
 
   return (
     <AppShell>
@@ -198,64 +233,61 @@ export default function TodayPage() {
 
         {brief && (
           <>
-            {/* Section 1: Today's Plan (70% age-based) */}
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🌟" title="Today's Plan" />
-              <TodayCompactCard
+              <TodayPlanCard
                 emoji="🍎"
                 label="Meal"
                 title={brief.recipe.subtitle}
-                summary={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 12)}
-                ctaLabel="View"
-                onCta={() => trackEvent('meal_clicked')}
-                detail={
-                  <div className="space-y-2 text-xs">
-                    <p>{brief.recipe.whyThisMeal}</p>
-                    <ul className="list-disc pl-4">
-                      {brief.recipe.ingredients.slice(0, 6).map((i) => (
-                        <li key={i}>{i}</li>
-                      ))}
-                    </ul>
-                  </div>
-                }
+                preview={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 15)}
+                ctaLabel="View Meal"
+                onOpen={() => {
+                  trackEvent('meal_clicked');
+                  setActiveDetail('meal');
+                }}
+                onRefresh={() => rotate('recipe')}
+                refreshing={rotating === 'recipe'}
               />
-              <TodayCompactCard
+              <TodayPlanCard
                 emoji="🎨"
                 label="Activity"
                 title={brief.play.title}
-                summary={truncateWords(brief.play.instructions[0] || brief.play.ageRecommendation || '', 12)}
-                ctaLabel="Start"
-                onCta={() => trackEvent('activity_clicked')}
-                detail={
-                  <ol className="list-decimal pl-4 text-xs space-y-1">
-                    {brief.play.instructions.map((step, i) => (
-                      <li key={i}>{step}</li>
-                    ))}
-                  </ol>
-                }
+                preview={truncateWords(brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
+                ctaLabel="Start Activity"
+                onOpen={() => {
+                  trackEvent('activity_clicked');
+                  setActiveDetail('activity');
+                }}
+                onRefresh={() => rotate('play')}
+                refreshing={rotating === 'play'}
               />
-              <TodayCompactCard
+              <TodayPlanCard
                 emoji="📖"
                 label="Story"
                 title={brief.bedtimeStory.title}
-                summary={truncateWords(brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 12)}
-                ctaLabel="Read"
-                onCta={() => trackEvent('story_clicked')}
-                detail={<p className="text-xs whitespace-pre-wrap leading-relaxed">{brief.bedtimeStory.story}</p>}
+                preview={truncateWords(brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 15)}
+                ctaLabel="Read Story"
+                onOpen={() => {
+                  trackEvent('story_clicked');
+                  setActiveDetail('story');
+                }}
+                onRefresh={() => rotate('story')}
+                refreshing={rotating === 'story'}
               />
-              {milestone && (
-                <TodayCompactCard
-                  emoji="🌱"
-                  label="Milestone"
-                  title={milestone.title}
-                  summary={milestone.summary}
-                  ctaLabel="Learn"
-                  detail={<p className="text-xs whitespace-pre-wrap">{milestone.detail}</p>}
+              {languageItem && (
+                <TodayPlanCard
+                  emoji="💬"
+                  label="Language"
+                  title={languageItem.domain}
+                  preview={truncateWords(languageItem.tryToday || languageItem.insight, 15)}
+                  ctaLabel="Try Words"
+                  onOpen={() => setActiveDetail('language')}
+                  onRefresh={() => rotate('language')}
+                  refreshing={rotating === 'language'}
                 />
               )}
             </section>
 
-            {/* Section 2: Your Focus (30% goals/challenges) */}
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🎯" title="Your Focus" />
               {focusCards.length > 0 ? (
@@ -278,7 +310,6 @@ export default function TodayPage() {
               )}
             </section>
 
-            {/* Section 3: Connect */}
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="👥" title="Connect" />
               <TodayConnectCard
@@ -299,6 +330,43 @@ export default function TodayPage() {
           </>
         )}
       </div>
+
+      <TodayBottomSheet
+        open={activeDetail !== null}
+        title={activeDetail ? detailTitles[activeDetail] : ''}
+        onClose={closeDetail}
+      >
+        {activeDetail === 'meal' && brief && (
+          <MealDetailView
+            recipe={brief.recipe}
+            childAgeDisplay={brief.childAgeDisplay}
+            onSave={() => patchBrief('save-recipe')}
+            onBack={closeDetail}
+          />
+        )}
+        {activeDetail === 'activity' && brief && (
+          <ActivityDetailView
+            play={brief.play}
+            onSave={() => patchBrief('save-activity')}
+            onBack={closeDetail}
+          />
+        )}
+        {activeDetail === 'story' && brief && (
+          <StoryDetailView
+            story={brief.bedtimeStory}
+            childAgeDisplay={brief.childAgeDisplay}
+            onSave={(extras) => patchBrief('save-story', extras)}
+            onBack={closeDetail}
+          />
+        )}
+        {activeDetail === 'language' && brief && languageItem && (
+          <LanguageDetailView
+            item={languageItem}
+            childAgeDisplay={brief.childAgeDisplay}
+            onBack={closeDetail}
+          />
+        )}
+      </TodayBottomSheet>
     </AppShell>
   );
 }
