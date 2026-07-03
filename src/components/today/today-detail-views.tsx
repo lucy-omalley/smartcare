@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bookmark, Volume2, Square, Loader2, ImageIcon } from 'lucide-react';
@@ -12,8 +12,14 @@ import type {
 } from '@/types/daily-brief';
 import { toast } from 'sonner';
 
-interface DetailActionsProps {
-  onBack: () => void;
+type DetailPart = 'content' | 'footer';
+
+function normalizeIllustrationSrc(data?: string | null): string | undefined {
+  if (!data?.trim()) return undefined;
+  if (data.startsWith('data:') || data.startsWith('http://') || data.startsWith('https://') || data.startsWith('blob:')) {
+    return data;
+  }
+  return `data:image/png;base64,${data}`;
 }
 
 export function MealDetailView({
@@ -21,16 +27,46 @@ export function MealDetailView({
   childAgeDisplay,
   onSave,
   onBack,
+  part = 'content',
 }: {
   recipe: DailyBriefRecipe;
   childAgeDisplay?: string;
   onSave: () => Promise<void>;
   onBack: () => void;
-} & DetailActionsProps) {
+  part?: DetailPart;
+}) {
   const [saving, setSaving] = useState(false);
 
+  const footer = (
+    <div className="flex gap-2">
+      <Button
+        className="flex-1 rounded-full touch-target"
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          try {
+            await onSave();
+            toast.success('Meal saved!');
+          } catch {
+            toast.error('Could not save meal.');
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Bookmark className="h-4 w-4 mr-1" />
+        {saving ? 'Saving...' : 'Save meal'}
+      </Button>
+      <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
+        Back to Today
+      </Button>
+    </div>
+  );
+
+  if (part === 'footer') return footer;
+
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm pb-2">
       <div>
         <h3 className="text-lg font-bold">{recipe.subtitle}</h3>
         {childAgeDisplay && (
@@ -63,29 +99,6 @@ export function MealDetailView({
           ))}
         </ol>
       </div>
-      <div className="flex gap-2 pt-2">
-        <Button
-          className="flex-1 rounded-full"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave();
-              toast.success('Meal saved!');
-            } catch {
-              toast.error('Could not save meal.');
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          <Bookmark className="h-4 w-4 mr-1" />
-          {saving ? 'Saving...' : 'Save meal'}
-        </Button>
-        <Button variant="outline" className="rounded-full" onClick={onBack}>
-          Back to Today
-        </Button>
-      </div>
     </div>
   );
 }
@@ -94,15 +107,45 @@ export function ActivityDetailView({
   play,
   onSave,
   onBack,
+  part = 'content',
 }: {
   play: DailyBriefPlay;
   onSave: () => Promise<void>;
   onBack: () => void;
+  part?: DetailPart;
 }) {
   const [saving, setSaving] = useState(false);
 
+  const footer = (
+    <div className="flex gap-2">
+      <Button
+        className="flex-1 rounded-full touch-target"
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          try {
+            await onSave();
+            toast.success('Activity saved!');
+          } catch {
+            toast.error('Could not save activity.');
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Bookmark className="h-4 w-4 mr-1" />
+        {saving ? 'Saving...' : 'Save activity'}
+      </Button>
+      <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
+        Back to Today
+      </Button>
+    </div>
+  );
+
+  if (part === 'footer') return footer;
+
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm pb-2">
       <div>
         <h3 className="text-lg font-bold">{play.title}</h3>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -137,87 +180,118 @@ export function ActivityDetailView({
       <p className="text-xs bg-primary/5 rounded-xl p-3 text-muted-foreground">
         Parent tip: Follow your child&apos;s lead — the goal is connection, not perfection.
       </p>
-      <div className="flex gap-2 pt-2">
-        <Button
-          className="flex-1 rounded-full"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave();
-              toast.success('Activity saved!');
-            } catch {
-              toast.error('Could not save activity.');
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          <Bookmark className="h-4 w-4 mr-1" />
-          {saving ? 'Saving...' : 'Save activity'}
-        </Button>
-        <Button variant="outline" className="rounded-full" onClick={onBack}>
-          Back to Today
-        </Button>
-      </div>
     </div>
   );
 }
 
-export function StoryDetailView({
-  story,
-  childAgeDisplay,
-  onSave,
-  onBack,
-}: {
+type StoryDetailContextValue = ReturnType<typeof useStoryDetailMedia> & {
   story: DailyBriefStory;
-  childAgeDisplay?: string;
   onSave: (extras?: { illustrationData?: string }) => Promise<void>;
   onBack: () => void;
+  saving: boolean;
+  setSaving: (saving: boolean) => void;
+};
+
+const StoryDetailContext = createContext<StoryDetailContextValue | null>(null);
+
+function useStoryDetailContext() {
+  const ctx = useContext(StoryDetailContext);
+  if (!ctx) throw new Error('StoryDetailProvider required');
+  return ctx;
+}
+
+export function StoryDetailProvider({
+  story,
+  onSave,
+  onBack,
+  children,
+}: {
+  story: DailyBriefStory;
+  onSave: (extras?: { illustrationData?: string }) => Promise<void>;
+  onBack: () => void;
+  children: React.ReactNode;
 }) {
   const [saving, setSaving] = useState(false);
+  const media = useStoryDetailMedia(story);
+
+  return (
+    <StoryDetailContext.Provider value={{ ...media, story, onSave, onBack, saving, setSaving }}>
+      {children}
+    </StoryDetailContext.Provider>
+  );
+}
+
+function useStoryDetailMedia(story: DailyBriefStory) {
   const [illustrating, setIllustrating] = useState(false);
   const [narrating, setNarrating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [illustrationData, setIllustrationData] = useState<string | undefined>(story.illustrationData);
+  const [illustrationData, setIllustrationData] = useState<string | undefined>(
+    normalizeIllustrationSrc(story.illustrationData)
+  );
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const coverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setIllustrationData(story.illustrationData);
+    setIllustrationData(normalizeIllustrationSrc(story.illustrationData));
   }, [story.illustrationData]);
 
-  const stopAudio = () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
+  const stopAudio = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
     setIsPlaying(false);
-  };
+    setNarrating(false);
+  }, []);
+
+  useEffect(() => () => stopAudio(), [stopAudio]);
 
   const handleNarrate = async () => {
-    if (isPlaying) {
+    if (isPlaying || narrating) {
       stopAudio();
       return;
     }
     setNarrating(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const res = await fetch('/api/stories/narrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ story: story.story, cache: false }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
+      if (controller.signal.aborted) return;
       const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => {
         setIsPlaying(false);
-        URL.revokeObjectURL(url);
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current);
+          audioUrlRef.current = null;
+        }
+        audioRef.current = null;
       };
       await audio.play();
       setIsPlaying(true);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       toast.error('Could not generate narration.');
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setNarrating(false);
     }
   };
@@ -232,8 +306,12 @@ export function StoryDetailView({
       });
       if (!res.ok) throw new Error();
       const { illustrationData: data } = await res.json();
-      setIllustrationData(data);
+      const normalized = normalizeIllustrationSrc(data);
+      setIllustrationData(normalized);
       toast.success('Cover ready!');
+      requestAnimationFrame(() => {
+        coverRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
     } catch {
       toast.error('Could not generate illustration.');
     } finally {
@@ -241,8 +319,23 @@ export function StoryDetailView({
     }
   };
 
+  return {
+    illustrating,
+    narrating,
+    isPlaying,
+    illustrationData,
+    coverRef,
+    handleNarrate,
+    handleIllustrate,
+    stopAudio,
+  };
+}
+
+export function StoryDetailContent({ childAgeDisplay }: { childAgeDisplay?: string }) {
+  const { story } = useStoryDetailContext();
+
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm pb-2">
       <div>
         <h3 className="text-lg font-bold">{story.title}</h3>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -252,10 +345,6 @@ export function StoryDetailView({
           )}
         </div>
       </div>
-      {illustrationData && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={illustrationData} alt="" className="w-full rounded-2xl max-h-48 object-cover" />
-      )}
       {story.moral && (
         <p className="text-xs text-primary/80 bg-primary/5 rounded-xl px-3 py-2">
           Theme: {story.moral}
@@ -264,22 +353,79 @@ export function StoryDetailView({
       <p className="text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2">
         Parent tip: Use a calm voice and pause for your child to react — stories build language and connection.
       </p>
-      <div className="text-base leading-relaxed text-foreground whitespace-pre-line bg-muted/30 rounded-2xl p-4 max-h-[40vh] overflow-y-auto">
+      <div className="text-base leading-relaxed text-foreground whitespace-pre-line bg-muted/30 rounded-2xl p-4">
         {story.story}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Button size="sm" variant="outline" className="rounded-full" disabled={illustrating} onClick={handleIllustrate}>
-          {illustrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5 mr-1" />}
-          Cover art
-        </Button>
-        <Button size="sm" variant="outline" className="rounded-full" disabled={narrating && !isPlaying} onClick={handleNarrate}>
-          {isPlaying ? <Square className="h-3.5 w-3.5 mr-1" /> : narrating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Volume2 className="h-3.5 w-3.5 mr-1" />}
-          {isPlaying ? 'Stop' : 'Listen'}
-        </Button>
+    </div>
+  );
+}
+
+export function StoryDetailFooter() {
+  const {
+    story,
+    onSave,
+    onBack,
+    saving,
+    setSaving,
+    illustrating,
+    narrating,
+    isPlaying,
+    illustrationData,
+    coverRef,
+    handleNarrate,
+    handleIllustrate,
+    stopAudio,
+  } = useStoryDetailContext();
+  const mediaActive = isPlaying || narrating;
+
+  return (
+    <div className="space-y-3">
+      <div ref={coverRef} className="space-y-3">
+        {illustrationData ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={illustrationData}
+            alt={`Cover illustration for ${story.title}`}
+            className="w-full rounded-2xl max-h-40 object-cover"
+          />
+        ) : (
+          <div className="w-full rounded-2xl max-h-40 min-h-[7rem] bg-gradient-to-br from-amber-50 to-rose-50 flex items-center justify-center text-muted-foreground text-xs px-4 text-center">
+            Tap Cover art to generate an illustration
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full touch-target"
+            disabled={illustrating}
+            onClick={handleIllustrate}
+          >
+            {illustrating ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <ImageIcon className="h-3.5 w-3.5 mr-1" />
+            )}
+            Cover art
+          </Button>
+          <Button
+            size="sm"
+            variant={mediaActive ? 'default' : 'outline'}
+            className="rounded-full touch-target"
+            onClick={handleNarrate}
+          >
+            {mediaActive ? (
+              <Square className="h-3.5 w-3.5 mr-1" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5 mr-1" />
+            )}
+            {narrating && !isPlaying ? 'Stop' : isPlaying ? 'Stop' : 'Listen'}
+          </Button>
+        </div>
       </div>
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2">
         <Button
-          className="flex-1 rounded-full"
+          className="flex-1 rounded-full touch-target"
           disabled={saving}
           onClick={async () => {
             setSaving(true);
@@ -296,7 +442,14 @@ export function StoryDetailView({
           <Bookmark className="h-4 w-4 mr-1" />
           {saving ? 'Saving...' : 'Save story'}
         </Button>
-        <Button variant="outline" className="rounded-full" onClick={onBack}>
+        <Button
+          variant="outline"
+          className="rounded-full touch-target shrink-0"
+          onClick={() => {
+            stopAudio();
+            onBack();
+          }}
+        >
           Back to Today
         </Button>
       </div>
@@ -308,13 +461,23 @@ export function LanguageDetailView({
   item,
   childAgeDisplay,
   onBack,
+  part = 'content',
 }: {
   item: DailyBriefDevelopment;
   childAgeDisplay?: string;
   onBack: () => void;
+  part?: DetailPart;
 }) {
+  const footer = (
+    <Button variant="outline" className="w-full rounded-full touch-target" onClick={onBack}>
+      Back to Today
+    </Button>
+  );
+
+  if (part === 'footer') return footer;
+
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-sm pb-2">
       <div>
         <h3 className="text-lg font-bold flex items-center gap-2">
           <span>{item.icon ?? '💬'}</span>
@@ -344,9 +507,6 @@ export function LanguageDetailView({
         <p className="text-xs font-medium mb-1">Parent tip</p>
         <p className="text-sm leading-relaxed">{item.insight}</p>
       </div>
-      <Button variant="outline" className="w-full rounded-full" onClick={onBack}>
-        Back to Today
-      </Button>
     </div>
   );
 }

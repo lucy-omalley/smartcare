@@ -13,7 +13,9 @@ import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
   MealDetailView,
   ActivityDetailView,
-  StoryDetailView,
+  StoryDetailProvider,
+  StoryDetailContent,
+  StoryDetailFooter,
   LanguageDetailView,
   getLanguageItem,
 } from '@/components/today/today-detail-views';
@@ -194,6 +196,44 @@ export default function TodayPage() {
     language: 'Language & Speech',
   };
 
+  const detailFooter =
+    activeDetail === 'meal' && brief ? (
+      <MealDetailView
+        part="footer"
+        recipe={brief.recipe}
+        childAgeDisplay={brief.childAgeDisplay}
+        onSave={() => patchBrief('save-recipe')}
+        onBack={closeDetail}
+      />
+    ) : activeDetail === 'activity' && brief ? (
+      <ActivityDetailView
+        part="footer"
+        play={brief.play}
+        onSave={() => patchBrief('save-activity')}
+        onBack={closeDetail}
+      />
+    ) : activeDetail === 'language' && brief && languageItem ? (
+      <LanguageDetailView part="footer" item={languageItem} onBack={closeDetail} />
+    ) : null;
+
+  const detailContent =
+    activeDetail === 'meal' && brief ? (
+      <MealDetailView
+        recipe={brief.recipe}
+        childAgeDisplay={brief.childAgeDisplay}
+        onSave={() => patchBrief('save-recipe')}
+        onBack={closeDetail}
+      />
+    ) : activeDetail === 'activity' && brief ? (
+      <ActivityDetailView
+        play={brief.play}
+        onSave={() => patchBrief('save-activity')}
+        onBack={closeDetail}
+      />
+    ) : activeDetail === 'language' && brief && languageItem ? (
+      <LanguageDetailView item={languageItem} childAgeDisplay={brief.childAgeDisplay} onBack={closeDetail} />
+    ) : null;
+
   return (
     <AppShell>
       <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-5">
@@ -331,42 +371,31 @@ export default function TodayPage() {
         )}
       </div>
 
-      <TodayBottomSheet
-        open={activeDetail !== null}
-        title={activeDetail ? detailTitles[activeDetail] : ''}
-        onClose={closeDetail}
-      >
-        {activeDetail === 'meal' && brief && (
-          <MealDetailView
-            recipe={brief.recipe}
-            childAgeDisplay={brief.childAgeDisplay}
-            onSave={() => patchBrief('save-recipe')}
-            onBack={closeDetail}
-          />
-        )}
-        {activeDetail === 'activity' && brief && (
-          <ActivityDetailView
-            play={brief.play}
-            onSave={() => patchBrief('save-activity')}
-            onBack={closeDetail}
-          />
-        )}
-        {activeDetail === 'story' && brief && (
-          <StoryDetailView
-            story={brief.bedtimeStory}
-            childAgeDisplay={brief.childAgeDisplay}
-            onSave={(extras) => patchBrief('save-story', extras)}
-            onBack={closeDetail}
-          />
-        )}
-        {activeDetail === 'language' && brief && languageItem && (
-          <LanguageDetailView
-            item={languageItem}
-            childAgeDisplay={brief.childAgeDisplay}
-            onBack={closeDetail}
-          />
-        )}
-      </TodayBottomSheet>
+      {activeDetail === 'story' && brief ? (
+        <StoryDetailProvider
+          story={brief.bedtimeStory}
+          onSave={(extras) => patchBrief('save-story', extras)}
+          onBack={closeDetail}
+        >
+          <TodayBottomSheet
+            open={activeDetail !== null}
+            title={detailTitles.story}
+            onClose={closeDetail}
+            footer={<StoryDetailFooter />}
+          >
+            <StoryDetailContent childAgeDisplay={brief.childAgeDisplay} />
+          </TodayBottomSheet>
+        </StoryDetailProvider>
+      ) : (
+        <TodayBottomSheet
+          open={activeDetail !== null}
+          title={activeDetail ? detailTitles[activeDetail] : ''}
+          onClose={closeDetail}
+          footer={detailFooter ?? undefined}
+        >
+          {detailContent}
+        </TodayBottomSheet>
+      )}
     </AppShell>
   );
 }
