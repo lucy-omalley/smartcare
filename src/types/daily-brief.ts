@@ -1,3 +1,9 @@
+export interface RecipeSampleLink {
+  title: string;
+  url: string;
+  type: "youtube" | "article";
+}
+
 export interface DailyBriefRecipe {
   title: string;
   subtitle: string;
@@ -9,6 +15,8 @@ export interface DailyBriefRecipe {
   difficulty?: "Easy" | "Medium";
   nutritionalHighlights?: string[];
   healthyTip?: string;
+  sampleLinks?: RecipeSampleLink[];
+  fromFridge?: boolean;
 }
 
 export interface DailyBriefPlay {

@@ -4,12 +4,13 @@ import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Bookmark, Loader2, ImageIcon, ChefHat } from 'lucide-react';
+import { Bookmark, Loader2, ImageIcon, ChefHat, ExternalLink, Youtube, FileText, RefreshCw } from 'lucide-react';
 import type {
   DailyBriefRecipe,
   DailyBriefPlay,
   DailyBriefStory,
   DailyBriefDevelopment,
+  RecipeSampleLink,
 } from '@/types/daily-brief';
 import { toast } from 'sonner';
 import { useStoryAudio } from '@/hooks/use-story-audio';
@@ -17,6 +18,15 @@ import { getTodayStoryAudioFetch } from '@/lib/story-audio-prefetch';
 import { fetchTodayStoryIllustration, prefetchTodayStoryIllustration, warmTodayStoryIllustration } from '@/lib/story-illustration-prefetch';
 import { fetchTodayRecipeIllustration, prefetchTodayRecipeIllustration, warmTodayRecipeIllustration } from '@/lib/recipe-illustration-prefetch';
 import { StoryListenButton } from '@/components/story/story-listen-button';
+import { buildRecipeSampleLinks } from '@/lib/recipe-sample-links';
+
+const MEAL_STYLE_OPTIONS = ['Soup', 'Pasta', 'Rice bowl', 'Salad', 'Stir-fry', 'Sandwich', 'Casserole', 'Smoothie'] as const;
+
+export type FridgeRecipeRequest = {
+  ingredients: string[];
+  mealPreferences: string[];
+  tryAnother?: boolean;
+};
 
 type DetailPart = 'content' | 'footer';
 
@@ -40,7 +50,7 @@ export function MealDetailProvider({
   childAgeDisplay?: string;
   onSave: () => Promise<void>;
   onBack: () => void;
-  onFridgeRecipe: (ingredients: string[]) => Promise<void>;
+  onFridgeRecipe: (params: FridgeRecipeRequest) => Promise<void>;
   children: React.ReactNode;
 }) {
   const [saving, setSaving] = useState(false);
@@ -69,7 +79,7 @@ type MealDetailContextValue = Omit<ReturnType<typeof useMealDetailMedia>, never>
   childAgeDisplay?: string;
   onSave: () => Promise<void>;
   onBack: () => void;
-  onFridgeRecipe: (ingredients: string[]) => Promise<void>;
+  onFridgeRecipe: (params: FridgeRecipeRequest) => Promise<void>;
   saving: boolean;
   setSaving: (saving: boolean) => void;
 };
@@ -122,20 +132,74 @@ function useMealDetailMedia(recipe: DailyBriefRecipe) {
   return { illustrating, imageData, coverRef, handleIllustrate };
 }
 
+function RecipeSampleLinks({ links }: { links: RecipeSampleLink[] }) {
+  if (!links.length) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase text-muted-foreground">Recipe inspiration</p>
+      <div className="space-y-2">
+        {links.map((link) => (
+          <a
+            key={`${link.type}-${link.url}`}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors"
+          >
+            {link.type === 'youtube' ? (
+              <Youtube className="h-4 w-4 text-red-600 shrink-0" />
+            ) : (
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+            )}
+            <span className="flex-1 leading-snug">{link.title}</span>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MealDetailContent() {
   const {
     recipe,
     childAgeDisplay,
     onFridgeRecipe,
+    onSave,
+    saving,
+    setSaving,
     illustrating,
     imageData,
     coverRef,
     handleIllustrate,
   } = useMealDetailContext();
   const [fridgeInput, setFridgeInput] = useState('');
+  const [preferenceInput, setPreferenceInput] = useState('');
+  const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [hasFridgeResult, setHasFridgeResult] = useState(Boolean(recipe.fromFridge));
 
-  const handleFridgeRecipe = async () => {
+  useEffect(() => {
+    if (recipe.fromFridge) setHasFridgeResult(true);
+  }, [recipe.fromFridge, recipe.subtitle]);
+
+  const mealPreferences = [
+    ...selectedPreferences,
+    ...preferenceInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((p) => !selectedPreferences.includes(p)),
+  ];
+
+  const togglePreference = (pref: string) => {
+    setSelectedPreferences((prev) =>
+      prev.includes(pref) ? prev.filter((p) => p !== pref) : [...prev, pref]
+    );
+  };
+
+  const runFridgeRecipe = async (tryAnother = false) => {
     const ingredients = fridgeInput
       .split(',')
       .map((s) => s.trim())
@@ -146,14 +210,19 @@ export function MealDetailContent() {
     }
     setGenerating(true);
     try {
-      await onFridgeRecipe(ingredients);
-      toast.success('New meal plan ready!');
+      await onFridgeRecipe({ ingredients, mealPreferences, tryAnother });
+      setHasFridgeResult(true);
+      if (!tryAnother) toast.success('New meal plan ready!');
+      else toast.success('Here\'s another idea!');
     } catch {
       toast.error('Could not create meal from those ingredients.');
     } finally {
       setGenerating(false);
     }
   };
+
+  const sampleLinks =
+    recipe.sampleLinks?.length ? recipe.sampleLinks : buildRecipeSampleLinks(recipe);
 
   return (
     <div className="space-y-4 text-sm pb-2">
@@ -198,13 +267,13 @@ export function MealDetailContent() {
         )}
       </div>
 
-      <div className="bg-amber-50/80 rounded-xl p-3 space-y-2 border border-amber-100">
+      <div className="bg-amber-50/80 rounded-xl p-3 space-y-3 border border-amber-100">
         <p className="text-xs font-medium text-amber-900 flex items-center gap-1.5">
           <ChefHat className="h-3.5 w-3.5" />
           What&apos;s in your fridge?
         </p>
         <p className="text-xs text-amber-800/80">
-          List ingredients you have on hand — we&apos;ll suggest a child-friendly meal.
+          List ingredients and pick a meal style — we&apos;ll suggest a child-friendly recipe.
         </p>
         <Input
           value={fridgeInput}
@@ -212,15 +281,42 @@ export function MealDetailContent() {
           placeholder="e.g. salmon, broccoli, rice"
           className="rounded-xl bg-white border-amber-200"
           disabled={generating}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleFridgeRecipe();
-          }}
         />
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-amber-900">Meal style (optional)</p>
+          <div className="flex flex-wrap gap-1.5">
+            {MEAL_STYLE_OPTIONS.map((pref) => {
+              const active = selectedPreferences.includes(pref);
+              return (
+                <button
+                  key={pref}
+                  type="button"
+                  disabled={generating}
+                  onClick={() => togglePreference(pref)}
+                  className={`rounded-full px-2.5 py-1 text-xs border transition-colors ${
+                    active
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-white text-amber-900 border-amber-200 hover:border-amber-400'
+                  }`}
+                >
+                  {pref}
+                </button>
+              );
+            })}
+          </div>
+          <Input
+            value={preferenceInput}
+            onChange={(e) => setPreferenceInput(e.target.value)}
+            placeholder="Or type a style, e.g. curry, baked"
+            className="rounded-xl bg-white border-amber-200 text-xs"
+            disabled={generating}
+          />
+        </div>
         <Button
           size="sm"
           className="rounded-full w-full touch-target"
           disabled={generating || !fridgeInput.trim()}
-          onClick={() => void handleFridgeRecipe()}
+          onClick={() => void runFridgeRecipe(false)}
         >
           {generating ? (
             <>
@@ -231,6 +327,44 @@ export function MealDetailContent() {
             'Create meal from fridge'
           )}
         </Button>
+        {hasFridgeResult && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full touch-target"
+              disabled={generating || !fridgeInput.trim()}
+              onClick={() => void runFridgeRecipe(true)}
+            >
+              {generating ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              )}
+              Try another
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="rounded-full touch-target"
+              disabled={saving || generating}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await onSave();
+                  toast.success('Recipe saved!');
+                } catch {
+                  toast.error('Could not save recipe.');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              <Bookmark className="h-3.5 w-3.5 mr-1" />
+              {saving ? 'Saving…' : 'Save recipe'}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div>
@@ -243,6 +377,7 @@ export function MealDetailContent() {
           <p className="text-sm">{recipe.healthyTip}</p>
         </div>
       )}
+      <RecipeSampleLinks links={sampleLinks} />
       <div>
         <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Ingredients</p>
         <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
