@@ -203,11 +203,19 @@ export default function TodayPage() {
     router.push('/mumbot');
   };
 
-  const createFridgeRecipe = async (ingredients: string[]) => {
+  const createFridgeRecipe = async ({
+    ingredients,
+    mealPreferences,
+    tryAnother,
+  }: {
+    ingredients: string[];
+    mealPreferences: string[];
+    tryAnother?: boolean;
+  }) => {
     const res = await fetch('/api/today/meal/from-fridge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ingredients }),
+      body: JSON.stringify({ ingredients, mealPreferences, tryAnother }),
     });
     if (!res.ok) throw new Error('Request failed');
     const json = await res.json();
@@ -217,7 +225,7 @@ export default function TodayPage() {
     invalidateTodayRecipeIllustrationCache();
     prefetchTodayRecipeIllustration().catch(() => {});
     warmTodayRecipeIllustration().catch(() => {});
-    trackEvent('meal_from_fridge');
+    trackEvent(tryAnother ? 'meal_from_fridge_retry' : 'meal_from_fridge');
   };
 
   const closeDetail = () => setActiveDetail(null);

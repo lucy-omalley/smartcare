@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { fetchRotateContext, updateDailyBriefSection } from "@/lib/services/daily-brief";
+import { fetchRotateContext, getOrCreateDailyBrief, updateDailyBriefSection } from "@/lib/services/daily-brief";
 import { generateRecipeFromFridge } from "@/lib/services/mumbot";
 import { warmTodayRecipeIllustration } from "@/lib/services/today-page";
+import type { DailyBriefRecipe } from "@/types/daily-brief";
 
 export const maxDuration = 60;
+
+function parseStringList(raw: unknown): string[] {
+  return (Array.isArray(raw) ? raw : [])
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 /** Generate a personalised recipe from fridge ingredients the parent has on hand. */
 export async function POST(request: Request) {
@@ -15,19 +23,30 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { ingredients?: unknown };
-    const raw = body.ingredients;
-    const ingredients = (Array.isArray(raw) ? raw : [])
-      .filter((item): item is string => typeof item === "string")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const body = (await request.json()) as {
+      ingredients?: unknown;
+      mealPreferences?: unknown;
+      tryAnother?: boolean;
+    };
+
+    const ingredients = parseStringList(body.ingredients);
+    const mealPreferences = parseStringList(body.mealPreferences);
 
     if (ingredients.length === 0) {
       return NextResponse.json({ error: "Add at least one ingredient" }, { status: 400 });
     }
 
     const { profile, memories } = await fetchRotateContext(session.user.id);
-    const recipe = await generateRecipeFromFridge(profile, memories, ingredients);
+    let avoidRecipe: DailyBriefRecipe | undefined;
+    if (body.tryAnother) {
+      const brief = await getOrCreateDailyBrief(session.user.id);
+      avoidRecipe = brief.recipe;
+    }
+
+    const recipe = await generateRecipeFromFridge(profile, memories, ingredients, {
+      mealPreferences,
+      avoidRecipe,
+    });
     delete recipe.imageData;
 
     const brief = await updateDailyBriefSection(session.user.id, "recipe", recipe);

@@ -12,6 +12,7 @@ export type AnalyticsEvent =
   | "mumbot_question"
   | "meal_clicked"
   | "meal_from_fridge"
+  | "meal_from_fridge_retry"
   | "story_clicked"
   | "activity_clicked"
   | "connect_status_created"

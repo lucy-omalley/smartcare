@@ -3,6 +3,7 @@ import { MemoryCategory } from "@prisma/client";
 import { generateParentingTipStatic } from "@/lib/mumbot-messages";
 import { OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS } from "@/lib/openai-config";
 import { buildDailyBriefContext, type BriefProfile, type BriefMemory } from "@/lib/daily-brief-context";
+import { withRecipeSampleLinks } from "@/lib/recipe-sample-links";
 import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, DailyBriefStory, DailyBriefDevelopment, LibraryRecommendation, WeatherInfo } from "@/types/daily-brief";
 import { weatherContextLine } from "@/lib/services/weather";
 
@@ -413,29 +414,69 @@ export async function regenerateRecipe(
 export async function generateRecipeFromFridge(
   profile: BriefProfile,
   memories: BriefMemory[],
-  ingredients: string[]
+  ingredients: string[],
+  options?: {
+    mealPreferences?: string[];
+    avoidRecipe?: DailyBriefRecipe;
+  }
 ): Promise<DailyBriefRecipe> {
   const context = buildDailyBriefContext(profile, memories, []);
   const fridgeList = ingredients.join(", ");
+  const prefs = options?.mealPreferences?.filter(Boolean) ?? [];
+  const prefLine = prefs.length
+    ? `\nMeal style preferences (honour these): ${prefs.join(", ")}.`
+    : "";
+  const avoid = options?.avoidRecipe
+    ? `\nAvoid repeating this recipe: "${options.avoidRecipe.subtitle}". Suggest something different.`
+    : "";
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
     messages: [
       {
         role: "system",
-        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed. Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional" }. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
+        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed.${prefLine}${avoid} Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional", "sampleLinks": [{ "title": "short link label", "searchQuery": "search terms for this dish", "type": "youtube" | "article" }] }. Include exactly 2 sampleLinks (one youtube, one article) with helpful searchQuery strings — real URLs are added server-side. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
       },
-      { role: "user", content: `${context}\n\nAvailable from the fridge: ${fridgeList}` },
+      { role: "user", content: `${context}\n\nAvailable from the fridge: ${fridgeList}${prefLine}` },
     ],
     temperature: 0.85,
-    max_tokens: 550,
+    max_tokens: 650,
     response_format: { type: "json_object" },
   });
 
   try {
-    return JSON.parse(completion.choices[0]?.message?.content || "{}") as DailyBriefRecipe;
+    type RawSampleLink = { title?: string; searchQuery?: string; type?: string; url?: string };
+    type RawFridgeRecipe = Omit<DailyBriefRecipe, "sampleLinks"> & { sampleLinks?: RawSampleLink[] };
+    const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}") as RawFridgeRecipe;
+    const recipe: DailyBriefRecipe = {
+      title: parsed.title,
+      subtitle: parsed.subtitle,
+      prepTimeMinutes: parsed.prepTimeMinutes,
+      whyThisMeal: parsed.whyThisMeal,
+      ingredients: parsed.ingredients ?? [],
+      steps: parsed.steps ?? [],
+      healthyTip: parsed.healthyTip,
+      fromFridge: true,
+    };
+    if (Array.isArray(parsed.sampleLinks)) {
+      recipe.sampleLinks = parsed.sampleLinks
+        .filter((link) => link?.title && (link.searchQuery || link.url))
+        .slice(0, 3)
+        .map((link) => {
+          const type = link.type === "youtube" ? "youtube" : "article";
+          const query = encodeURIComponent((link.searchQuery || link.title || recipe.subtitle).trim());
+          const url =
+            link.url?.startsWith("http")
+              ? link.url
+              : type === "youtube"
+                ? `https://www.youtube.com/results?search_query=${query}`
+                : `https://www.google.com/search?q=${query}`;
+          return { title: link.title!, url, type };
+        });
+    }
+    return withRecipeSampleLinks(recipe);
   } catch {
-    return defaultDailyBrief(profile).recipe;
+    return withRecipeSampleLinks({ ...defaultDailyBrief(profile).recipe, fromFridge: true });
   }
 }
 
