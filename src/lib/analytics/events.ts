@@ -101,4 +101,7 @@ export const PATH_FEATURE_MAP: Record<string, FeatureName> = {
   "/more": "More",
   "/onboarding": "Settings",
   "/home": "Today",
+  "/memory": "Milestones",
+  "/activities": "Activities",
+  "/chat": "MumBot",
 };

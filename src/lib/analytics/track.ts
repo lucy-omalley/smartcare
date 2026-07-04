@@ -36,13 +36,13 @@ function flushPending() {
   }
 }
 
-function sendToPersistApi(event: string, properties?: Record<string, unknown>) {
+function sendToPersistApi(event: string, properties?: Record<string, unknown>, attempt = 0) {
   if (typeof window === "undefined") return;
   const body = JSON.stringify({ event, properties: sanitizeProperties(properties) });
   try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon("/api/analytics/track", new Blob([body], { type: "application/json" }));
-      return;
+    if (navigator.sendBeacon && attempt === 0) {
+      const ok = navigator.sendBeacon("/api/analytics/track", new Blob([body], { type: "application/json" }));
+      if (ok) return;
     }
   } catch {
     /* fall through */
@@ -52,7 +52,11 @@ function sendToPersistApi(event: string, properties?: Record<string, unknown>) {
     headers: { "Content-Type": "application/json" },
     body,
     keepalive: true,
-  }).catch(() => {});
+  }).catch(() => {
+    if (attempt < 2) {
+      window.setTimeout(() => sendToPersistApi(event, properties, attempt + 1), 1000 * (attempt + 1));
+    }
+  });
 }
 
 /** Track a product analytics event (PostHog + internal store). Non-blocking. */

@@ -39,6 +39,12 @@ export default function OnboardingPage() {
   const [location, setLocation] = useState('');
 
   useEffect(() => {
+    if (status === 'authenticated' && !localStorage.getItem('parenfy_onboarding_start')) {
+      localStorage.setItem('parenfy_onboarding_start', String(Date.now()));
+    }
+  }, [status]);
+
+  useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/onboarding')
         .then((r) => r.json())
@@ -101,7 +107,11 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     await saveProgress(true);
-    trackEvent('onboarding_completed');
+    const startRaw = localStorage.getItem("parenfy_onboarding_start");
+    const durationSeconds = startRaw
+      ? Math.round((Date.now() - parseInt(startRaw, 10)) / 1000)
+      : undefined;
+    trackEvent("onboarding_completed", durationSeconds ? { duration_seconds: durationSeconds } : undefined);
     if (childAge) trackEvent('child_profile_created');
     if (parentingGoals.length) trackEvent('parenting_goals_selected', { count: parentingGoals.length });
     if (currentChallenges.length) trackEvent('current_challenges_selected', { count: currentChallenges.length });

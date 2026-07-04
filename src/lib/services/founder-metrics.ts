@@ -9,6 +9,20 @@ function countMap(rows: { key: string; count: bigint }[]): Record<string, number
   return out;
 }
 
+async function avgOnboardingDuration(): Promise<number | null> {
+  const rows = await prisma.analyticsEvent.findMany({
+    where: { event: "onboarding_completed" },
+    select: { properties: true },
+    take: 200,
+    orderBy: { createdAt: "desc" },
+  });
+  const durations = rows
+    .map((r) => (r.properties as { duration_seconds?: number })?.duration_seconds)
+    .filter((n): n is number => typeof n === "number" && n > 0);
+  if (!durations.length) return null;
+  return Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+}
+
 export async function getFounderMetrics() {
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -190,6 +204,15 @@ export async function getFounderMetrics() {
       onboardingCompleted: usersWithOnboarding,
       onboardingRate: totalUsers > 0 ? Math.round((usersWithOnboarding / totalUsers) * 100) : 0,
       avgMumbotQuestionsPerUser: totalUsers > 0 ? +(mumbotQuestions / totalUsers).toFixed(1) : 0,
+      avgEventsPerActiveUserToday:
+        dauRows.length > 0
+          ? +(
+              (await prisma.analyticsEvent.count({
+                where: { createdAt: { gte: todayStart }, userId: { not: null } },
+              })) / dauRows.length
+            ).toFixed(1)
+          : 0,
+      avgOnboardingSeconds: await avgOnboardingDuration(),
       storiesRead,
       mealsViewed,
       activitiesStarted,

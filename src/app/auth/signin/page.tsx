@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github, Mail } from 'lucide-react';
 import Link from 'next/link';
-import { trackEvent, trackClientError } from '@/lib/analytics';
+import { trackClientError } from '@/lib/analytics';
 
 export default function SignIn() {
   const router = useRouter();
@@ -37,7 +37,6 @@ export default function SignIn() {
         return;
       }
 
-      trackEvent('login', { method: 'credentials' });
       router.push('/today');
       router.refresh();
     } catch {

@@ -19,6 +19,7 @@ import {
   MAX_CURRENT_CHALLENGES,
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 interface Profile {
   name: string;
@@ -174,6 +175,9 @@ function ProfileContent() {
       const data = await res.json();
       setProfile(data.profile);
       setEditing(false);
+      if (childAge || childInterests) {
+        trackEvent('child_profile_updated', { has_age: Boolean(childAge), has_interests: Boolean(childInterests) });
+      }
     } finally {
       setSaving(false);
     }

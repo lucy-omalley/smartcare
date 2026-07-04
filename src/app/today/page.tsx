@@ -264,7 +264,17 @@ export default function TodayPage() {
     trackEvent(tryAnother ? 'meal_from_fridge_retry' : 'meal_from_fridge');
   };
 
-  const closeDetail = () => setActiveDetail(null);
+  const closeDetail = () => {
+    const brief = data?.brief;
+    if (activeDetail === 'story' && brief) {
+      trackEvent('story_completed', { title: brief.bedtimeStory.title });
+    }
+    if (activeDetail === 'language' && brief) {
+      const lang = getLanguageItem(brief.development);
+      trackEvent('language_activity_completed', { domain: lang.domain });
+    }
+    setActiveDetail(null);
+  };
 
   if (status === 'loading' || loading) {
     return (

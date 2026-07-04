@@ -157,6 +157,8 @@ export default function FounderDashboardPage() {
           <MetricCard label="Onboarding done" value={`${s.onboardingRate}%`} />
           <MetricCard label="Returning users" value={s.returningUsers} />
           <MetricCard label="Most used feature" value={s.mostUsedFeature} />
+          <MetricCard label="Avg events / DAU today" value={s.avgEventsPerActiveUserToday} />
+          <MetricCard label="Avg onboarding (sec)" value={s.avgOnboardingSeconds ?? "—"} />
         </section>
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
