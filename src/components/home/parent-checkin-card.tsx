@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { HeartHandshake, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackEvent } from '@/lib/analytics';
 
 interface ParentCheckInCardProps {
   onSubmit: (data: { feeling: string; win: string; challenge: string }) => Promise<{ encouragement?: string }>;
@@ -25,6 +26,7 @@ export function ParentCheckInCard({ onSubmit }: ParentCheckInCardProps) {
       toast.error('How are you feeling today?');
       return;
     }
+    trackEvent('parent_checkin_started');
     setSubmitting(true);
     try {
       const result = await onSubmit({
@@ -32,6 +34,7 @@ export function ParentCheckInCard({ onSubmit }: ParentCheckInCardProps) {
         win: win.trim(),
         challenge: challenge.trim(),
       });
+      trackEvent('parent_checkin_completed');
       setEncouragement(result.encouragement ?? "You're doing a wonderful job. Small steps count.");
       setFeeling('');
       setWin('');
@@ -73,6 +76,7 @@ export function ParentCheckInCard({ onSubmit }: ParentCheckInCardProps) {
               onChange={(e) => setFeeling(e.target.value)}
               placeholder="Tired but hopeful..."
               className="mt-1 rounded-xl"
+              data-ph-mask
             />
           </div>
           <div>
@@ -83,6 +87,7 @@ export function ParentCheckInCard({ onSubmit }: ParentCheckInCardProps) {
               onChange={(e) => setWin(e.target.value)}
               placeholder="We got out for a walk..."
               className="mt-1 rounded-xl"
+              data-ph-mask
             />
           </div>
           <div>
@@ -94,6 +99,7 @@ export function ParentCheckInCard({ onSubmit }: ParentCheckInCardProps) {
               placeholder="Bedtime was tough..."
               className="mt-1 rounded-xl resize-none"
               rows={2}
+              data-ph-mask
             />
           </div>
           <Button

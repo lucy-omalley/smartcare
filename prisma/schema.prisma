@@ -432,3 +432,27 @@ model ParentMessage {
   @@index([threadId])
   @@index([senderId])
 }
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  event      String
+  properties Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([event])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AnalyticsError {
+  id        String   @id @default(cuid())
+  userId    String?
+  source    String
+  message   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source])
+}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { trackEvent } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ export default function Register() {
         throw new Error(data.error || data.message || 'Registration failed');
       }
 
+      trackEvent('signup_completed', { method: 'email' });
       router.push('/auth/signin?registered=true');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');

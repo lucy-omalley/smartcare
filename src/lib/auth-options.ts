@@ -5,6 +5,8 @@ import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { captureServerEvent } from "@/lib/analytics/posthog-server";
+import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -58,6 +60,24 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+  },
+  events: {
+    async signIn({ user, account }) {
+      if (!user.id) return;
+      const method = account?.provider ?? "credentials";
+      await Promise.allSettled([
+        persistAnalyticsEvent("login", user.id, { method }),
+        captureServerEvent(user.id, "login", { method }),
+      ]);
+    },
+    async signOut({ token }) {
+      const userId = token?.id as string | undefined;
+      if (!userId) return;
+      await Promise.allSettled([
+        persistAnalyticsEvent("logout", userId),
+        captureServerEvent(userId, "logout"),
+      ]);
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

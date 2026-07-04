@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { trackEvent, trackClientError } from '@/lib/analytics';
 
 export default function SignIn() {
   const router = useRouter();
@@ -31,13 +32,16 @@ export default function SignIn() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        trackClientError('auth_login', 'Failed login');
+        setError('Invalid email or password. Please try again.');
         return;
       }
 
-      router.push('/dashboard');
+      trackEvent('login', { method: 'credentials' });
+      router.push('/today');
       router.refresh();
-    } catch (error) {
+    } catch {
+      trackClientError('auth_login', 'Sign in error');
       setError('An error occurred during sign in');
     } finally {
       setIsLoading(false);
