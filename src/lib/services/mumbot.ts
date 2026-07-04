@@ -435,7 +435,7 @@ export async function generateRecipeFromFridge(
     messages: [
       {
         role: "system",
-        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed.${prefLine}${avoid} Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional", "sampleLinks": [{ "title": "short link label", "searchQuery": "search terms for this dish", "type": "youtube" | "article" }] }. Include exactly 2 sampleLinks (one youtube, one article) with helpful searchQuery strings — real URLs are added server-side. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
+        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed.${prefLine}${avoid} Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional" }. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
       },
       { role: "user", content: `${context}\n\nAvailable from the fridge: ${fridgeList}${prefLine}` },
     ],
@@ -445,8 +445,7 @@ export async function generateRecipeFromFridge(
   });
 
   try {
-    type RawSampleLink = { title?: string; searchQuery?: string; type?: string; url?: string };
-    type RawFridgeRecipe = Omit<DailyBriefRecipe, "sampleLinks"> & { sampleLinks?: RawSampleLink[] };
+    type RawFridgeRecipe = Omit<DailyBriefRecipe, "sampleLinks">;
     const parsed = JSON.parse(completion.choices[0]?.message?.content || "{}") as RawFridgeRecipe;
     const recipe: DailyBriefRecipe = {
       title: parsed.title,
@@ -458,25 +457,9 @@ export async function generateRecipeFromFridge(
       healthyTip: parsed.healthyTip,
       fromFridge: true,
     };
-    if (Array.isArray(parsed.sampleLinks)) {
-      recipe.sampleLinks = parsed.sampleLinks
-        .filter((link) => link?.title && (link.searchQuery || link.url))
-        .slice(0, 3)
-        .map((link) => {
-          const type = link.type === "youtube" ? "youtube" : "article";
-          const query = encodeURIComponent((link.searchQuery || link.title || recipe.subtitle).trim());
-          const url =
-            link.url?.startsWith("http")
-              ? link.url
-              : type === "youtube"
-                ? `https://www.youtube.com/results?search_query=${query}`
-                : `https://www.google.com/search?q=${query}`;
-          return { title: link.title!, url, type };
-        });
-    }
-    return withRecipeSampleLinks(recipe);
+    return await withRecipeSampleLinks(recipe);
   } catch {
-    return withRecipeSampleLinks({ ...defaultDailyBrief(profile).recipe, fromFridge: true });
+    return await withRecipeSampleLinks({ ...defaultDailyBrief(profile).recipe, fromFridge: true });
   }
 }
 
