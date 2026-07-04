@@ -13,7 +13,6 @@ import {
   Loader2, ImageIcon, ChevronDown, ChevronUp
 } from 'lucide-react';
 import type { DailyBriefRecipe } from '@/types/daily-brief';
-import { buildRecipeSampleLinks } from '@/lib/recipe-sample-links';
 import { ExternalLink, Youtube, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -254,7 +253,7 @@ function SavedPageContent() {
                         <ol className="list-decimal list-inside text-muted-foreground space-y-1">
                           {recipe.steps?.map((s, idx) => <li key={idx}>{s}</li>)}
                         </ol>
-                        {(recipe.sampleLinks?.length ? recipe.sampleLinks : buildRecipeSampleLinks(recipe)).map((link) => (
+                        {(recipe.sampleLinks ?? []).map((link) => (
                           <a
                             key={link.url}
                             href={link.url}

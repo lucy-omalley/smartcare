@@ -17,8 +17,8 @@ import { useStoryAudio } from '@/hooks/use-story-audio';
 import { getTodayStoryAudioFetch } from '@/lib/story-audio-prefetch';
 import { fetchTodayStoryIllustration, prefetchTodayStoryIllustration, warmTodayStoryIllustration } from '@/lib/story-illustration-prefetch';
 import { fetchTodayRecipeIllustration, prefetchTodayRecipeIllustration, warmTodayRecipeIllustration } from '@/lib/recipe-illustration-prefetch';
+import { isGenericRecipeLink } from '@/lib/recipe-link-utils';
 import { StoryListenButton } from '@/components/story/story-listen-button';
-import { buildRecipeSampleLinks } from '@/lib/recipe-sample-links';
 
 const MEAL_STYLE_OPTIONS = ['Soup', 'Pasta', 'Rice bowl', 'Salad', 'Stir-fry', 'Sandwich', 'Casserole', 'Smoothie'] as const;
 
@@ -132,7 +132,19 @@ function useMealDetailMedia(recipe: DailyBriefRecipe) {
   return { illustrating, imageData, coverRef, handleIllustrate };
 }
 
-function RecipeSampleLinks({ links }: { links: RecipeSampleLink[] }) {
+function RecipeSampleLinks({ links, loading }: { links: RecipeSampleLink[]; loading?: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase text-muted-foreground">Recipe inspiration</p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground rounded-xl border bg-muted/20 px-3 py-2.5">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Finding matching videos and recipes…
+        </div>
+      </div>
+    );
+  }
+
   if (!links.length) return null;
 
   return (
@@ -221,8 +233,46 @@ export function MealDetailContent() {
     }
   };
 
-  const sampleLinks =
-    recipe.sampleLinks?.length ? recipe.sampleLinks : buildRecipeSampleLinks(recipe);
+  const [sampleLinks, setSampleLinks] = useState<RecipeSampleLink[]>(recipe.sampleLinks ?? []);
+  const [linksLoading, setLinksLoading] = useState(false);
+
+  useEffect(() => {
+    const existing = recipe.sampleLinks ?? [];
+    const needsResolve =
+      !existing.length || existing.some((link) => isGenericRecipeLink(link.url));
+
+    if (!needsResolve) {
+      setSampleLinks(existing);
+      return;
+    }
+
+    let cancelled = false;
+    setLinksLoading(true);
+    void fetch('/api/recipes/resolve-links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipe }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed');
+        return res.json() as Promise<{ sampleLinks?: RecipeSampleLink[] }>;
+      })
+      .then((data) => {
+        if (!cancelled && data.sampleLinks?.length) {
+          setSampleLinks(data.sampleLinks);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && existing.length) setSampleLinks(existing);
+      })
+      .finally(() => {
+        if (!cancelled) setLinksLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe.subtitle, recipe.ingredients, recipe.steps, recipe.sampleLinks]);
 
   return (
     <div className="space-y-4 text-sm pb-2">
@@ -377,7 +427,7 @@ export function MealDetailContent() {
           <p className="text-sm">{recipe.healthyTip}</p>
         </div>
       )}
-      <RecipeSampleLinks links={sampleLinks} />
+      <RecipeSampleLinks links={sampleLinks} loading={linksLoading} />
       <div>
         <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Ingredients</p>
         <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
