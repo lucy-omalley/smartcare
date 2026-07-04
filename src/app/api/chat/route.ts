@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { getMumBotResponse } from "@/lib/services/mumbot";
+import { trackServerError } from "@/lib/analytics/server-errors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -115,10 +116,17 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Chat API error:", error);
+    const session = await getServerSession(authOptions);
+    await trackServerError(
+      "openai_chat",
+      error,
+      session?.user?.id,
+      { provider: "openai" }
+    );
     const message =
       error instanceof Error && error.message.includes("API key")
         ? "MumBot could not reach OpenAI. Please check OPENAI_API_KEY in Vercel settings."
-        : "Internal server error";
+        : "Something went wrong. Please try again.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

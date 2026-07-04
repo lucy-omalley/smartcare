@@ -161,11 +161,39 @@ export default function TodayPage() {
     if (json.brief) {
       setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
     }
+    if (action === 'save-recipe') {
+      trackEvent('meal_saved', { title: json.brief?.recipe?.subtitle ?? data?.brief?.recipe?.subtitle });
+    }
+    if (action === 'save-story') {
+      trackEvent('story_saved', { title: json.brief?.bedtimeStory?.title ?? data?.brief?.bedtimeStory?.title });
+    }
+    if (action === 'save-activity') {
+      trackEvent('activity_completed', { title: json.brief?.play?.title ?? data?.brief?.play?.title });
+    }
     return json;
   };
 
+  useEffect(() => {
+    const brief = data?.brief;
+    if (!brief || !activeDetail) return;
+    if (activeDetail === 'meal') {
+      trackEvent('meal_viewed', { title: brief.recipe.subtitle });
+    }
+    if (activeDetail === 'story') {
+      trackEvent('story_started', { title: brief.bedtimeStory.title });
+    }
+    if (activeDetail === 'activity') {
+      trackEvent('activity_started', { title: brief.play.title });
+    }
+    if (activeDetail === 'language') {
+      const lang = brief.development.find((d) => /language|speech/i.test(d.domain)) ?? brief.development[0];
+      if (lang) trackEvent('language_activity_started', { domain: lang.domain });
+    }
+  }, [activeDetail, data?.brief]);
+
   const rotate = async (section: RotateSection) => {
     setRotating(section);
+    trackEvent('today_refresh_clicked', { section });
     const toastId = toast.loading('Finding another idea…');
     try {
       const res = await fetch('/api/today/rotate', {
@@ -178,17 +206,25 @@ export default function TodayPage() {
       if (json.brief) {
         setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
       }
+      if (section === 'recipe') {
+        trackEvent('meal_rotated', { title: json.brief?.recipe?.subtitle });
+        invalidateTodayRecipeIllustrationCache();
+        prefetchTodayRecipeIllustration().catch(() => {});
+        warmTodayRecipeIllustration().catch(() => {});
+      }
+      if (section === 'play') {
+        trackEvent('activity_rotated', { title: json.brief?.play?.title });
+      }
       if (section === 'story') {
+        trackEvent('story_rotated', { title: json.brief?.bedtimeStory?.title });
         invalidateTodayStoryAudioCache();
         invalidateTodayStoryIllustrationCache();
         prefetchTodayStoryAudio().catch(() => {});
         prefetchTodayStoryIllustration().catch(() => {});
         warmTodayStoryIllustration().catch(() => {});
       }
-      if (section === 'recipe') {
-        invalidateTodayRecipeIllustrationCache();
-        prefetchTodayRecipeIllustration().catch(() => {});
-        warmTodayRecipeIllustration().catch(() => {});
+      if (section === 'language') {
+        trackEvent('language_activity_started');
       }
       toast.success('Here\'s another idea!', { id: toastId });
     } catch {
@@ -228,7 +264,17 @@ export default function TodayPage() {
     trackEvent(tryAnother ? 'meal_from_fridge_retry' : 'meal_from_fridge');
   };
 
-  const closeDetail = () => setActiveDetail(null);
+  const closeDetail = () => {
+    const brief = data?.brief;
+    if (activeDetail === 'story' && brief) {
+      trackEvent('story_completed', { title: brief.bedtimeStory.title });
+    }
+    if (activeDetail === 'language' && brief) {
+      const lang = getLanguageItem(brief.development);
+      trackEvent('language_activity_completed', { domain: lang.domain });
+    }
+    setActiveDetail(null);
+  };
 
   if (status === 'loading' || loading) {
     return (
@@ -342,7 +388,7 @@ export default function TodayPage() {
                 preview={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 15)}
                 ctaLabel="View Meal"
                 onOpen={() => {
-                  trackEvent('meal_clicked');
+                  trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
                   setActiveDetail('meal');
                 }}
                 onRefresh={() => rotate('recipe')}
@@ -355,7 +401,7 @@ export default function TodayPage() {
                 preview={truncateWords(brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
                 ctaLabel="Start Activity"
                 onOpen={() => {
-                  trackEvent('activity_clicked');
+                  trackEvent('activity_card_opened', { title: brief.play.title });
                   setActiveDetail('activity');
                 }}
                 onRefresh={() => rotate('play')}
@@ -368,7 +414,7 @@ export default function TodayPage() {
                 preview={truncateWords(brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 15)}
                 ctaLabel="Read Story"
                 onOpen={() => {
-                  trackEvent('story_clicked');
+                  trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
                   setActiveDetail('story');
                 }}
                 onRefresh={() => rotate('story')}
@@ -381,7 +427,10 @@ export default function TodayPage() {
                   title={languageItem.domain}
                   preview={truncateWords(languageItem.tryToday || languageItem.insight, 15)}
                   ctaLabel="Try Words"
-                  onOpen={() => setActiveDetail('language')}
+                  onOpen={() => {
+                    trackEvent('language_card_opened', { domain: languageItem.domain });
+                    setActiveDetail('language');
+                  }}
                   onRefresh={() => rotate('language')}
                   refreshing={rotating === 'language'}
                 />

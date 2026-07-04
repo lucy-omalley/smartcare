@@ -23,7 +23,9 @@ export function BetaFeedbackButton() {
     try {
       // TODO: Persist feedback via Supabase, Formspree, or Resend in Vercel production
       await new Promise((r) => setTimeout(r, 400));
-      trackEvent("feedback_submitted", { rating, recommend });
+      trackEvent("feedback_submitted", { rating, has_recommend: Boolean(recommend.trim()) });
+      if (rating !== null && rating >= 4) trackEvent("mumbot_feedback_positive", { rating });
+      if (rating !== null && rating <= 2) trackEvent("mumbot_feedback_negative", { rating });
       toast.success("Thank you — your feedback helps us improve!");
       setOpen(false);
       setEnjoyed("");
@@ -65,6 +67,7 @@ export function BetaFeedbackButton() {
                   onChange={(e) => setEnjoyed(e.target.value)}
                   placeholder="What felt helpful or delightful..."
                   className="mt-1"
+                  data-ph-mask
                   rows={2}
                 />
               </div>
@@ -76,6 +79,7 @@ export function BetaFeedbackButton() {
                   onChange={(e) => setConfused(e.target.value)}
                   placeholder="Anything unclear..."
                   className="mt-1"
+                  data-ph-mask
                   rows={2}
                 />
               </div>
@@ -87,6 +91,7 @@ export function BetaFeedbackButton() {
                   onChange={(e) => setImprove(e.target.value)}
                   placeholder="One thing we could do better..."
                   className="mt-1"
+                  data-ph-mask
                   rows={2}
                 />
               </div>
@@ -98,6 +103,7 @@ export function BetaFeedbackButton() {
                   onChange={(e) => setRecommend(e.target.value)}
                   placeholder="Yes / Maybe / Not yet — and why..."
                   className="mt-1"
+                  data-ph-mask
                   rows={2}
                 />
               </div>

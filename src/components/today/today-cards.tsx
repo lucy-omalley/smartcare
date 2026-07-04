@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 interface TodayCompactCardProps {
   emoji: string;
@@ -97,7 +98,12 @@ export function TodayFocusCard({ type, title, tip, onAskMumbot }: TodayFocusCard
       <Button
         size="sm"
         className="rounded-full shrink-0 h-9 px-3 text-xs touch-target"
-        onClick={onAskMumbot}
+        onClick={() => {
+          if (/milestone|development/i.test(title)) {
+            trackEvent('milestone_card_opened', { title });
+          }
+          onAskMumbot();
+        }}
       >
         {type === 'goal' ? 'Ask MumBot' : 'Get help'}
       </Button>

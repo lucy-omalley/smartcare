@@ -152,7 +152,7 @@ function ConnectContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ broadArea, timeWindow, interest, childAgeRange, note, isOpen }),
     });
-    trackEvent('connect_status_created');
+    trackEvent(myStatus ? 'available_today_updated' : 'available_today_created');
     toast.success(isOpen ? 'You\'re open to connect today!' : 'Status saved as private');
     setShowStatusForm(false);
     loadAvailable();
@@ -161,6 +161,7 @@ function ConnectContent() {
 
   const clearStatus = async () => {
     await fetch('/api/connect/status', { method: 'DELETE' });
+    trackEvent('available_today_closed');
     setMyStatus(null);
     loadAvailable();
     loadMy();
@@ -173,6 +174,7 @@ function ConnectContent() {
       body: JSON.stringify({ statusId }),
     });
     toast.success('Interest sent!');
+    trackEvent('connection_interest_sent');
     loadRequests();
   };
 
@@ -205,9 +207,10 @@ function ConnectContent() {
     const res = await fetch(`/api/connect/events/${eventId}/join`, { method: 'POST' });
     const data = await res.json();
     if (data.pending) {
+      trackEvent('event_join_requested');
       toast.success('Join request sent');
     } else if (data.joined) {
-      trackEvent('event_joined');
+      trackEvent('event_join_approved');
       toast.success('You joined the event!');
     }
     loadEvents();
@@ -215,11 +218,19 @@ function ConnectContent() {
   };
 
   const handleRequest = async (id: string, action: 'accept' | 'decline') => {
+    const req = requests.find((r) => r.id === id);
     await fetch(`/api/connect/requests/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     });
+    if (action === 'accept') {
+      if (req?.requestType === 'EVENT_JOIN') trackEvent('event_join_approved');
+      else trackEvent('connection_request_accepted');
+    } else {
+      if (req?.requestType === 'EVENT_JOIN') trackEvent('event_join_declined');
+      else trackEvent('connection_request_declined');
+    }
     loadRequests();
     loadMy();
   };

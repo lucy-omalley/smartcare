@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { captureServerEvent } from '@/lib/analytics/posthog-server';
+import { persistAnalyticsEvent } from '@/lib/analytics/persist';
 
 export async function POST(req: Request) {
   try {
@@ -52,6 +54,11 @@ export async function POST(req: Request) {
         password: hashedPassword,
       },
     });
+
+    await Promise.allSettled([
+      persistAnalyticsEvent('signup_completed', user.id, { method: 'email' }),
+      captureServerEvent(user.id, 'signup_completed', { method: 'email' }),
+    ]);
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;

@@ -12,7 +12,7 @@ import { messagesAtom, type ChatMessage as ChatMessageType } from '@/lib/store/c
 import { generateWelcomeMessage } from '@/lib/mumbot-messages';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackClientError } from '@/lib/analytics';
 
 interface SuggestedMemory {
   content: string;
@@ -103,7 +103,11 @@ export function ChatInterface() {
       setIsLoading(true);
       setPendingMemory(null);
       setShowActions(false);
-      trackEvent('mumbot_question');
+      trackEvent('mumbot_question_asked');
+      const lower = content.toLowerCase();
+      if (/meal|recipe|food|dinner|lunch/.test(lower)) trackEvent('mumbot_recipe_generated');
+      if (/story|bedtime|tale/.test(lower)) trackEvent('mumbot_story_generated');
+      if (/activity|play|game/.test(lower)) trackEvent('mumbot_activity_generated');
 
       const userMessage: ChatMessageType = {
         id: Date.now().toString(),
@@ -156,6 +160,7 @@ export function ChatInterface() {
         setPendingMemory(data.suggestedMemory);
       }
     } catch (error) {
+      trackClientError('mumbot_chat', error instanceof Error ? error.message : 'Chat failed');
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         content: error instanceof Error ? error.message : 'I apologize, but I encountered an error. Please try again later.',
@@ -228,7 +233,10 @@ export function ChatInterface() {
                   size="sm"
                   variant="outline"
                   className="rounded-full text-xs h-8"
-                  onClick={() => handleSendMessage(rest.prompt)}
+                  onClick={() => {
+                    trackEvent('mumbot_followup_clicked', { action: id });
+                    void handleSendMessage(rest.prompt);
+                  }}
                 >
                   <Icon className="h-3.5 w-3.5 mr-1" /> {label}
                 </Button>

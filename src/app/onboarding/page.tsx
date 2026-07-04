@@ -39,6 +39,12 @@ export default function OnboardingPage() {
   const [location, setLocation] = useState('');
 
   useEffect(() => {
+    if (status === 'authenticated' && !localStorage.getItem('parenfy_onboarding_start')) {
+      localStorage.setItem('parenfy_onboarding_start', String(Date.now()));
+    }
+  }, [status]);
+
+  useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/onboarding')
         .then((r) => r.json())
@@ -101,10 +107,15 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     await saveProgress(true);
-    trackEvent('signup_completed');
-    if (childNickname || childAge) trackEvent('child_profile_created');
-    if (parentingGoals.length) trackEvent('parenting_goals_selected');
-    if (currentChallenges.length) trackEvent('current_challenges_selected');
+    const startRaw = localStorage.getItem("parenfy_onboarding_start");
+    const durationSeconds = startRaw
+      ? Math.round((Date.now() - parseInt(startRaw, 10)) / 1000)
+      : undefined;
+    trackEvent("onboarding_completed", durationSeconds ? { duration_seconds: durationSeconds } : undefined);
+    if (childAge) trackEvent('child_profile_created');
+    if (parentingGoals.length) trackEvent('parenting_goals_selected', { count: parentingGoals.length });
+    if (currentChallenges.length) trackEvent('current_challenges_selected', { count: currentChallenges.length });
+    if (broadArea || location) trackEvent('connect_area_selected');
     router.push('/today');
   };
 
@@ -260,7 +271,7 @@ export default function OnboardingPage() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('challenges')}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button variant="ghost" className="rounded-xl" onClick={() => setStep('ready')}>Skip</Button>
+                <Button variant="ghost" className="rounded-xl" onClick={() => { trackEvent('onboarding_skipped', { step: 'area' }); setStep('ready'); }}>Skip</Button>
                 <Button className="flex-1 rounded-xl" onClick={() => setStep('ready')} disabled={!broadArea.trim()}>
                   Continue
                 </Button>
