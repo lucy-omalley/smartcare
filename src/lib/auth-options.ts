@@ -1,74 +1,60 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { captureServerEvent } from "@/lib/analytics/posthog-server";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
+import { buildAuthProviders } from "@/lib/auth-providers";
+
+async function resolveUserIdFromToken(token: {
+  id?: string;
+  sub?: string;
+  email?: string | null;
+}): Promise<string | undefined> {
+  if (token.id) return token.id;
+  if (token.sub) return token.sub;
+
+  const email = token.email?.trim().toLowerCase();
+  if (!email) return undefined;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  return user?.id;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   secret: process.env.NEXTAUTH_SECRET,
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
-    CredentialsProvider({
-      name: "Email",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing credentials");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user?.password) {
-          throw new Error("No user found");
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password);
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
-      },
-    }),
-  ],
+  providers: buildAuthProviders(),
   pages: {
     signIn: "/auth/signin",
-    signOut: "/auth/signout",
     error: "/auth/error",
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
   },
   events: {
-    async signIn({ user, account }) {
-      if (!user.id) return;
+    async signIn({ user, account, isNewUser }) {
+      const userId = user.id;
+      if (!userId) return;
+
       const method = account?.provider ?? "credentials";
-      await Promise.allSettled([
-        persistAnalyticsEvent("login", user.id, { method }),
-        captureServerEvent(user.id, "login", { method }),
-      ]);
+      const tasks: Promise<unknown>[] = [
+        persistAnalyticsEvent("login", userId, { method }),
+        captureServerEvent(userId, "login", { method }),
+      ];
+
+      if (isNewUser && method !== "credentials") {
+        tasks.push(
+          persistAnalyticsEvent("signup_completed", userId, { method }),
+          captureServerEvent(userId, "signup_completed", { method })
+        );
+      }
+
+      await Promise.allSettled(tasks);
     },
     async signOut({ token }) {
       const userId = token?.id as string | undefined;
@@ -80,17 +66,66 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async signIn({ user, account }) {
+      if (!account || account.provider === "credentials") {
+        return true;
       }
+
+      const email = user.email?.trim().toLowerCase();
+      if (!email) {
+        return "/auth/error?error=OAuthSignin";
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, image: true, name: true },
+      });
+
+      if (!existingUser) {
+        return true;
+      }
+
+      user.id = existingUser.id;
+
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          image: existingUser.image ?? user.image ?? undefined,
+          name: existingUser.name || user.name || email.split("@")[0],
+        },
+      });
+
+      return true;
+    },
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+        token.email = user.email ?? token.email;
+        token.name = user.name ?? token.name;
+        token.picture = user.image ?? token.picture;
+        return token;
+      }
+
+      const resolvedId = await resolveUserIdFromToken(token);
+      if (resolvedId) {
+        token.id = resolvedId;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = (token.id as string) ?? "";
+        session.user.email = token.email ?? session.user.email;
+        session.user.name = token.name ?? session.user.name;
+        session.user.image = (token.picture as string | undefined) ?? session.user.image;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return `${baseUrl}/today`;
     },
   },
   debug: process.env.NODE_ENV === "development",
