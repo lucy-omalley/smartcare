@@ -35,8 +35,12 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [providers, setProviders] = useState<AuthProviders>({ google: false, github: false });
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setSuccessMessage('Your password was updated. Please sign in with your new password.');
+    }
     const oauthError = searchParams.get('error');
     if (oauthError) {
       setError(OAUTH_ERROR_MESSAGES[oauthError] ?? 'Sign-in failed. Please try again.');
@@ -145,6 +149,11 @@ export default function SignIn() {
                 disabled={isLoading || oauthLoading !== null}
               />
             </div>
+            {successMessage && (
+              <div className="text-sm text-green-600 dark:text-green-400">
+                {successMessage}
+              </div>
+            )}
             {error && (
               <div className="text-sm text-red-500">
                 {error}
