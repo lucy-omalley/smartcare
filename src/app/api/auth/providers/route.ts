@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   isGitHubOAuthConfigured,
   isGoogleOAuthConfigured,
@@ -6,9 +6,26 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function resolveAuthBaseUrl(request: NextRequest): string {
+  const configured = process.env.NEXTAUTH_URL?.trim().replace(/\/$/, "");
+  if (configured) return configured;
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) return `https://${vercelUrl.replace(/\/$/, "")}`;
+
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (host) {
+    const protocol = request.headers.get("x-forwarded-proto") ?? "https";
+    return `${protocol}://${host}`.replace(/\/$/, "");
+  }
+
+  return "http://localhost:3000";
+}
+
+export async function GET(request: NextRequest) {
   const googleConfigured = isGoogleOAuthConfigured();
   const githubConfigured = isGitHubOAuthConfigured();
+  const baseUrl = resolveAuthBaseUrl(request);
 
   const googleEnvPresent = Boolean(
     process.env.GOOGLE_CLIENT_ID?.trim() &&
@@ -24,5 +41,10 @@ export async function GET() {
     misconfigured:
       (googleEnvPresent && !googleConfigured) ||
       (githubEnvPresent && !githubConfigured),
+    baseUrl,
+    redirectUris: {
+      google: `${baseUrl}/api/auth/callback/google`,
+      github: `${baseUrl}/api/auth/callback/github`,
+    },
   });
 }

@@ -404,16 +404,28 @@ Third-party login requires **real OAuth credentials** in Vercel — not the plac
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
 2. Create an **OAuth client ID** of type **Web application**
-3. Under **Authorized redirect URIs**, add:
-   - Production: `https://smartcare-iota.vercel.app/api/auth/callback/google`
-   - Local dev: `http://localhost:3000/api/auth/callback/google`
-4. Copy the **Client ID** (ends with `.apps.googleusercontent.com`) and **Client secret**
-5. In **Vercel → Project → Settings → Environment Variables**, set:
+3. Under **Authorized redirect URIs** (not JavaScript origins), add **exactly**:
+   ```
+   https://smartcare-iota.vercel.app/api/auth/callback/google
+   ```
+   Common mistakes that cause `redirect_uri_mismatch`:
+   - Using `/auth/callback/google` instead of `/api/auth/callback/google`
+   - Adding `http://` instead of `https://`
+   - Trailing slash at the end
+   - Adding the URI to the wrong OAuth client in Google Cloud
+4. Under **Authorized JavaScript origins** (optional but recommended), add:
+   ```
+   https://smartcare-iota.vercel.app
+   ```
+5. Copy the **Client ID** (ends with `.apps.googleusercontent.com`) and **Client secret**
+6. In **Vercel → Project → Settings → Environment Variables**, set:
    - `GOOGLE_CLIENT_ID` = your real client ID
    - `GOOGLE_CLIENT_SECRET` = your real client secret
-   - `NEXTAUTH_URL` = `https://smartcare-iota.vercel.app`
+   - `NEXTAUTH_URL` = `https://smartcare-iota.vercel.app` (no trailing slash)
    - `NEXTAUTH_SECRET` = a long random string
-6. **Redeploy** the app after saving env vars
+7. **Redeploy** the app after saving env vars
+
+For local dev, also add `http://localhost:3000/api/auth/callback/google` to Google redirect URIs.
 
 ## 2. GitHub (optional)
 
@@ -423,5 +435,5 @@ Third-party login requires **real OAuth credentials** in Vercel — not the plac
 
 ## Verify
 
-After deploy, visit `/api/auth/providers` — it should return `{"google":true,...}` only when credentials are valid. If you see `misconfigured: true`, the env vars are still placeholders or malformed.
+After deploy, visit `/api/auth/providers` — it returns the exact `redirectUris.google` value to paste into Google Cloud Console.
 
