@@ -38,8 +38,9 @@ export default withAuth(
     return response;
   },
   {
+    secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token }) => Boolean(token?.sub || token?.id),
     },
   }
 );

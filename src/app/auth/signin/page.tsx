@@ -22,6 +22,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthSignin: 'Could not start third-party sign-in. The provider may not be configured yet.',
   Configuration: 'Sign-in is not configured correctly on the server.',
   AccessDenied: 'Sign-in was cancelled.',
+  CredentialsSignin: 'Invalid email or password. Please try again.',
 };
 
 type AuthProviders = {
@@ -89,17 +90,22 @@ export default function SignIn() {
       const result = await signIn('credentials', {
         email: email.trim().toLowerCase(),
         password,
+        callbackUrl: postAuthPath,
         redirect: false,
       });
 
-      if (result?.error) {
-        trackClientError('auth_login', 'Failed login');
+      if (result?.error || !result?.ok) {
+        trackClientError('auth_login', result?.error ?? 'Failed login');
         setError('Invalid email or password. Please try again.');
         return;
       }
 
       trackEvent('login_completed', { method: 'email' });
-      window.location.assign(postAuthPath);
+      const rawDestination = result.url ?? postAuthPath;
+      const safePath = resolveSafePostAuthUrl(
+        rawDestination.startsWith('http') ? new URL(rawDestination).pathname : rawDestination
+      );
+      window.location.href = `${window.location.origin}${safePath.startsWith('/') ? safePath : `/${safePath}`}`;
     } catch {
       trackClientError('auth_login', 'Sign in error');
       setError('An error occurred during sign in');

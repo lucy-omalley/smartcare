@@ -98,8 +98,9 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user?.id) {
+        token.sub = user.id;
         token.id = user.id;
         token.email = user.email ?? token.email;
         token.name = user.name ?? token.name;
@@ -107,8 +108,14 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
 
+      if (account?.provider === "credentials" && token.sub) {
+        token.id = token.sub;
+        return token;
+      }
+
       const resolvedId = await resolveUserIdFromToken(token);
       if (resolvedId) {
+        token.sub = token.sub ?? resolvedId;
         token.id = resolvedId;
       }
 
