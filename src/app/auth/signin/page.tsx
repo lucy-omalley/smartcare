@@ -28,6 +28,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 type AuthProviders = {
   google: boolean;
   github: boolean;
+  authConfigured?: boolean;
 };
 
 export default function SignIn() {
@@ -39,7 +40,11 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [providers, setProviders] = useState<AuthProviders>({ google: false, github: false });
+  const [providers, setProviders] = useState<AuthProviders>({
+    google: false,
+    github: false,
+    authConfigured: true,
+  });
   const [successMessage, setSuccessMessage] = useState('');
 
   const postAuthPath = resolveSafePostAuthUrl(searchParams.get('callbackUrl'));
@@ -73,7 +78,7 @@ export default function SignIn() {
         if (!cancelled) setProviders(data);
       })
       .catch(() => {
-        if (!cancelled) setProviders({ google: false, github: false });
+        if (!cancelled) setProviders({ google: false, github: false, authConfigured: false });
       });
 
     return () => {
@@ -86,25 +91,34 @@ export default function SignIn() {
     setIsLoading(true);
     setError('');
 
+    if (providers.authConfigured === false) {
+      setError('Sign-in is not configured on the server. NEXTAUTH_SECRET must be set in Vercel.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const result = await signIn('credentials', {
-        email: email.trim().toLowerCase(),
-        password,
-        callbackUrl: postAuthPath,
-        redirect: false,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          callbackUrl: postAuthPath,
+        }),
       });
 
-      if (result?.error || !result?.ok) {
-        trackClientError('auth_login', result?.error ?? 'Failed login');
-        setError('Invalid email or password. Please try again.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        trackClientError('auth_login', data.error ?? 'Failed login');
+        setError(data.error ?? 'Invalid email or password. Please try again.');
         return;
       }
 
       trackEvent('login_completed', { method: 'email' });
-      const rawDestination = result.url ?? postAuthPath;
-      const safePath = resolveSafePostAuthUrl(
-        rawDestination.startsWith('http') ? new URL(rawDestination).pathname : rawDestination
-      );
+      const safePath = resolveSafePostAuthUrl(data.redirect ?? postAuthPath);
       window.location.href = `${window.location.origin}${safePath.startsWith('/') ? safePath : `/${safePath}`}`;
     } catch {
       trackClientError('auth_login', 'Sign in error');
