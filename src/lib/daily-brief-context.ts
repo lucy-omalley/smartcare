@@ -4,15 +4,28 @@ export interface BriefProfile {
   name?: string | null;
   childNickname?: string | null;
   childAge?: string | null;
+  childBirthday?: string | null;
+  childGender?: string | null;
   childInterests?: string[];
+  favouriteToys?: string[];
+  favouriteThemes?: string[];
+  favouriteBooks?: string[];
+  favouriteFoods?: string[];
+  foodDislikes?: string[];
+  sleepRoutine?: string | null;
+  schoolNursery?: string | null;
+  personality?: string | null;
+  homeLanguage?: string | null;
   foodPreferences?: string[];
   routineNotes?: string | null;
   developmentNotes?: string | null;
   parentingGoal?: string | null;
   parentingGoals?: string[];
+  priorityGoal?: string | null;
   currentChallenges?: string[];
   location?: string | null;
   broadArea?: string | null;
+  weeklyFocusTitle?: string | null;
 }
 
 export interface BriefMemory {
@@ -20,6 +33,7 @@ export interface BriefMemory {
   category: MemoryCategory;
 }
 
+/** @deprecated Use buildWeightedRecommendationContext from today-recommendation-engine */
 export function buildDailyBriefContext(
   profile: BriefProfile,
   memories: BriefMemory[],
@@ -40,6 +54,7 @@ export function buildDailyBriefContext(
   } else if (profile.parentingGoal) {
     parts.push(`Current parenting goal: ${profile.parentingGoal}`);
   }
+  if (profile.priorityGoal) parts.push(`Priority goal: ${profile.priorityGoal}`);
   if (profile.currentChallenges?.length) {
     parts.push(`Current challenges: ${profile.currentChallenges.join(", ")}`);
   }

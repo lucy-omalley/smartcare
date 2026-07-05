@@ -69,10 +69,23 @@ model User {
   childNickname      String?
   childAge           String?
   childBirthday      String?
+  childGender        String?
   childInterests     String[] @default([])
+  favouriteToys      String[] @default([])
+  favouriteThemes    String[] @default([])
+  favouriteBooks     String[] @default([])
+  favouriteFoods     String[] @default([])
+  foodDislikes       String[] @default([])
+  sleepRoutine       String?
+  schoolNursery      String?
+  personality        String?
+  homeLanguage       String?
   foodPreferences    String[] @default([])
   routineNotes       String?
   developmentNotes   String?
+  weeklyFocusTitle   String?
+  weeklyFocusReason  String?
+  weeklyFocusWeekStart DateTime? @db.Date
   parentingGoal      String?
   parentingGoals     String[] @default([])
   priorityGoal       String?

@@ -786,12 +786,12 @@ export function StoryDetailFooter() {
 }
 
 export function LanguageDetailView({
-  item,
+  language,
   childAgeDisplay,
   onBack,
   part = 'content',
 }: {
-  item: DailyBriefDevelopment;
+  language: import('@/types/daily-brief').DailyBriefLanguageSection;
   childAgeDisplay?: string;
   onBack: () => void;
   part?: DetailPart;
@@ -808,32 +808,31 @@ export function LanguageDetailView({
     <div className="space-y-4 text-sm pb-2">
       <div>
         <h3 className="text-lg font-bold flex items-center gap-2">
-          <span>{item.icon ?? '💬'}</span>
-          {item.domain}
+          <span>{language.icon ?? '💬'}</span>
+          {language.domain ?? 'Language & Speech'}
         </h3>
         {childAgeDisplay && (
           <p className="text-xs text-muted-foreground mt-1">For {childAgeDisplay}</p>
         )}
+        {language.reason && (
+          <p className="text-xs text-muted-foreground mt-2">{language.reason}</p>
+        )}
       </div>
       <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Target words &amp; phrases</p>
-        <p className="leading-relaxed">{item.tryToday}</p>
+        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Words to try</p>
+        <p className="leading-relaxed">{language.words.join(', ')}</p>
       </div>
       <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">How to practice</p>
-        <p className="text-muted-foreground leading-relaxed">{item.tryToday}</p>
+        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Conversation starters</p>
+        <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+          {language.conversationStarters.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       </div>
       <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Example game</p>
-        <p className="text-muted-foreground">Repeat words during everyday moments — bath time, meals, or play.</p>
-      </div>
-      <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Skill supported</p>
-        <p className="text-muted-foreground">{item.domain} development</p>
-      </div>
-      <div className="bg-sky-50 rounded-xl p-3 text-sky-900">
-        <p className="text-xs font-medium mb-1">Parent tip</p>
-        <p className="text-sm leading-relaxed">{item.insight}</p>
+        <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Mini game</p>
+        <p className="text-muted-foreground leading-relaxed">{language.miniGame}</p>
       </div>
     </div>
   );
