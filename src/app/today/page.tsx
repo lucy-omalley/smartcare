@@ -358,7 +358,7 @@ export default function TodayPage() {
         {!hasChildProfile && (
           <div className="visual-card p-3.5 flex items-center gap-3">
             <UserPlus className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm flex-1">Add a child profile for age-based ideas.</p>
+            <p className="text-sm flex-1">Create a child profile to personalise your Today Plan.</p>
             <Link href="/profile?edit=child">
               <Button size="sm" className="rounded-full">Add</Button>
             </Link>
@@ -389,6 +389,7 @@ export default function TodayPage() {
                 ctaLabel="View Meal"
                 onOpen={() => {
                   trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
+                  trackEvent('meal_opened', { title: brief.recipe.subtitle });
                   setActiveDetail('meal');
                 }}
                 onRefresh={() => rotate('recipe')}
@@ -402,6 +403,7 @@ export default function TodayPage() {
                 ctaLabel="Start Activity"
                 onOpen={() => {
                   trackEvent('activity_card_opened', { title: brief.play.title });
+                  trackEvent('activity_opened', { title: brief.play.title });
                   setActiveDetail('activity');
                 }}
                 onRefresh={() => rotate('play')}
@@ -415,6 +417,7 @@ export default function TodayPage() {
                 ctaLabel="Read Story"
                 onOpen={() => {
                   trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
+                  trackEvent('story_opened', { title: brief.bedtimeStory.title });
                   setActiveDetail('story');
                 }}
                 onRefresh={() => rotate('story')}

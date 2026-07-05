@@ -4,9 +4,12 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { getMumBotResponse } from "@/lib/services/mumbot";
 import { trackServerError } from "@/lib/analytics/server-errors";
+import { checkMumBotRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const MUMBOT_BREAK_MESSAGE = "MumBot is taking a short break. Please try again in a moment.";
 
 type IncomingMessage = { content: string; isUser: boolean; id?: string };
 
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
 
     if (!process.env.OPENAI_API_KEY?.trim()) {
       return NextResponse.json(
-        { error: "MumBot is not configured. Please set OPENAI_API_KEY in Vercel environment variables." },
+        { error: MUMBOT_BREAK_MESSAGE },
         { status: 503 }
       );
     }
@@ -42,6 +45,11 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
+
+    const rateLimit = await checkMumBotRateLimit(userId);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: MUMBOT_BREAK_MESSAGE }, { status: 429 });
+    }
 
     const [user, memories] = await Promise.all([
       prisma.user.findUnique({
@@ -125,8 +133,8 @@ export async function POST(request: Request) {
     );
     const message =
       error instanceof Error && error.message.includes("API key")
-        ? "MumBot could not reach OpenAI. Please check OPENAI_API_KEY in Vercel settings."
-        : "Something went wrong. Please try again.";
+        ? MUMBOT_BREAK_MESSAGE
+        : MUMBOT_BREAK_MESSAGE;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

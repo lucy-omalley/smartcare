@@ -118,6 +118,7 @@ export function trackClientError(
   metadata?: Record<string, unknown>
 ): void {
   trackEvent("app_error", { source, error_message: message.slice(0, 200), ...metadata });
+  trackEvent("error_occurred", { source, error_message: message.slice(0, 200), ...metadata });
   if (typeof window === "undefined") return;
   const body = JSON.stringify({
     source,

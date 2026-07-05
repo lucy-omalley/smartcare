@@ -18,6 +18,7 @@ export default function Register() {
     event.preventDefault();
     setIsLoading(true);
     setError('');
+    trackEvent('signup_started');
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
@@ -49,9 +50,9 @@ export default function Register() {
     <div className="container flex items-center justify-center min-h-screen py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Join the Public Beta</CardTitle>
           <CardDescription className="text-center">
-            Enter your details to create your Parenfy account
+            Create your Parenfy account. Parenfy is still improving — your feedback helps shape the product.
           </CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>
@@ -94,13 +95,13 @@ export default function Register() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col gap-3">
             <Button
               type="submit"
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? 'Creating account...' : 'Join the Public Beta'}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
               Already have an account?{' '}
@@ -108,6 +109,11 @@ export default function Register() {
                 Sign in
               </Link>
             </div>
+            <p className="text-xs text-center text-muted-foreground">
+              By creating an account you agree to our{' '}
+              <Link href="/terms" className="underline">Terms</Link> and{' '}
+              <Link href="/privacy" className="underline">Privacy Policy</Link>.
+            </p>
           </CardFooter>
         </form>
       </Card>

@@ -258,7 +258,8 @@ function ConnectContent() {
           <CardContent className="p-3 space-y-1 text-xs text-muted-foreground">
             <p className="flex items-start gap-2"><Shield className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />{PRIVACY_COPY.broadAvailability}</p>
             <p>{PRIVACY_COPY.exactMeetup}</p>
-            <p>{PRIVACY_COPY.noHomeAddress}</p>
+            <p>{PRIVACY_COPY.connectDisclaimer}</p>
+            <p className="text-muted-foreground/80">{PRIVACY_COPY.moderation}</p>
           </CardContent>
         </Card>
 
@@ -343,8 +344,11 @@ function ConnectContent() {
 
             {statuses.length === 0 ? (
               <Card className="rounded-2xl">
-                <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                  No parents available today yet. Set your status to get started!
+                <CardContent className="p-8 text-center text-muted-foreground text-sm space-y-3">
+                  <p>No parents are open to connect yet. You can set your availability for today.</p>
+                  <Button size="sm" className="rounded-xl" onClick={() => setShowStatusForm(true)}>
+                    Set my availability
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -356,9 +360,17 @@ function ConnectContent() {
                       {s.broadArea} · {s.timeWindow} · {s.interest} · {s.childAgeRange} · Open to connect
                     </p>
                     {s.note && <p className="text-xs italic mb-3">&ldquo;{s.note}&rdquo;</p>}
-                    <Button size="sm" className="rounded-xl" onClick={() => sendInterest(s.id)}>
-                      <Heart className="h-3.5 w-3.5 mr-1" /> I&apos;m interested
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" className="rounded-xl" onClick={() => sendInterest(s.id)}>
+                        <Heart className="h-3.5 w-3.5 mr-1" /> I&apos;m interested
+                      </Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl text-xs text-muted-foreground" disabled title="Coming soon">
+                        Report
+                      </Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl text-xs text-muted-foreground" disabled title="Coming soon">
+                        Block
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))

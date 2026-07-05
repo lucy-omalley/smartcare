@@ -456,3 +456,22 @@ model AnalyticsError {
   @@index([createdAt])
   @@index([source])
 }
+
+model BetaFeedback {
+  id          String   @id @default(cuid())
+  userId      String?
+  enjoyed     String?  @db.Text
+  confused    String?  @db.Text
+  improve     String?  @db.Text
+  recommend   String?  @db.Text
+  rating      Int?
+  page        String?
+  deviceType  String?
+  appVersion  String?
+  signedIn    Boolean  @default(false)
+  daysSinceSignup Int?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}

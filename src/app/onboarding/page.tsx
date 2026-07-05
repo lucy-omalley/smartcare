@@ -41,6 +41,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (status === 'authenticated' && !localStorage.getItem('parenfy_onboarding_start')) {
       localStorage.setItem('parenfy_onboarding_start', String(Date.now()));
+      trackEvent('onboarding_started');
     }
   }, [status]);
 

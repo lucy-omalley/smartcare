@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github } from 'lucide-react';
 import Link from 'next/link';
-import { trackClientError } from '@/lib/analytics';
+import { trackClientError, trackEvent } from '@/lib/analytics';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked:
@@ -78,6 +78,7 @@ export default function SignIn() {
         return;
       }
 
+      trackEvent('login_completed', { method: 'email' });
       router.push('/today');
       router.refresh();
     } catch {
@@ -111,7 +112,7 @@ export default function SignIn() {
           <CardDescription className="text-center">
             {searchParams.get('registered')
               ? 'Your account has been created. Please sign in.'
-              : 'Sign in to your Parenfy account'}
+              : 'Sign in to your Parenfy Public Beta account'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -129,7 +130,12 @@ export default function SignIn() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -204,17 +210,33 @@ export default function SignIn() {
                     {oauthLoading === 'github' ? 'Redirecting to GitHub...' : 'Continue with GitHub'}
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  className="w-full opacity-60"
+                  disabled
+                  title="Coming soon"
+                >
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.96-3.24-1.44-1.56-.62-2.46-1.02-2.46-2.02 0-1.02.82-1.67 2.04-1.67.58 0 1.08.19 1.49.57.28.26.52.59.72.98l1.08-.45c-.24-.56-.58-1.04-1.02-1.42-.66-.58-1.52-.88-2.47-.88-1.98 0-3.32 1.22-3.32 2.92 0 1.78 1.38 2.38 3.02 3.02 1.18.47 2.28.92 3.01 1.67.74.76 1.1 1.71 1.1 2.83 0 2.18-1.65 3.58-4.16 3.58-1.38 0-2.52-.42-3.45-1.18-.64-.52-1.16-1.2-1.52-2.01l1.12-.46c.28.74.68 1.34 1.22 1.78.72.58 1.62.88 2.63.88 1.72 0 2.82-1.02 2.82-2.38 0-1.28-.98-1.88-2.58-2.48zM12.03 3.5c-3.58 0-6.5 2.85-6.5 6.37 0 4.04 3.28 6.37 6.5 6.37s6.5-2.33 6.5-6.37c0-3.52-2.92-6.37-6.5-6.37z" />
+                  </svg>
+                  Apple Sign In (Coming Soon)
+                </Button>
               </div>
             </>
           )}
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-3">
           <div className="text-sm text-center text-muted-foreground w-full">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" className="text-primary hover:underline">
               Register
             </Link>
           </div>
+          <p className="text-xs text-center text-muted-foreground">
+            By signing in you agree to our{' '}
+            <Link href="/terms" className="underline">Terms</Link> and{' '}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
         </CardFooter>
       </Card>
     </div>

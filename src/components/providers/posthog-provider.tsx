@@ -73,6 +73,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     }
     if (base === "/connect") {
       trackEvent("connect_page_opened");
+      trackEvent("connect_opened");
     }
   }, [pathname]);
 

@@ -1,11 +1,17 @@
 /** PostHog product analytics event names — keep in sync with founder dashboard queries. */
 export type AnalyticsEvent =
+  // Landing & beta
+  | "landing_page_viewed"
+  | "beta_cta_clicked"
   // Authentication
+  | "signup_started"
   | "signup_completed"
   | "login"
+  | "login_completed"
   | "logout"
   | "account_deleted"
   // Onboarding
+  | "onboarding_started"
   | "child_profile_created"
   | "child_profile_updated"
   | "parenting_goals_selected"
@@ -16,8 +22,11 @@ export type AnalyticsEvent =
   // Today dashboard
   | "today_dashboard_viewed"
   | "meal_card_opened"
+  | "meal_opened"
   | "story_card_opened"
+  | "story_opened"
   | "activity_card_opened"
+  | "activity_opened"
   | "language_card_opened"
   | "milestone_card_opened"
   | "today_refresh_clicked"
@@ -61,6 +70,7 @@ export type AnalyticsEvent =
   | "connection_request_accepted"
   | "connection_request_declined"
   | "connect_page_opened"
+  | "connect_opened"
   // Parent check-in
   | "parent_checkin_started"
   | "parent_checkin_completed"
@@ -75,6 +85,7 @@ export type AnalyticsEvent =
   | "feature_used"
   // Feedback & errors
   | "feedback_submitted"
+  | "error_occurred"
   | "app_error";
 
 export type FeatureName =

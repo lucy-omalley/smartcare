@@ -211,9 +211,10 @@ export const ACTIVITY_CATEGORIES = {
 } as const;
 
 export const PRIVACY_COPY = {
-  broadAvailability: "Parenfy only shares broad availability.",
-  exactMeetup: "Exact meetup details are only shared if you choose.",
-  noHomeAddress: "Block · Report · Moderation · Verified Parent (coming soon)",
+  broadAvailability: "Only broad area, time window, activity type, and general child age range are shown publicly.",
+  exactMeetup: "Only share exact meetup details when you feel comfortable.",
+  connectDisclaimer: "Exact addresses and live location are never shown publicly in Connect.",
+  moderation: "Report user · Block user · Moderation review (coming soon)",
 } as const;
 
 export function weatherIconUrl(icon: string): string {

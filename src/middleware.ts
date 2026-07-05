@@ -15,7 +15,7 @@ export default withAuth(
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https: blob:",
         "font-src 'self'",
-        "connect-src 'self' https://*.vercel-insights.com",
+        "connect-src 'self' https://*.vercel-insights.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com",
         "frame-ancestors 'none'",
         "form-action 'self'",
         "base-uri 'self'",
