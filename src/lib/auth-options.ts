@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { captureServerEvent } from "@/lib/analytics/posthog-server";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 import { buildAuthProviders } from "@/lib/auth-providers";
+import { resolveSafePostAuthUrl } from "@/lib/auth/callback-url";
 
 async function resolveUserIdFromToken(token: {
   id?: string;
@@ -123,9 +124,19 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/today`;
+      const safePath = resolveSafePostAuthUrl(url, baseUrl);
+      if (safePath.startsWith("/")) {
+        return `${baseUrl.replace(/\/$/, "")}${safePath}`;
+      }
+      try {
+        const parsed = new URL(safePath);
+        if (parsed.origin === new URL(baseUrl).origin) {
+          return safePath;
+        }
+      } catch {
+        /* fall through */
+      }
+      return `${baseUrl.replace(/\/$/, "")}/today`;
     },
   },
   debug: process.env.NODE_ENV === "development",

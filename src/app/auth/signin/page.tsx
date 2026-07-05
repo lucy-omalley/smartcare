@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { trackClientError, trackEvent } from '@/lib/analytics';
+import { resolveSafePostAuthUrl } from '@/lib/auth/callback-url';
+
+const RESET_SUCCESS_KEY = 'parenfy_password_reset_success';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked:
@@ -29,6 +32,7 @@ type AuthProviders = {
 export default function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
   const [error, setError] = useState('');
@@ -37,15 +41,27 @@ export default function SignIn() {
   const [providers, setProviders] = useState<AuthProviders>({ google: false, github: false });
   const [successMessage, setSuccessMessage] = useState('');
 
+  const postAuthPath = resolveSafePostAuthUrl(searchParams.get('callbackUrl'));
+
   useEffect(() => {
-    if (searchParams.get('reset') === 'success') {
+    if (typeof window !== 'undefined' && sessionStorage.getItem(RESET_SUCCESS_KEY) === '1') {
+      sessionStorage.removeItem(RESET_SUCCESS_KEY);
       setSuccessMessage('Your password was updated. Please sign in with your new password.');
+    } else if (searchParams.get('reset') === 'success') {
+      setSuccessMessage('Your password was updated. Please sign in with your new password.');
+      router.replace('/auth/signin', { scroll: false });
     }
+
     const oauthError = searchParams.get('error');
     if (oauthError) {
       setError(OAUTH_ERROR_MESSAGES[oauthError] ?? 'Sign-in failed. Please try again.');
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    window.location.assign(postAuthPath);
+  }, [status, postAuthPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,8 +99,7 @@ export default function SignIn() {
       }
 
       trackEvent('login_completed', { method: 'email' });
-      router.push('/today');
-      router.refresh();
+      window.location.assign(postAuthPath);
     } catch {
       trackClientError('auth_login', 'Sign in error');
       setError('An error occurred during sign in');
@@ -98,7 +113,7 @@ export default function SignIn() {
     setError('');
 
     try {
-      await signIn(provider, { callbackUrl: '/today' });
+      await signIn(provider, { callbackUrl: postAuthPath });
     } catch {
       trackClientError('auth_login', `${provider} sign in error`);
       setError(`Could not sign in with ${provider === 'google' ? 'Google' : 'GitHub'}.`);

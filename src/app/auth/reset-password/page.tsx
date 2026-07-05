@@ -71,9 +71,12 @@ function ResetPasswordForm() {
       }
 
       setSuccess(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('parenfy_password_reset_success', '1');
+      }
       setTimeout(() => {
-        router.push('/auth/signin?reset=success');
-      }, 2000);
+        router.replace('/auth/signin');
+      }, 1500);
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
