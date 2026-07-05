@@ -393,3 +393,47 @@ Every time a parent opens SmartCare they should feel:
 Design for emotion first.
 
 Technology second.
+
+---
+
+# Google & GitHub Sign-In Setup
+
+Third-party login requires **real OAuth credentials** in Vercel — not the placeholder values from `.env.example` (e.g. `your-google-client-id`).
+
+## 1. Google (Gmail)
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
+2. Create an **OAuth client ID** of type **Web application**
+3. Under **Authorized redirect URIs** (not JavaScript origins), add **exactly**:
+   ```
+   https://smartcare-iota.vercel.app/api/auth/callback/google
+   ```
+   Common mistakes that cause `redirect_uri_mismatch`:
+   - Using `/auth/callback/google` instead of `/api/auth/callback/google`
+   - Adding `http://` instead of `https://`
+   - Trailing slash at the end
+   - Adding the URI to the wrong OAuth client in Google Cloud
+4. Under **Authorized JavaScript origins** (optional but recommended), add:
+   ```
+   https://smartcare-iota.vercel.app
+   ```
+5. Copy the **Client ID** (ends with `.apps.googleusercontent.com`) and **Client secret**
+6. In **Vercel → Project → Settings → Environment Variables**, set:
+   - `GOOGLE_CLIENT_ID` = your real client ID
+   - `GOOGLE_CLIENT_SECRET` = your real client secret
+   - `NEXTAUTH_URL` = `https://smartcare-iota.vercel.app` (no trailing slash)
+   - `NEXTAUTH_SECRET` = a long random string
+7. **Redeploy** the app after saving env vars
+
+For local dev, also add `http://localhost:3000/api/auth/callback/google` to Google redirect URIs.
+
+## 2. GitHub (optional)
+
+1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**
+2. **Authorization callback URL**: `https://smartcare-iota.vercel.app/api/auth/callback/github`
+3. Set `GITHUB_ID` and `GITHUB_SECRET` in Vercel, then redeploy
+
+## Verify
+
+After deploy, visit `/api/auth/providers` — it returns the exact `redirectUris.google` value to paste into Google Cloud Console.
+

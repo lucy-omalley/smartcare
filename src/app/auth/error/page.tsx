@@ -20,7 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   OAuthSignin:
     'Could not start third-party sign-in. Check that Google or GitHub is configured for this environment.',
   OAuthCallback:
-    'Something went wrong during sign-in. Confirm the redirect URL in your Google Cloud Console matches this site.',
+    'Google rejected the redirect URL. In Google Cloud Console, add this exact URI under Authorized redirect URIs: https://smartcare-iota.vercel.app/api/auth/callback/google',
   OAuthCreateAccount: 'Could not create an account with this provider.',
   EmailCreateAccount: 'Could not create an account with this email address.',
   Callback: 'Something went wrong during sign-in. Please try again.',
