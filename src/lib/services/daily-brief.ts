@@ -26,12 +26,56 @@ import {
   buildWeightedRecommendationContext,
   gatherAIMemorySignals,
   getOrCreateWeeklyFocus,
-  normalizeBriefContent,
   refreshWeeklyFocus,
 } from "@/lib/services/today-recommendation-engine";
+import { normalizeBriefContent, isValidBriefContent } from "@/lib/today-plan-utils";
 
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
+
+const LEGACY_PROFILE_SELECT = {
+  name: true,
+  childNickname: true,
+  childAge: true,
+  childBirthday: true,
+  childInterests: true,
+  foodPreferences: true,
+  routineNotes: true,
+  developmentNotes: true,
+  parentingGoal: true,
+  parentingGoals: true,
+  priorityGoal: true,
+  currentChallenges: true,
+  location: true,
+  broadArea: true,
+} as const;
+
+async function fetchUserProfile(userId: string): Promise<BriefProfile> {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT });
+    return (user ?? {}) as BriefProfile;
+  } catch (error) {
+    console.warn("Extended profile fetch failed, using legacy fields:", error);
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: LEGACY_PROFILE_SELECT });
+    return (user ?? {}) as BriefProfile;
+  }
+}
+
+async function safeMemorySignals(userId: string) {
+  try {
+    return await gatherAIMemorySignals(userId);
+  } catch (error) {
+    console.warn("AI memory signals fetch failed:", error);
+    return {
+      completedStories: [],
+      completedActivities: [],
+      savedMeals: [],
+      favouriteTopics: [],
+      skippedRecommendations: [],
+      recentMumbotTopics: [],
+    };
+  }
+}
 
 const PROFILE_SELECT = {
   name: true,
@@ -98,8 +142,8 @@ export async function generateAndSaveBriefIllustrations(
 }
 
 async function fetchBriefContext(userId: string) {
-  const [user, memories, recentMessages, memorySignals] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT }),
+  const [profile, memories, recentMessages, memorySignals] = await Promise.all([
+    fetchUserProfile(userId),
     prisma.familyMemory.findMany({
       where: { userId },
       select: { content: true, category: true },
@@ -112,18 +156,24 @@ async function fetchBriefContext(userId: string) {
       take: 12,
       select: { content: true },
     }),
-    gatherAIMemorySignals(userId),
+    safeMemorySignals(userId),
   ]);
 
-  const profile = (user ?? {}) as BriefProfile;
-
-  const weeklyFocus = await getOrCreateWeeklyFocus(
-    userId,
-    profile,
-    memories,
-    memorySignals,
-    generateWeeklyFocus
-  );
+  let weeklyFocus = {
+    title: "Building Connection",
+    reason: "Small moments of presence strengthen your bond this week.",
+  };
+  try {
+    weeklyFocus = await getOrCreateWeeklyFocus(
+      userId,
+      profile,
+      memories,
+      memorySignals,
+      generateWeeklyFocus
+    );
+  } catch (error) {
+    console.warn("Weekly focus setup failed:", error);
+  }
 
   return {
     profile,
@@ -160,25 +210,32 @@ async function buildPlanContext(
 
 /** Lighter profile + memories fetch for Try another — skips chat history. */
 export async function fetchRotateContext(userId: string) {
-  const [user, memories, memorySignals] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT }),
+  const [profile, memories, memorySignals] = await Promise.all([
+    fetchUserProfile(userId),
     prisma.familyMemory.findMany({
       where: { userId },
       select: { content: true, category: true },
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
-    gatherAIMemorySignals(userId),
+    safeMemorySignals(userId),
   ]);
 
-  const profile = (user ?? {}) as BriefProfile;
-  const weeklyFocus = await getOrCreateWeeklyFocus(
-    userId,
-    profile,
-    memories,
-    memorySignals,
-    generateWeeklyFocus
-  );
+  let weeklyFocus = {
+    title: "Building Connection",
+    reason: "Small moments of presence strengthen your bond this week.",
+  };
+  try {
+    weeklyFocus = await getOrCreateWeeklyFocus(
+      userId,
+      profile,
+      memories,
+      memorySignals,
+      generateWeeklyFocus
+    );
+  } catch (error) {
+    console.warn("Weekly focus setup failed:", error);
+  }
 
   return {
     profile,
@@ -196,7 +253,11 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   });
 
   if (existing) {
-    return normalizeBriefContent(existing.content as unknown as DailyBriefContent);
+    const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
+    if (isValidBriefContent(normalized)) {
+      return normalized;
+    }
+    console.warn("Stored daily brief invalid, regenerating for user:", userId);
   }
 
   const { profile, memories, recentMessages, weeklyFocus, memorySignals } =
@@ -216,6 +277,9 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   let content: DailyBriefContent;
   try {
     content = await generateDailyBrief(planContext, profile);
+    if (!isValidBriefContent(content)) {
+      throw new Error("AI brief missing required sections");
+    }
   } catch (error) {
     console.error("Daily brief AI generation failed, using fallback:", error);
     content = normalizeBriefContent(defaultDailyBrief(profile, weeklyFocus));

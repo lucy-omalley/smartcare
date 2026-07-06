@@ -4,7 +4,7 @@ import { generateParentingTipStatic } from "@/lib/mumbot-messages";
 import { OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS } from "@/lib/openai-config";
 import { buildDailyBriefContext, type BriefProfile, type BriefMemory } from "@/lib/daily-brief-context";
 import { withRecipeSampleLinks } from "@/lib/recipe-sample-links";
-import { normalizeBriefContent } from "@/lib/services/today-recommendation-engine";
+import { normalizeBriefContent } from "@/lib/today-plan-utils";
 import type { DailyBriefContent, DailyBriefRecipe, DailyBriefPlay, DailyBriefStory, DailyBriefDevelopment, LibraryRecommendation, WeatherInfo, WeeklyFocus } from "@/types/daily-brief";
 import { weatherContextLine } from "@/lib/services/weather";
 
