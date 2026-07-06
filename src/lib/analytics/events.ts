@@ -29,6 +29,8 @@ export type AnalyticsEvent =
   | "activity_opened"
   | "language_card_opened"
   | "milestone_card_opened"
+  | "parent_tip_opened"
+  | "today_plan_viewed"
   | "today_refresh_clicked"
   // MumBot
   | "mumbot_opened"

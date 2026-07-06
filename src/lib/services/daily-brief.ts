@@ -1,14 +1,65 @@
 import { prisma } from "@/lib/db";
-import { defaultDailyBrief, generateDailyBrief, regeneratePlay, regenerateRecipe, regenerateStory, regenerateLanguage } from "@/lib/services/mumbot";
+import {
+  defaultDailyBrief,
+  generateDailyBrief,
+  generateWeeklyFocus,
+  regeneratePlay,
+  regenerateRecipe,
+  regenerateStory,
+  regenerateLanguage,
+  type TodayPlanContext,
+} from "@/lib/services/mumbot";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
-import type { DailyBriefContent, DailyBriefPlay, DailyBriefRecipe, DailyBriefStory, DailyBriefDevelopment } from "@/types/daily-brief";
+import type {
+  DailyBriefContent,
+  DailyBriefPlay,
+  DailyBriefRecipe,
+  DailyBriefStory,
+  DailyBriefDevelopment,
+  DailyBriefLanguageSection,
+} from "@/types/daily-brief";
 import { enrichBriefWithIllustrations, needsBriefIllustrations, type IllustrationSection } from "@/lib/services/card-illustrations";
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { clearTodayStoryAudio, warmTodayStoryAudio } from "@/lib/services/story-audio-cache";
+import {
+  buildWeightedRecommendationContext,
+  gatherAIMemorySignals,
+  getOrCreateWeeklyFocus,
+  normalizeBriefContent,
+  refreshWeeklyFocus,
+} from "@/lib/services/today-recommendation-engine";
 
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
+
+const PROFILE_SELECT = {
+  name: true,
+  childNickname: true,
+  childAge: true,
+  childBirthday: true,
+  childGender: true,
+  childInterests: true,
+  favouriteToys: true,
+  favouriteThemes: true,
+  favouriteBooks: true,
+  favouriteFoods: true,
+  foodDislikes: true,
+  sleepRoutine: true,
+  schoolNursery: true,
+  personality: true,
+  homeLanguage: true,
+  foodPreferences: true,
+  routineNotes: true,
+  developmentNotes: true,
+  parentingGoal: true,
+  parentingGoals: true,
+  priorityGoal: true,
+  currentChallenges: true,
+  location: true,
+  broadArea: true,
+  weeklyFocusTitle: true,
+} as const;
 
 export async function generateAndSaveBriefIllustrations(
   userId: string,
@@ -23,7 +74,7 @@ export async function generateAndSaveBriefIllustrations(
     return getOrCreateDailyBrief(userId);
   }
 
-  const content = brief.content as unknown as DailyBriefContent;
+  const content = normalizeBriefContent(brief.content as unknown as DailyBriefContent);
   if (!sections?.length && !needsBriefIllustrations(content)) {
     return content;
   }
@@ -47,25 +98,8 @@ export async function generateAndSaveBriefIllustrations(
 }
 
 async function fetchBriefContext(userId: string) {
-  const [user, memories, recentMessages, reflection] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        childNickname: true,
-        childAge: true,
-        childInterests: true,
-        foodPreferences: true,
-        routineNotes: true,
-        developmentNotes: true,
-        parentingGoal: true,
-        parentingGoals: true,
-        priorityGoal: true,
-        currentChallenges: true,
-        location: true,
-        broadArea: true,
-      },
-    }),
+  const [user, memories, recentMessages, memorySignals] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT }),
     prisma.familyMemory.findMany({
       where: { userId },
       select: { content: true, category: true },
@@ -78,61 +112,79 @@ async function fetchBriefContext(userId: string) {
       take: 12,
       select: { content: true },
     }),
-    prisma.weeklyReflection.findFirst({
-      where: { userId },
-      orderBy: { weekStart: "desc" },
-      select: { content: true },
-    }),
+    gatherAIMemorySignals(userId),
   ]);
 
-  const weeklyFocus =
-    reflection?.content &&
-    typeof reflection.content === "object" &&
-    reflection.content !== null &&
-    "nextWeekFocus" in reflection.content
-      ? String((reflection.content as Record<string, string>).nextWeekFocus)
-      : null;
+  const profile = (user ?? {}) as BriefProfile;
+
+  const weeklyFocus = await getOrCreateWeeklyFocus(
+    userId,
+    profile,
+    memories,
+    memorySignals,
+    generateWeeklyFocus
+  );
 
   return {
-    profile: (user ?? {}) as BriefProfile,
+    profile,
     memories,
     recentMessages: recentMessages.map((m) => m.content),
     weeklyFocus,
+    memorySignals,
   };
 }
 
-/** Lighter profile + memories fetch for Try another — skips chat history and journal. */
+async function buildPlanContext(
+  userId: string,
+  profile: BriefProfile,
+  memories: { content: string; category: import("@prisma/client").MemoryCategory }[],
+  recentMessages: string[],
+  weeklyFocus: { title: string; reason: string },
+  memorySignals: Awaited<ReturnType<typeof gatherAIMemorySignals>>,
+  weather?: import("@/types/daily-brief").WeatherInfo | null,
+  todayFocus?: { title: string; reason: string }
+): Promise<TodayPlanContext> {
+  return {
+    weightedContext: buildWeightedRecommendationContext(
+      profile,
+      memories,
+      recentMessages,
+      weeklyFocus,
+      memorySignals,
+      weather ?? null
+    ),
+    weeklyFocus,
+    todayFocus,
+  };
+}
+
+/** Lighter profile + memories fetch for Try another — skips chat history. */
 export async function fetchRotateContext(userId: string) {
-  const [user, memories] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        childNickname: true,
-        childAge: true,
-        childInterests: true,
-        foodPreferences: true,
-        routineNotes: true,
-        developmentNotes: true,
-        parentingGoal: true,
-        parentingGoals: true,
-        priorityGoal: true,
-        currentChallenges: true,
-        location: true,
-        broadArea: true,
-      },
-    }),
+  const [user, memories, memorySignals] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT }),
     prisma.familyMemory.findMany({
       where: { userId },
       select: { content: true, category: true },
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    gatherAIMemorySignals(userId),
   ]);
 
-  return {
-    profile: (user ?? {}) as BriefProfile,
+  const profile = (user ?? {}) as BriefProfile;
+  const weeklyFocus = await getOrCreateWeeklyFocus(
+    userId,
+    profile,
     memories,
+    memorySignals,
+    generateWeeklyFocus
+  );
+
+  return {
+    profile,
+    memories,
+    weeklyFocus,
+    memorySignals,
   };
 }
 
@@ -144,24 +196,29 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   });
 
   if (existing) {
-    return existing.content as unknown as DailyBriefContent;
+    return normalizeBriefContent(existing.content as unknown as DailyBriefContent);
   }
 
-  const { profile, memories, recentMessages, weeklyFocus } = await fetchBriefContext(userId);
+  const { profile, memories, recentMessages, weeklyFocus, memorySignals } =
+    await fetchBriefContext(userId);
   const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
+
+  const planContext = await buildPlanContext(
+    userId,
+    profile,
+    memories,
+    recentMessages,
+    weeklyFocus,
+    memorySignals,
+    weather?.weather ?? null
+  );
 
   let content: DailyBriefContent;
   try {
-    content = await generateDailyBrief(
-      profile,
-      memories,
-      recentMessages,
-      weeklyFocus,
-      weather?.weather ?? null
-    );
+    content = await generateDailyBrief(planContext, profile);
   } catch (error) {
     console.error("Daily brief AI generation failed, using fallback:", error);
-    content = defaultDailyBrief(profile);
+    content = normalizeBriefContent(defaultDailyBrief(profile, weeklyFocus));
   }
 
   try {
@@ -174,6 +231,22 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   }
 
   return content;
+}
+
+export async function refreshUserWeeklyFocus(userId: string) {
+  const { profile, memories, memorySignals } = await fetchRotateContext(userId);
+  return refreshWeeklyFocus(userId, profile, memories, memorySignals, generateWeeklyFocus);
+}
+
+function developmentToLanguageSection(lang: DailyBriefDevelopment): DailyBriefLanguageSection {
+  return {
+    words: lang.tryToday.split(/[,;]/).map((w) => w.trim()).filter(Boolean).slice(0, 6),
+    conversationStarters: [lang.insight],
+    miniGame: lang.tryToday,
+    reason: lang.reason ?? "Recommended because speech practice fits today's focus.",
+    domain: lang.domain,
+    icon: lang.icon ?? "💬",
+  };
 }
 
 export async function updateDailyBriefSection(
@@ -194,7 +267,7 @@ export async function updateDailyBriefSection(
     where: { userId_date: { userId, date: today } },
   });
 
-  const content = brief!.content as unknown as DailyBriefContent;
+  const content = normalizeBriefContent(brief!.content as unknown as DailyBriefContent);
   if (section === "recipe") content.recipe = value as DailyBriefRecipe;
   if (section === "play") content.play = value as DailyBriefPlay;
   if (section === "story") {
@@ -204,9 +277,8 @@ export async function updateDailyBriefSection(
   }
   if (section === "language") {
     const lang = value as DailyBriefDevelopment;
-    const idx = content.development.findIndex((d) =>
-      /language|speech/i.test(d.domain)
-    );
+    content.languageSection = developmentToLanguageSection(lang);
+    const idx = content.development.findIndex((d) => /language|speech/i.test(d.domain));
     if (idx >= 0) content.development[idx] = lang;
     else content.development.unshift(lang);
   }
@@ -235,27 +307,44 @@ export async function regenerateDailyBriefSection(
     });
   }
 
-  const content = brief!.content as unknown as DailyBriefContent;
-  const { profile, memories } = await fetchRotateContext(userId);
+  const content = normalizeBriefContent(brief!.content as unknown as DailyBriefContent);
+  const { profile, memories, weeklyFocus, memorySignals } = await fetchRotateContext(userId);
   const weather =
     section === "play" && profile.location
       ? await fetchWeatherForLocation(profile.location)
       : null;
 
+  const planContext = await buildPlanContext(
+    userId,
+    profile,
+    memories,
+    [],
+    weeklyFocus,
+    memorySignals,
+    weather?.weather ?? null,
+    content.todayFocus
+  );
+
   if (section === "recipe") {
-    const recipe = await regenerateRecipe(profile, memories, content.recipe);
+    const recipe = await regenerateRecipe(profile, memories, content.recipe, planContext);
     delete recipe.imageData;
     return updateDailyBriefSection(userId, "recipe", recipe);
   }
 
   if (section === "play") {
-    const play = await regeneratePlay(profile, memories, content.play, weather?.weather ?? null);
+    const play = await regeneratePlay(
+      profile,
+      memories,
+      content.play,
+      weather?.weather ?? null,
+      planContext
+    );
     delete play.imageData;
     return updateDailyBriefSection(userId, "play", play);
   }
 
   if (section === "story") {
-    const story = await regenerateStory(profile, memories, content.bedtimeStory);
+    const story = await regenerateStory(profile, memories, content.bedtimeStory, planContext);
     delete story.illustrationData;
     return updateDailyBriefSection(userId, "story", story);
   }
@@ -263,7 +352,7 @@ export async function regenerateDailyBriefSection(
   const languageItem =
     content.development.find((d) => /language|speech/i.test(d.domain)) ??
     content.development[0];
-  const language = await regenerateLanguage(profile, memories, languageItem);
+  const language = await regenerateLanguage(profile, memories, languageItem, planContext);
   return updateDailyBriefSection(userId, "language", language);
 }
 
@@ -303,24 +392,7 @@ export async function getHomeSupplementaryData(userId: string) {
       take: 4,
       select: { id: true, title: true, description: true, category: true, date: true, location: true },
     }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        childNickname: true,
-        childAge: true,
-        childInterests: true,
-        foodPreferences: true,
-        routineNotes: true,
-        developmentNotes: true,
-        parentingGoal: true,
-        parentingGoals: true,
-        priorityGoal: true,
-        currentChallenges: true,
-        location: true,
-        broadArea: true,
-      },
-    }),
+    prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT }),
     getYesterdayJournalMemory(userId),
     prisma.user
       .findUnique({ where: { id: userId }, select: { location: true } })

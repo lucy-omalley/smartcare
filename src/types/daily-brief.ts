@@ -15,6 +15,7 @@ export interface DailyBriefRecipe {
   difficulty?: "Easy" | "Medium";
   nutritionalHighlights?: string[];
   healthyTip?: string;
+  healthyAlternative?: string;
   sampleLinks?: RecipeSampleLink[];
   fromFridge?: boolean;
 }
@@ -26,6 +27,7 @@ export interface DailyBriefPlay {
   skillsDeveloped: string[];
   durationMinutes: number;
   indoorOutdoor: "indoor" | "outdoor" | "either";
+  reason?: string;
   imageData?: string;
   ageRecommendation?: string;
 }
@@ -35,6 +37,7 @@ export interface DailyBriefDevelopment {
   insight: string;
   tryToday: string;
   icon?: string;
+  reason?: string;
 }
 
 export interface DailyBriefTip {
@@ -47,8 +50,42 @@ export interface DailyBriefStory {
   title: string;
   story: string;
   lengthMinutes: number;
+  theme?: string;
+  reason?: string;
+  ageSuitability?: string;
   moral?: string;
   illustrationData?: string;
+}
+
+export interface TodayFocus {
+  title: string;
+  reason: string;
+}
+
+export interface WeeklyFocus {
+  title: string;
+  reason: string;
+}
+
+export interface DailyBriefMilestone {
+  domain: string;
+  milestone: string;
+  whyItMatters: string;
+  tip: string;
+}
+
+export interface DailyBriefLanguageSection {
+  words: string[];
+  conversationStarters: string[];
+  miniGame: string;
+  reason: string;
+  domain?: string;
+  icon?: string;
+}
+
+export interface DailyBriefParentTip {
+  content: string;
+  reason: string;
 }
 
 export interface WeatherInfo {
@@ -66,9 +103,14 @@ export type WeatherError = "missing_key" | "invalid_key" | "city_not_found" | "a
 export interface DailyBriefContent {
   greeting: string;
   childAgeDisplay: string;
+  weeklyFocus?: WeeklyFocus;
+  todayFocus?: TodayFocus;
   recipe: DailyBriefRecipe;
   play: DailyBriefPlay;
   development: DailyBriefDevelopment[];
+  languageSection?: DailyBriefLanguageSection;
+  milestone?: DailyBriefMilestone;
+  parentTip?: DailyBriefParentTip;
   developmentImage?: string;
   tip: DailyBriefTip;
   encouragement: string;

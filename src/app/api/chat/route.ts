@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { getOrCreateDailyBrief } from "@/lib/services/daily-brief";
+import { buildTodayPlanContextForMumBot, normalizeBriefContent } from "@/lib/services/today-recommendation-engine";
 import { getMumBotResponse } from "@/lib/services/mumbot";
 import { trackServerError } from "@/lib/analytics/server-errors";
 import { checkMumBotRateLimit } from "@/lib/rate-limit";
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: MUMBOT_BREAK_MESSAGE }, { status: 429 });
     }
 
-    const [user, memories] = await Promise.all([
+    const [user, memories, todayBrief] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -73,11 +75,18 @@ export async function POST(request: Request) {
         orderBy: { createdAt: "desc" },
         take: 20,
       }),
+      getOrCreateDailyBrief(userId).catch(() => null),
     ]);
+
+    const normalizedBrief = todayBrief ? normalizeBriefContent(todayBrief) : null;
+    const todayPlanContext = normalizedBrief
+      ? buildTodayPlanContextForMumBot(normalizedBrief, user?.childNickname)
+      : undefined;
 
     const { response, suggestedMemory } = await getMumBotResponse(chatMessages, {
       memories,
       profile: user ?? undefined,
+      todayPlanContext,
     });
 
     let activeConversationId = conversationId as string | undefined;

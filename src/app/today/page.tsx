@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
-import { TodaySectionHeader, TodayFocusCard, TodayConnectCard } from '@/components/today/today-cards';
+import { TodaySectionHeader, TodayConnectCard } from '@/components/today/today-cards';
 import { TodayPlanCard } from '@/components/today/today-plan-card';
 import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
@@ -19,11 +19,11 @@ import {
   StoryDetailContent,
   StoryDetailFooter,
   LanguageDetailView,
-  getLanguageItem,
 } from '@/components/today/today-detail-views';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
-import { buildFocusCards, truncateWords } from '@/lib/today-focus';
+import { truncateWords } from '@/lib/today-focus';
+import { languageFromDevelopment } from '@/lib/services/today-recommendation-engine';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -49,7 +49,7 @@ async function parseApiJson<T>(response: Response): Promise<T> {
   }
 }
 
-type DetailType = 'meal' | 'activity' | 'story' | 'language' | null;
+type DetailType = 'meal' | 'activity' | 'story' | 'language' | 'milestone' | 'parentTip' | null;
 type RotateSection = 'recipe' | 'play' | 'story' | 'language';
 
 interface ConnectEventPreview {
@@ -106,6 +106,7 @@ export default function TodayPage() {
           upcomingEvent: eventsData.events?.[0] ?? null,
         });
         trackEvent('today_dashboard_viewed');
+        trackEvent('today_plan_viewed');
         trackReturnVisit();
       })
       .catch((err: unknown) => {
@@ -185,9 +186,15 @@ export default function TodayPage() {
     if (activeDetail === 'activity') {
       trackEvent('activity_started', { title: brief.play.title });
     }
-    if (activeDetail === 'language') {
-      const lang = brief.development.find((d) => /language|speech/i.test(d.domain)) ?? brief.development[0];
-      if (lang) trackEvent('language_activity_started', { domain: lang.domain });
+    if (activeDetail === 'language' && brief) {
+      const lang = brief.languageSection ?? languageFromDevelopment(brief);
+      if (lang) trackEvent('language_activity_started', { domain: lang.domain ?? 'Language' });
+    }
+    if (activeDetail === 'milestone' && brief?.milestone) {
+      trackEvent('milestone_card_opened', { domain: brief.milestone.domain });
+    }
+    if (activeDetail === 'parentTip') {
+      trackEvent('parent_tip_opened');
     }
   }, [activeDetail, data?.brief]);
 
@@ -270,8 +277,8 @@ export default function TodayPage() {
       trackEvent('story_completed', { title: brief.bedtimeStory.title });
     }
     if (activeDetail === 'language' && brief) {
-      const lang = getLanguageItem(brief.development);
-      trackEvent('language_activity_completed', { domain: lang.domain });
+      const lang = brief.languageSection ?? languageFromDevelopment(brief);
+      trackEvent('language_activity_completed', { domain: lang?.domain ?? 'Language' });
     }
     setActiveDetail(null);
   };
@@ -295,9 +302,11 @@ export default function TodayPage() {
   const hasChildProfile = !!(childName || data?.profile?.childAge);
   const greeting = getTimeGreeting();
   const goals = data?.profile?.parentingGoals ?? [];
-  const challenges = data?.profile?.currentChallenges ?? [];
-  const focusCards = buildFocusCards(goals, challenges, data?.profile?.priorityGoal);
-  const languageItem = brief ? getLanguageItem(brief.development) : null;
+  const languageSection = brief ? (brief.languageSection ?? languageFromDevelopment(brief)) : null;
+  const todayFocus = brief?.todayFocus;
+  const weeklyFocus = brief?.weeklyFocus;
+  const milestone = brief?.milestone;
+  const parentTip = brief?.parentTip;
 
   const connectAvailableText =
     data?.connectAvailableCount === 0
@@ -315,6 +324,8 @@ export default function TodayPage() {
     activity: 'Today\'s Activity',
     story: 'Read Story',
     language: 'Language & Speech',
+    milestone: 'Today\'s Milestone',
+    parentTip: 'Parent Tip',
   };
 
   const detailFooter =
@@ -325,8 +336,12 @@ export default function TodayPage() {
         onSave={() => patchBrief('save-activity')}
         onBack={closeDetail}
       />
-    ) : activeDetail === 'language' && brief && languageItem ? (
-      <LanguageDetailView part="footer" item={languageItem} onBack={closeDetail} />
+    ) : activeDetail === 'language' && brief && languageSection ? (
+      <LanguageDetailView part="footer" language={languageSection} onBack={closeDetail} />
+    ) : activeDetail === 'milestone' || activeDetail === 'parentTip' ? (
+      <Button variant="outline" className="w-full rounded-full touch-target" onClick={closeDetail}>
+        Back to Today
+      </Button>
     ) : null;
 
   const detailContent =
@@ -336,22 +351,55 @@ export default function TodayPage() {
         onSave={() => patchBrief('save-activity')}
         onBack={closeDetail}
       />
-    ) : activeDetail === 'language' && brief && languageItem ? (
-      <LanguageDetailView item={languageItem} childAgeDisplay={brief.childAgeDisplay} onBack={closeDetail} />
+    ) : activeDetail === 'language' && brief && languageSection ? (
+      <LanguageDetailView language={languageSection} childAgeDisplay={brief.childAgeDisplay} onBack={closeDetail} />
+    ) : activeDetail === 'milestone' && brief && milestone ? (
+      <div className="space-y-4 text-sm pb-2">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{milestone.domain}</p>
+          <h3 className="text-lg font-bold mt-1">{milestone.milestone}</h3>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Why it matters</p>
+          <p className="leading-relaxed">{milestone.whyItMatters}</p>
+        </div>
+        <div className="bg-primary/5 rounded-xl p-3">
+          <p className="text-xs font-medium mb-1">Today&apos;s tip</p>
+          <p className="leading-relaxed">{milestone.tip}</p>
+        </div>
+      </div>
+    ) : activeDetail === 'parentTip' && brief && parentTip ? (
+      <div className="space-y-4 text-sm pb-2">
+        <p className="leading-relaxed">{parentTip.content}</p>
+        <p className="text-xs text-muted-foreground">{parentTip.reason}</p>
+      </div>
     ) : null;
 
   return (
     <AppShell>
       <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-5">
-        <header className="space-y-1">
+        <header className="space-y-2">
           <p className="text-base font-medium">
             {greeting} {firstName} 👋
           </p>
-          <h1 className="text-lg font-bold tracking-tight">Today&apos;s Parenting Plan</h1>
           {hasChildProfile && childName && brief?.childAgeDisplay ? (
-            <p className="text-sm text-muted-foreground">{childName} is {brief.childAgeDisplay}.</p>
+            <p className="text-sm text-muted-foreground">Today for {childName} ({brief.childAgeDisplay})</p>
           ) : (
             <p className="text-sm text-muted-foreground">What can I do with my child today?</p>
+          )}
+          {weeklyFocus && (
+            <div className="visual-card p-3 bg-amber-50/80 border-amber-100/80">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-amber-800/80">This week&apos;s focus</p>
+              <p className="font-semibold text-sm text-amber-950">{weeklyFocus.title}</p>
+              <p className="text-xs text-amber-900/80 mt-0.5 line-clamp-2">{weeklyFocus.reason}</p>
+            </div>
+          )}
+          {todayFocus && (
+            <div className="visual-card p-3 bg-primary/5 border-primary/10">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-primary/80">Today&apos;s focus</p>
+              <p className="font-semibold text-sm">{todayFocus.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">{todayFocus.reason}</p>
+            </div>
           )}
         </header>
 
@@ -399,7 +447,7 @@ export default function TodayPage() {
                 emoji="🎨"
                 label="Activity"
                 title={brief.play.title}
-                preview={truncateWords(brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
+                preview={truncateWords(brief.play.reason || brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
                 ctaLabel="Start Activity"
                 onOpen={() => {
                   trackEvent('activity_card_opened', { title: brief.play.title });
@@ -413,7 +461,7 @@ export default function TodayPage() {
                 emoji="📖"
                 label="Story"
                 title={brief.bedtimeStory.title}
-                preview={truncateWords(brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 15)}
+                preview={truncateWords(brief.bedtimeStory.reason || brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 15)}
                 ctaLabel="Read Story"
                 onOpen={() => {
                   trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
@@ -423,43 +471,67 @@ export default function TodayPage() {
                 onRefresh={() => rotate('story')}
                 refreshing={rotating === 'story'}
               />
-              {languageItem && (
+              {languageSection && (
                 <TodayPlanCard
                   emoji="💬"
                   label="Language"
-                  title={languageItem.domain}
-                  preview={truncateWords(languageItem.tryToday || languageItem.insight, 15)}
+                  title={languageSection.domain ?? 'Language & Speech'}
+                  preview={truncateWords(languageSection.reason || languageSection.miniGame, 15)}
                   ctaLabel="Try Words"
                   onOpen={() => {
-                    trackEvent('language_card_opened', { domain: languageItem.domain });
+                    trackEvent('language_card_opened', { domain: languageSection.domain ?? 'Language' });
                     setActiveDetail('language');
                   }}
                   onRefresh={() => rotate('language')}
                   refreshing={rotating === 'language'}
                 />
               )}
+              {milestone && (
+                <TodayPlanCard
+                  emoji="🌱"
+                  label="Milestone"
+                  title={milestone.domain}
+                  preview={truncateWords(milestone.tip || milestone.milestone, 15)}
+                  ctaLabel="View Tip"
+                  onOpen={() => {
+                    trackEvent('milestone_card_opened', { domain: milestone.domain });
+                    setActiveDetail('milestone');
+                  }}
+                />
+              )}
+              {parentTip && (
+                <TodayPlanCard
+                  emoji="💡"
+                  label="Parent Tip"
+                  title="Coaching tip"
+                  preview={truncateWords(parentTip.content, 15)}
+                  ctaLabel="Read Tip"
+                  onOpen={() => {
+                    trackEvent('parent_tip_opened');
+                    setActiveDetail('parentTip');
+                  }}
+                />
+              )}
             </section>
 
             <section className="space-y-2.5">
-              <TodaySectionHeader emoji="🎯" title="Your Focus" />
-              {focusCards.length > 0 ? (
-                focusCards.map((card) => (
-                  <TodayFocusCard
-                    key={`${card.type}-${card.title}`}
-                    type={card.type}
-                    title={card.title}
-                    tip={card.tip}
-                    onAskMumbot={() => askMumbot(card.mumbotPrompt)}
-                  />
-                ))
-              ) : (
-                <div className="visual-card p-3.5 flex items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">Add parenting goals to personalise your focus.</p>
-                  <Link href="/profile?settings=1">
-                    <Button size="sm" variant="outline" className="rounded-full shrink-0">Add Goals</Button>
-                  </Link>
-                </div>
-              )}
+              <TodaySectionHeader emoji="🤖" title="Ask MumBot" />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Tell me more about today\'s activity.')}>
+                  About today&apos;s activity
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Suggest another meal for today.')}>
+                  Another meal idea
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Can you adapt today\'s story?')}>
+                  Adapt today&apos;s story
+                </Button>
+                {goals[0] && (
+                  <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot(`Help me with ${goals[0]} based on today's plan.`)}>
+                    Help with {goals[0]}
+                  </Button>
+                )}
+              </div>
             </section>
 
             <section className="space-y-2.5">
