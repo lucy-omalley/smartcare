@@ -20,6 +20,8 @@ import {
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
+import { markTodayPlanStale } from '@/lib/today-plan-stale';
+import { toast } from 'sonner';
 
 interface Profile {
   name: string;
@@ -175,6 +177,12 @@ function ProfileContent() {
       const data = await res.json();
       setProfile(data.profile);
       setEditing(false);
+      if (data.todayPlanRegenerated) {
+        markTodayPlanStale();
+        toast.success('Profile saved — refreshing Today\'s Plan with your updates.');
+      } else {
+        toast.success('Profile saved.');
+      }
       if (childAge || childInterests) {
         trackEvent('child_profile_updated', { has_age: Boolean(childAge), has_interests: Boolean(childInterests) });
       }

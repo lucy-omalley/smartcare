@@ -24,6 +24,7 @@ import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { truncateWords } from '@/lib/today-focus';
 import { languageFromDevelopment, isValidBriefContent } from '@/lib/today-plan-utils';
+import { consumeTodayPlanStale } from '@/lib/today-plan-stale';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -132,6 +133,33 @@ export default function TodayPage() {
 
     loadToday().finally(() => setLoading(false));
   }, [status, router, loadToday]);
+
+  const reloadTodayPlan = useCallback(() => {
+    setLoading(true);
+    loadToday().finally(() => setLoading(false));
+  }, [loadToday]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    const refreshIfStale = () => {
+      if (!consumeTodayPlanStale()) return;
+      reloadTodayPlan();
+    };
+
+    refreshIfStale();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshIfStale();
+    };
+
+    window.addEventListener('focus', refreshIfStale);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', refreshIfStale);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [status, reloadTodayPlan]);
 
   useEffect(() => {
     if (!data?.brief?.bedtimeStory?.story) return;
