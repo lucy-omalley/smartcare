@@ -1,13 +1,20 @@
+import "server-only";
+
 import { prisma } from "@/lib/db";
 import { startOfWeek, format } from "date-fns";
 import type { BriefMemory, BriefProfile } from "@/lib/daily-brief-context";
+import {
+  languageFromDevelopment,
+  normalizeBriefContent,
+} from "@/lib/today-plan-utils";
 import type {
   DailyBriefContent,
-  DailyBriefLanguageSection,
   WeeklyFocus,
   WeatherInfo,
 } from "@/types/daily-brief";
 import { weatherContextLine } from "@/lib/services/weather";
+
+export { languageFromDevelopment, normalizeBriefContent };
 
 export interface AIMemorySignals {
   completedStories: string[];
@@ -302,67 +309,10 @@ export function buildTodayPlanContextForMumBot(brief: DailyBriefContent, childNa
   return lines.join("\n");
 }
 
-export function languageFromDevelopment(brief: DailyBriefContent): DailyBriefLanguageSection | null {
-  if (brief.languageSection) return brief.languageSection;
-
-  const langDev =
-    brief.development.find((d) => /language|speech/i.test(d.domain)) ?? brief.development[0];
-  if (!langDev) return null;
-
-  return {
-    words: langDev.tryToday.split(/[,;]/).map((w) => w.trim()).filter(Boolean).slice(0, 5),
-    conversationStarters: [langDev.insight],
-    miniGame: langDev.tryToday,
-    reason: langDev.reason ?? "Supports speech development for this age.",
-    domain: langDev.domain,
-    icon: langDev.icon,
-  };
-}
-
-export function normalizeBriefContent(brief: DailyBriefContent): DailyBriefContent {
-  const normalized = { ...brief };
-
-  if (!normalized.todayFocus && normalized.tip) {
-    normalized.todayFocus = {
-      title: normalized.tip.topic,
-      reason: normalized.tip.content,
-    };
-  }
-
-  if (!normalized.parentTip) {
-    normalized.parentTip = {
-      content: normalized.tip?.content ?? normalized.encouragement,
-      reason: "A practical coaching tip for today.",
-    };
-  }
-
-  if (!normalized.milestone && normalized.development.length > 0) {
-    const dev = normalized.development.find((d) => !/language|speech/i.test(d.domain)) ?? normalized.development[0];
-    normalized.milestone = {
-      domain: dev.domain,
-      milestone: dev.insight,
-      whyItMatters: dev.insight,
-      tip: dev.tryToday,
-    };
-  }
-
-  if (!normalized.languageSection) {
-    const lang = languageFromDevelopment(normalized);
-    if (lang) normalized.languageSection = lang;
-  }
-
-  if (!normalized.play.reason && normalized.play.skillsDeveloped.length) {
-    normalized.play.reason = `Builds ${normalized.play.skillsDeveloped.slice(0, 2).join(" and ")}.`;
-  }
-
-  if (!normalized.bedtimeStory.reason) {
-    normalized.bedtimeStory.reason = normalized.bedtimeStory.moral
-      ? `A gentle story about ${normalized.bedtimeStory.moral.toLowerCase()}.`
-      : "A personalised bedtime story for tonight.";
-  }
-
-  return normalized;
-}
+const DEFAULT_WEEKLY_FOCUS: WeeklyFocus = {
+  title: "Building Connection",
+  reason: "Small moments of presence and play strengthen your bond this week.",
+};
 
 export async function getOrCreateWeeklyFocus(
   userId: string,
@@ -373,24 +323,28 @@ export async function getOrCreateWeeklyFocus(
 ): Promise<WeeklyFocus> {
   const weekStart = getWeekStartKey();
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      weeklyFocusTitle: true,
-      weeklyFocusReason: true,
-      weeklyFocusWeekStart: true,
-    },
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyFocusTitle: true,
+        weeklyFocusReason: true,
+        weeklyFocusWeekStart: true,
+      },
+    });
 
-  if (
-    user?.weeklyFocusTitle &&
-    user.weeklyFocusWeekStart &&
-    format(user.weeklyFocusWeekStart, "yyyy-MM-dd") === weekStart
-  ) {
-    return {
-      title: user.weeklyFocusTitle,
-      reason: user.weeklyFocusReason ?? "Chosen to support your family's goals this week.",
-    };
+    if (
+      user?.weeklyFocusTitle &&
+      user.weeklyFocusWeekStart &&
+      format(user.weeklyFocusWeekStart, "yyyy-MM-dd") === weekStart
+    ) {
+      return {
+        title: user.weeklyFocusTitle,
+        reason: user.weeklyFocusReason ?? "Chosen to support your family's goals this week.",
+      };
+    }
+  } catch (error) {
+    console.warn("Weekly focus read failed, generating new focus:", error);
   }
 
   const context = buildWeightedRecommendationContext(
@@ -402,16 +356,25 @@ export async function getOrCreateWeeklyFocus(
     null
   );
 
-  const focus = await generateFocus(context);
+  let focus = DEFAULT_WEEKLY_FOCUS;
+  try {
+    focus = await generateFocus(context);
+  } catch (error) {
+    console.warn("Weekly focus AI generation failed, using default:", error);
+  }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      weeklyFocusTitle: focus.title,
-      weeklyFocusReason: focus.reason,
-      weeklyFocusWeekStart: new Date(weekStart),
-    },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        weeklyFocusTitle: focus.title,
+        weeklyFocusReason: focus.reason,
+        weeklyFocusWeekStart: new Date(weekStart),
+      },
+    });
+  } catch (error) {
+    console.warn("Weekly focus persist failed:", error);
+  }
 
   return focus;
 }

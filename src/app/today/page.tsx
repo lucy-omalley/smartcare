@@ -23,7 +23,7 @@ import {
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { truncateWords } from '@/lib/today-focus';
-import { languageFromDevelopment } from '@/lib/services/today-recommendation-engine';
+import { languageFromDevelopment, isValidBriefContent } from '@/lib/today-plan-utils';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -98,6 +98,9 @@ export default function TodayPage() {
         .catch(() => ({ events: [] })),
     ])
       .then(([briefData, statusData, eventsData]) => {
+        if (!briefData.brief || !isValidBriefContent(briefData.brief)) {
+          throw new Error('Today\'s plan could not be loaded. Please try again.');
+        }
         setLoadError(null);
         setData({
           brief: briefData.brief,
@@ -413,7 +416,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        {loadError && !brief && (
+        {loadError && (
           <div className="visual-card p-4 text-center space-y-2 border border-destructive/20">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
@@ -425,7 +428,13 @@ export default function TodayPage() {
           </div>
         )}
 
-        {brief && (
+        {!loadError && !brief && (
+          <div className="visual-card p-4 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">Loading your personalised plan…</p>
+          </div>
+        )}
+
+        {brief && isValidBriefContent(brief) && (
           <>
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🌟" title="Today's Plan" />
