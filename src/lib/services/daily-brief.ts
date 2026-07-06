@@ -245,6 +245,21 @@ export async function fetchRotateContext(userId: string) {
   };
 }
 
+export async function invalidateTodayPlan(userId: string): Promise<void> {
+  const today = toDateKey();
+  await prisma.dailyBrief.deleteMany({
+    where: { userId, date: today },
+  });
+  await clearTodayStoryAudio(userId);
+}
+
+/** Regenerate today's plan in the background after profile changes. */
+export function warmTodayPlanInBackground(userId: string): void {
+  void getOrCreateDailyBrief(userId).catch((err) => {
+    console.warn("Background today plan regeneration failed:", err);
+  });
+}
+
 export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefContent> {
   const today = toDateKey();
 

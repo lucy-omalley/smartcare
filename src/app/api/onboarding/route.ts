@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { invalidateTodayPlan, warmTodayPlanInBackground } from "@/lib/services/daily-brief";
+import { bodyAffectsTodayPlan } from "@/lib/today-plan-stale";
 
 const profileSelect = {
   name: true,
@@ -98,7 +100,14 @@ export async function POST(request: Request) {
     select: profileSelect,
   });
 
-  return NextResponse.json({ profile: user });
+  let todayPlanRegenerated = false;
+  if (bodyAffectsTodayPlan(body as Record<string, unknown>)) {
+    await invalidateTodayPlan(session.user.id);
+    warmTodayPlanInBackground(session.user.id);
+    todayPlanRegenerated = true;
+  }
+
+  return NextResponse.json({ profile: user, todayPlanRegenerated });
 }
 
 export async function PATCH(request: Request) {
