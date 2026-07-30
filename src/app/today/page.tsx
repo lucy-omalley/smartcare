@@ -67,6 +67,7 @@ interface TodayData {
     name: string;
     childNickname?: string | null;
     childAge?: string | null;
+    childBirthday?: string | null;
     parentingGoals?: string[];
     priorityGoal?: string | null;
     currentChallenges?: string[];
@@ -330,7 +331,7 @@ export default function TodayPage() {
   const firstName = data?.profile?.name?.split(' ')[0] || session?.user?.name?.split(' ')[0] || 'there';
   const childName = data?.profile?.childNickname;
   const brief = data?.brief;
-  const hasChildProfile = !!(childName || data?.profile?.childAge);
+  const hasChildProfile = !!(childName || data?.profile?.childAge || data?.profile?.childBirthday);
   const greeting = getTimeGreeting();
   const goals = data?.profile?.parentingGoals ?? [];
   const languageSection = brief ? (brief.languageSection ?? languageFromDevelopment(brief)) : null;

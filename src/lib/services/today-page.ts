@@ -5,6 +5,7 @@ import { recipeIllustrationPrompt } from "@/lib/illustration-prompts";
 import { generateCardIllustration } from "@/lib/services/card-illustrations";
 import { getTodayBriefStory } from "@/lib/services/story-audio-cache";
 import { generateStoryIllustration } from "@/lib/services/story-media";
+import { enrichProfileWithChildAge } from "@/lib/child-age";
 import type { DailyBriefContent } from "@/types/daily-brief";
 
 /** Minimal data for the Today dashboard — avoids meetups, weather, and other home-only queries. */
@@ -17,6 +18,7 @@ export async function getTodayPageData(userId: string) {
         name: true,
         childNickname: true,
         childAge: true,
+        childBirthday: true,
         parentingGoals: true,
         priorityGoal: true,
         currentChallenges: true,
@@ -26,7 +28,7 @@ export async function getTodayPageData(userId: string) {
 
   return {
     brief,
-    profile: profile ?? { name: "there" },
+    profile: enrichProfileWithChildAge(profile) ?? { name: "there" },
   };
 }
 
