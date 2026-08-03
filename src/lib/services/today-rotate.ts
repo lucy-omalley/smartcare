@@ -44,6 +44,55 @@ export function withRotationCount(
   };
 }
 
+/** Merge a rotated section into the current brief without dropping other cards. */
+export function applyRotatedSection(
+  current: DailyBriefContent,
+  updated: DailyBriefContent,
+  section: RotateSection
+): DailyBriefContent {
+  const merged: DailyBriefContent = {
+    ...current,
+    weeklyFocus: updated.weeklyFocus ?? current.weeklyFocus,
+    todayFocus: updated.todayFocus ?? current.todayFocus,
+    childAgeDisplay: updated.childAgeDisplay || current.childAgeDisplay,
+    greeting: updated.greeting || current.greeting,
+    _rotationCounts: updated._rotationCounts ?? current._rotationCounts,
+  };
+
+  if (section === "recipe" && updated.recipe?.subtitle) {
+    merged.recipe = updated.recipe;
+  } else {
+    merged.recipe = current.recipe;
+  }
+
+  if (section === "play" && updated.play?.title) {
+    merged.play = updated.play;
+  } else {
+    merged.play = current.play;
+  }
+
+  if (section === "story" && updated.bedtimeStory?.title) {
+    merged.bedtimeStory = updated.bedtimeStory;
+  } else {
+    merged.bedtimeStory = current.bedtimeStory;
+  }
+
+  if (section === "language") {
+    merged.development = updated.development?.length ? updated.development : current.development;
+    merged.languageSection = updated.languageSection ?? current.languageSection;
+  } else {
+    merged.development = current.development;
+    merged.languageSection = current.languageSection ?? updated.languageSection;
+  }
+
+  merged.tip = updated.tip ?? current.tip;
+  merged.encouragement = updated.encouragement ?? current.encouragement;
+  merged.milestone = updated.milestone ?? current.milestone;
+  merged.parentTip = updated.parentTip ?? current.parentTip;
+
+  return merged;
+}
+
 export function isSameRecipe(a: DailyBriefRecipe, b: DailyBriefRecipe): boolean {
   return (
     normalizeKey(a.subtitle) === normalizeKey(b.subtitle) ||

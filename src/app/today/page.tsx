@@ -25,8 +25,8 @@ import {
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { truncateWords } from '@/lib/today-focus';
-import { languageFromDevelopment, isValidBriefContent } from '@/lib/today-plan-utils';
-import { sectionSnapshot } from '@/lib/services/today-rotate';
+import { languageFromDevelopment, isValidBriefContent, normalizeBriefContent } from '@/lib/today-plan-utils';
+import { sectionSnapshot, applyRotatedSection } from '@/lib/services/today-rotate';
 import { consumeTodayPlanStale } from '@/lib/today-plan-stale';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
@@ -150,6 +150,14 @@ export default function TodayPage() {
             lastBriefUpdatedAtRef.current &&
             new Date(briefData.briefUpdatedAt).getTime() <
               new Date(lastBriefUpdatedAtRef.current).getTime()
+          ) {
+            return prev;
+          }
+          if (
+            options?.silent &&
+            prev?.brief &&
+            isValidBriefContent(prev.brief) &&
+            !isValidBriefContent(briefData.brief)
           ) {
             return prev;
           }
@@ -344,7 +352,12 @@ export default function TodayPage() {
       const afterSnapshot = json.brief ? sectionSnapshot(json.brief, section) : '';
       const changed = json.changed ?? beforeSnapshot !== afterSnapshot;
 
-      if (!json.brief || !changed) {
+      const mergedBrief =
+        data?.brief && json.brief
+          ? normalizeBriefContent(applyRotatedSection(data.brief, json.brief, section))
+          : json.brief;
+
+      if (!mergedBrief || !changed || !isValidBriefContent(mergedBrief)) {
         toast.error('Could not find a different suggestion. Please try again.', { id: toastId });
         return;
       }
@@ -353,7 +366,7 @@ export default function TodayPage() {
       if (json.updatedAt) {
         lastBriefUpdatedAtRef.current = json.updatedAt;
       }
-      setData((prev) => (prev ? { ...prev, brief: json.brief! } : prev));
+      setData((prev) => (prev ? { ...prev, brief: mergedBrief } : prev));
       setGeneratingPlan(false);
       if (section === 'recipe') {
         trackEvent('meal_rotated', { title: json.brief?.recipe?.subtitle });
