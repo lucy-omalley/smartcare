@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TodayFocusBannerProps {
@@ -10,12 +10,27 @@ interface TodayFocusBannerProps {
   variant?: 'weekly' | 'today';
 }
 
-const COLLAPSE_THRESHOLD = 100;
-
 export function TodayFocusBanner({ label, title, reason, variant = 'today' }: TodayFocusBannerProps) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = reason.length > COLLAPSE_THRESHOLD;
+  const [isTruncated, setIsTruncated] = useState(false);
+  const reasonRef = useRef<HTMLParagraphElement>(null);
   const isWeekly = variant === 'weekly';
+
+  useLayoutEffect(() => {
+    const el = reasonRef.current;
+    if (!el || expanded) return;
+
+    const measure = () => {
+      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reason, expanded]);
+
+  const showToggle = isTruncated || expanded;
 
   return (
     <div
@@ -34,15 +49,16 @@ export function TodayFocusBanner({ label, title, reason, variant = 'today' }: To
       </p>
       <p className={cn('font-semibold text-sm mt-0.5', isWeekly ? 'text-amber-950' : undefined)}>{title}</p>
       <p
+        ref={reasonRef}
         className={cn(
           'text-xs mt-1 leading-relaxed',
           isWeekly ? 'text-amber-900/80' : 'text-muted-foreground',
-          !expanded && isLong && 'line-clamp-3'
+          !expanded && 'line-clamp-3'
         )}
       >
         {reason}
       </p>
-      {isLong && (
+      {showToggle && (
         <button
           type="button"
           className={cn(
