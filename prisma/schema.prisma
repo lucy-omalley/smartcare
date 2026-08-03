@@ -113,6 +113,7 @@ model User {
   dailyBriefs         DailyBrief[]
   savedRecipes        SavedRecipe[]
   savedStories        SavedStory[]
+  rotateLibrary       UserRotateLibrary?
   sentConnections     ParentConnection[] @relation("SentConnections")
   receivedConnections ParentConnection[] @relation("ReceivedConnections")
   parentMessages      ParentMessage[]
@@ -295,6 +296,21 @@ model DailyBrief {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([userId])
+}
+
+model UserRotateLibrary {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  profileHash String
+  recipes     Json     @default("[]")
+  play        Json     @default("[]")
+  stories     Json     @default("[]")
+  language    Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
