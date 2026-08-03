@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
+import { TabLoadingScreen } from '@/components/layout/tab-loading-screen';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +74,7 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [reflection, setReflection] = useState<ReflectionContent | null>(null);
   const [loadingReflection, setLoadingReflection] = useState(false);
   const [editing, setEditing] = useState(searchParams.get('edit') === 'child' || searchParams.get('settings') === '1');
@@ -96,6 +98,7 @@ function ProfileContent() {
       return;
     }
     if (status === 'authenticated') {
+      setProfileLoading(true);
       fetch('/api/onboarding')
         .then((r) => r.json())
         .then((data) => {
@@ -114,7 +117,8 @@ function ProfileContent() {
             setBroadArea(p.broadArea || '');
             setBio(p.bio || '');
           }
-        });
+        })
+        .finally(() => setProfileLoading(false));
     }
   }, [status, router]);
 
@@ -197,12 +201,8 @@ function ProfileContent() {
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <AppShell>
-        <div className="container max-w-lg mx-auto p-6 text-center text-muted-foreground">Loading...</div>
-      </AppShell>
-    );
+  if (status === 'loading' || profileLoading) {
+    return <TabLoadingScreen message="Loading your profile…" icon="profile" />;
   }
 
   return (
@@ -447,7 +447,7 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading...</div>}>
+    <Suspense fallback={<TabLoadingScreen message="Loading your profile…" icon="profile" />}>
       <ProfileContent />
     </Suspense>
   );

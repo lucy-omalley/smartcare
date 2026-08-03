@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
+import { TabLoadingScreen } from '@/components/layout/tab-loading-screen';
 import { Button } from '@/components/ui/button';
 import { TodaySectionHeader, TodayConnectCard } from '@/components/today/today-cards';
 import { TodayFocusBanner } from '@/components/today/today-focus-banner';
@@ -361,16 +362,12 @@ export default function TodayPage() {
     setActiveDetail(null);
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || (planLoading && !data && !loadError)) {
     return (
-      <AppShell>
-        <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center animate-gentle-bounce">
-            <Sun className="h-7 w-7 text-primary" />
-          </div>
-          <p className="text-muted-foreground text-sm text-center">What can I do with my child today?</p>
-        </div>
-      </AppShell>
+      <TabLoadingScreen
+        message="What can I do with my child today?"
+        icon="today"
+      />
     );
   }
 
@@ -507,15 +504,6 @@ export default function TodayPage() {
             }}>
               Try again
             </Button>
-          </div>
-        )}
-
-        {!loadError && planLoading && !brief && (
-          <div className="visual-card p-4 text-center space-y-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center mx-auto animate-gentle-bounce">
-              <Sun className="h-5 w-5 text-primary" />
-            </div>
-            <p className="text-sm text-muted-foreground">Loading your personalised plan…</p>
           </div>
         )}
 
