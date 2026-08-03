@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -87,6 +87,7 @@ export default function TodayPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
   const [rotating, setRotating] = useState<RotateSection | null>(null);
+  const rotatingRef = useRef(false);
 
   const loadConnectData = useCallback(() => {
     return Promise.all([
@@ -129,12 +130,29 @@ export default function TodayPage() {
         }
         setLoadError(null);
         setGeneratingPlan(Boolean(briefData.generating));
-        setData((prev) => ({
-          brief: briefData.brief,
-          profile: briefData.profile,
-          connectAvailableCount: prev?.connectAvailableCount ?? 0,
-          upcomingEvent: prev?.upcomingEvent ?? null,
-        }));
+        setData((prev) => {
+          if (options?.silent && rotatingRef.current) {
+            return prev;
+          }
+          if (
+            options?.silent &&
+            briefData.generating &&
+            prev?.brief &&
+            isValidBriefContent(prev.brief)
+          ) {
+            return {
+              ...prev,
+              profile: briefData.profile,
+              generating: true,
+            };
+          }
+          return {
+            brief: briefData.brief,
+            profile: briefData.profile,
+            connectAvailableCount: prev?.connectAvailableCount ?? 0,
+            upcomingEvent: prev?.upcomingEvent ?? null,
+          };
+        });
         if (!options?.silent) {
           trackEvent('today_dashboard_viewed');
           trackEvent('today_plan_viewed');
@@ -279,6 +297,7 @@ export default function TodayPage() {
 
   const rotate = async (section: RotateSection) => {
     setRotating(section);
+    rotatingRef.current = true;
     trackEvent('today_refresh_clicked', { section });
     const toastId = toast.loading('Finding another idea…');
     try {
@@ -291,6 +310,7 @@ export default function TodayPage() {
       const json = await res.json();
       if (json.brief) {
         setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+        setGeneratingPlan(false);
       }
       if (section === 'recipe') {
         trackEvent('meal_rotated', { title: json.brief?.recipe?.subtitle });
@@ -316,6 +336,7 @@ export default function TodayPage() {
     } catch {
       toast.error('Could not rotate suggestion.', { id: toastId });
     } finally {
+      rotatingRef.current = false;
       setRotating(null);
     }
   };
@@ -512,6 +533,7 @@ export default function TodayPage() {
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🌟" title="Today's Plan" />
               <TodayPlanCard
+                key={`meal-${brief.recipe.subtitle}`}
                 emoji="🍎"
                 label="Meal"
                 title={brief.recipe.subtitle}
@@ -526,6 +548,7 @@ export default function TodayPage() {
                 refreshing={rotating === 'recipe'}
               />
               <TodayPlanCard
+                key={`activity-${brief.play.title}`}
                 emoji="🎨"
                 label="Activity"
                 title={brief.play.title}
@@ -540,6 +563,7 @@ export default function TodayPage() {
                 refreshing={rotating === 'play'}
               />
               <TodayPlanCard
+                key={`story-${brief.bedtimeStory.title}`}
                 emoji="📖"
                 label="Story"
                 title={brief.bedtimeStory.title}

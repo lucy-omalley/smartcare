@@ -488,22 +488,29 @@ export async function regenerateRecipe(
   profile: BriefProfile,
   memories: BriefMemory[],
   currentRecipe?: DailyBriefRecipe,
-  planContext?: TodayPlanContext
+  planContext?: TodayPlanContext,
+  attempt = 0
 ): Promise<DailyBriefRecipe> {
   const context = planContext?.weightedContext ?? buildDailyBriefContext(profile, memories, []);
   const focusLock = planContext ? `\n${rotateFocusLock(planContext)}\nDo NOT change todayFocus or weeklyFocus.` : "";
-  const avoid = currentRecipe ? `\nAvoid repeating: ${currentRecipe.subtitle}` : "";
+  const avoid = currentRecipe
+    ? `\nDo NOT repeat or closely resemble this recipe. Use a different name, ingredients, and steps:\n- Title: ${currentRecipe.subtitle}\n- Ingredients: ${currentRecipe.ingredients.slice(0, 6).join(", ")}`
+    : "";
+  const variation =
+    attempt > 0
+      ? `\nCRITICAL: Previous suggestion was too similar. Pick a completely different meal type and cooking style (attempt ${attempt + 1}).`
+      : "";
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional", "healthyAlternative": "optional" }. whyThisMeal must start with "Recommended because". Keep steps short (3-4). ${BRIEF_TONE_RULES}${focusLock}${avoid}`,
+        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional", "healthyAlternative": "optional" }. whyThisMeal must start with "Recommended because". Keep steps short (3-4). Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.85,
+    temperature: Math.min(0.88 + attempt * 0.06, 1),
     max_tokens: 550,
     response_format: { type: "json_object" },
   });
@@ -572,25 +579,32 @@ export async function regeneratePlay(
   memories: BriefMemory[],
   currentPlay?: DailyBriefPlay,
   weather?: WeatherInfo | null,
-  planContext?: TodayPlanContext
+  planContext?: TodayPlanContext,
+  attempt = 0
 ): Promise<DailyBriefPlay> {
   const context = [
     planContext?.weightedContext ?? buildDailyBriefContext(profile, memories, []),
     weather ? `\n${weatherContextLine(weather)}` : "",
   ].join("\n");
   const focusLock = planContext ? `\n${rotateFocusLock(planContext)}\nDo NOT change todayFocus or weeklyFocus.` : "";
-  const avoid = currentPlay ? `\nAvoid repeating: ${currentPlay.title}` : "";
+  const avoid = currentPlay
+    ? `\nDo NOT repeat or closely resemble this activity:\n- Title: ${currentPlay.title}\n- Steps: ${currentPlay.instructions.slice(0, 3).join(" ")}`
+    : "";
+  const variation =
+    attempt > 0
+      ? `\nCRITICAL: Previous suggestion was too similar. Pick a completely different activity type (attempt ${attempt + 1}).`
+      : "";
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation", "reason": "Recommended because..." }. Keep instructions to 3-4 short steps. ${BRIEF_TONE_RULES}${focusLock}${avoid}`,
+        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation", "reason": "Recommended because..." }. Keep instructions to 3-4 short steps. Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.85,
+    temperature: Math.min(0.88 + attempt * 0.06, 1),
     max_tokens: 550,
     response_format: { type: "json_object" },
   });
@@ -606,11 +620,18 @@ export async function regenerateStory(
   profile: BriefProfile,
   memories: BriefMemory[],
   currentStory?: DailyBriefStory,
-  planContext?: TodayPlanContext
+  planContext?: TodayPlanContext,
+  attempt = 0
 ): Promise<DailyBriefStory> {
   const context = planContext?.weightedContext ?? buildDailyBriefContext(profile, memories, []);
   const focusLock = planContext ? `\n${rotateFocusLock(planContext)}\nDo NOT change todayFocus or weeklyFocus.` : "";
-  const avoid = currentStory ? `\nAvoid repeating title or plot: ${currentStory.title}` : "";
+  const avoid = currentStory
+    ? `\nDo NOT repeat or closely resemble this story:\n- Title: ${currentStory.title}\n- Theme: ${currentStory.theme ?? "unknown"}`
+    : "";
+  const variation =
+    attempt > 0
+      ? `\nCRITICAL: Previous suggestion was too similar. Write a completely different plot and title (attempt ${attempt + 1}).`
+      : "";
   const child = profile.childNickname || "the child";
 
   const completion = await openai.chat.completions.create({
@@ -618,11 +639,11 @@ export async function regenerateStory(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised bedtime story as JSON: { "title", "theme", "reason": "Recommended because...", "ageSuitability", "story": "concise story ~2 min read", "lengthMinutes": 2, "moral": "gentle moral" }. ${child} is the hero. Keep story under 400 words. ${BRIEF_TONE_RULES}${focusLock}${avoid}`,
+        content: `Generate ONE new personalised bedtime story as JSON: { "title", "theme", "reason": "Recommended because...", "ageSuitability", "story": "concise story ~2 min read", "lengthMinutes": 2, "moral": "gentle moral" }. ${child} is the hero. Keep story under 400 words. Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.85,
+    temperature: Math.min(0.9 + attempt * 0.05, 1),
     max_tokens: 650,
     response_format: { type: "json_object" },
   });
@@ -638,22 +659,27 @@ export async function regenerateLanguage(
   profile: BriefProfile,
   memories: BriefMemory[],
   current?: DailyBriefDevelopment,
-  planContext?: TodayPlanContext
+  planContext?: TodayPlanContext,
+  attempt = 0
 ): Promise<DailyBriefDevelopment> {
   const context = planContext?.weightedContext ?? buildDailyBriefContext(profile, memories, []);
   const focusLock = planContext ? `\n${rotateFocusLock(planContext)}\nDo NOT change todayFocus or weeklyFocus.` : "";
-  const avoid = current ? `\nAvoid repeating: ${current.tryToday}` : "";
+  const avoid = current ? `\nDo NOT repeat: ${current.tryToday}` : "";
+  const variation =
+    attempt > 0
+      ? `\nCRITICAL: Previous suggestion was too similar. Pick different words and a different mini-game (attempt ${attempt + 1}).`
+      : "";
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
     messages: [
       {
         role: "system",
-        content: `Generate ONE language/speech development focus as JSON: { "domain": "Language", "icon": "💬", "insight": "Many children around this age...", "tryToday": "practical words/phrases or game", "reason": "Recommended because..." }. Also suitable for languageSection words and miniGame. ${BRIEF_TONE_RULES}${focusLock}${avoid}`,
+        content: `Generate ONE language/speech development focus as JSON: { "domain": "Language", "icon": "💬", "insight": "Many children around this age...", "tryToday": "practical words/phrases or game", "reason": "Recommended because..." }. Also suitable for languageSection words and miniGame. Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
-    temperature: 0.85,
+    temperature: Math.min(0.88 + attempt * 0.06, 1),
     max_tokens: 320,
     response_format: { type: "json_object" },
   });
