@@ -39,7 +39,14 @@ import {
   withRotationCount,
   sectionSnapshot,
   type RotateSection,
+  type RotateLibraryPools,
 } from "@/lib/services/today-rotate";
+import {
+  getRotateLibraryPools,
+  invalidateRotateLibrary,
+  scheduleRotateLibraryRefill,
+  warmRotateLibraryInBackground,
+} from "@/lib/services/today-rotate-library";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
 
 export { needsBriefIllustrations };
@@ -83,6 +90,7 @@ export async function getCachedDailyBriefWithMeta(userId: string) {
 
 /** Start AI generation once per user if today's brief is missing. */
 export function ensureTodayPlanGenerating(userId: string): void {
+  warmRotateLibraryInBackground(userId);
   if (inflightBriefGeneration.has(userId)) return;
 
   const task = getOrCreateDailyBrief(userId)
@@ -309,10 +317,12 @@ export async function invalidateTodayPlan(userId: string): Promise<void> {
     where: { userId, date: today },
   });
   await clearTodayStoryAudio(userId);
+  await invalidateRotateLibrary(userId);
 }
 
 /** Regenerate today's plan in the background after profile changes. */
 export function warmTodayPlanInBackground(userId: string): void {
+  warmRotateLibraryInBackground(userId);
   void getOrCreateDailyBrief(userId).catch((err) => {
     console.warn("Background today plan regeneration failed:", err);
   });
@@ -363,6 +373,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
       data: { userId, date: today, content: content as object },
     });
     warmTodayStoryAudio(userId);
+    warmRotateLibraryInBackground(userId);
   } catch (error) {
     console.error("Failed to persist daily brief:", error);
   }
@@ -527,52 +538,56 @@ async function fetchRotateProfile(userId: string): Promise<BriefProfile> {
 function pickNextRecipe(
   current: DailyBriefRecipe,
   profile: BriefProfile,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefRecipe {
-  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
-    const candidate = pickAlternateRecipe(profile, current, i);
+  for (let i = rotationIndex; i < rotationIndex + 40; i++) {
+    const candidate = pickAlternateRecipe(profile, current, i, library);
     if (!isSameRecipe(candidate, current)) return candidate;
   }
-  return pickAlternateRecipe(profile, current, rotationIndex + 1);
+  return pickAlternateRecipe(profile, current, rotationIndex + 1, library);
 }
 
 function pickNextPlay(
   current: DailyBriefPlay,
   profile: BriefProfile,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefPlay {
-  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
-    const candidate = pickAlternatePlay(profile, current, i);
+  for (let i = rotationIndex; i < rotationIndex + 40; i++) {
+    const candidate = pickAlternatePlay(profile, current, i, library);
     if (!isSamePlay(candidate, current)) return candidate;
   }
-  return pickAlternatePlay(profile, current, rotationIndex + 1);
+  return pickAlternatePlay(profile, current, rotationIndex + 1, library);
 }
 
 function pickNextStory(
   current: DailyBriefStory,
   profile: BriefProfile,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefStory {
-  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
-    const candidate = pickAlternateStory(profile, current, i);
+  for (let i = rotationIndex; i < rotationIndex + 40; i++) {
+    const candidate = pickAlternateStory(profile, current, i, library);
     if (!isSameStory(candidate, current)) return candidate;
   }
-  return pickAlternateStory(profile, current, rotationIndex + 1);
+  return pickAlternateStory(profile, current, rotationIndex + 1, library);
 }
 
 function pickNextLanguage(
   current: DailyBriefDevelopment,
   rotationIndex: number,
-  profile: BriefProfile
+  profile: BriefProfile,
+  library?: RotateLibraryPools
 ): DailyBriefDevelopment {
-  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
-    const candidate = pickAlternateLanguage(current, i, profile);
+  for (let i = rotationIndex; i < rotationIndex + 40; i++) {
+    const candidate = pickAlternateLanguage(current, i, profile, library);
     if (!isSameLanguage(candidate, current)) return candidate;
   }
-  return pickAlternateLanguage(current, rotationIndex + 1, profile);
+  return pickAlternateLanguage(current, rotationIndex + 1, profile, library);
 }
 
-/** Fast Try another — instant alternate suggestion, no AI wait. */
+/** Fast Try another — uses AI library + curated fallback, no blocking AI wait. */
 export async function regenerateDailyBriefSection(
   userId: string,
   section: RotateSection
@@ -582,11 +597,14 @@ export async function regenerateDailyBriefSection(
   const beforeSnapshot = sectionSnapshot(content, section);
   const rotationIndex = getRotationCount(content, section) + 1;
   const profile = await fetchRotateProfile(userId);
+  const library = await getRotateLibraryPools(userId, profile);
+  warmRotateLibraryInBackground(userId);
 
   if (section === "recipe") {
-    const recipe = pickNextRecipe(content.recipe, profile, rotationIndex);
+    const recipe = pickNextRecipe(content.recipe, profile, rotationIndex, library);
     delete recipe.imageData;
     const saved = await updateDailyBriefSection(userId, "recipe", recipe);
+    scheduleRotateLibraryRefill(userId, section);
     return {
       ...saved,
       changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
@@ -594,9 +612,10 @@ export async function regenerateDailyBriefSection(
   }
 
   if (section === "play") {
-    const play = pickNextPlay(content.play, profile, rotationIndex);
+    const play = pickNextPlay(content.play, profile, rotationIndex, library);
     delete play.imageData;
     const saved = await updateDailyBriefSection(userId, "play", play);
+    scheduleRotateLibraryRefill(userId, section);
     return {
       ...saved,
       changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
@@ -604,9 +623,10 @@ export async function regenerateDailyBriefSection(
   }
 
   if (section === "story") {
-    const story = pickNextStory(content.bedtimeStory, profile, rotationIndex);
+    const story = pickNextStory(content.bedtimeStory, profile, rotationIndex, library);
     delete story.illustrationData;
     const saved = await updateDailyBriefSection(userId, "story", story);
+    scheduleRotateLibraryRefill(userId, section);
     return {
       ...saved,
       changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
@@ -616,8 +636,9 @@ export async function regenerateDailyBriefSection(
   const languageItem =
     content.development.find((d) => /language|speech/i.test(d.domain)) ??
     content.development[0];
-  const language = pickNextLanguage(languageItem, rotationIndex, profile);
+  const language = pickNextLanguage(languageItem, rotationIndex, profile, library);
   const saved = await updateDailyBriefSection(userId, "language", language);
+  scheduleRotateLibraryRefill(userId, section);
   return {
     ...saved,
     changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,

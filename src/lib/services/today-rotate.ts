@@ -22,10 +22,16 @@ import {
   rankPlayForProfile,
   rankRecipesForProfile,
   rankStoriesForProfile,
-  type EnrichedRotateProfile,
 } from "@/lib/services/today-rotate-profile";
 
 export type RotateSection = "recipe" | "play" | "story" | "language";
+
+export interface RotateLibraryPools {
+  recipes?: DailyBriefRecipe[];
+  play?: DailyBriefPlay[];
+  stories?: DailyBriefStory[];
+  language?: DailyBriefDevelopment[];
+}
 
 function normalizeKey(value: string | undefined | null): string {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -240,6 +246,56 @@ export function normalizeRotatedLanguage(
   };
 }
 
+function dedupeByKey<T>(items: T[], keyFn: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const item of items) {
+    const key = normalizeKey(keyFn(item));
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+}
+
+function mergeRecipePool(
+  profile: BriefProfile,
+  aiLibrary: DailyBriefRecipe[] = []
+): Omit<DailyBriefRecipe, "imageData" | "sampleLinks" | "fromFridge">[] {
+  const enriched = enrichRotateProfile(profile);
+  const aiRanked = aiLibrary.length ? rankRecipesForProfile(enriched, aiLibrary) : [];
+  const staticRanked = rankRecipesForProfile(enriched, RECIPE_ALTERNATES);
+  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.subtitle);
+}
+
+function mergePlayPool(profile: BriefProfile, aiLibrary: DailyBriefPlay[] = []): Omit<DailyBriefPlay, "imageData">[] {
+  const enriched = enrichRotateProfile(profile);
+  const aiRanked = aiLibrary.length ? rankPlayForProfile(enriched, aiLibrary) : [];
+  const staticRanked = rankPlayForProfile(enriched, PLAY_ALTERNATES);
+  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.title);
+}
+
+function mergeStoryPool(
+  profile: BriefProfile,
+  aiLibrary: DailyBriefStory[] = []
+): Omit<DailyBriefStory, "illustrationData">[] {
+  const enriched = enrichRotateProfile(profile);
+  const staticStories = storyAlternates(profile);
+  const aiRanked = aiLibrary.length ? rankStoriesForProfile(enriched, aiLibrary) : [];
+  const staticRanked = rankStoriesForProfile(enriched, staticStories);
+  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.title);
+}
+
+function mergeLanguagePool(
+  profile: BriefProfile,
+  aiLibrary: DailyBriefDevelopment[] = []
+): DailyBriefDevelopment[] {
+  const enriched = enrichRotateProfile(profile);
+  const aiRanked = aiLibrary.length ? rankLanguageForProfile(enriched, aiLibrary) : [];
+  const staticRanked = rankLanguageForProfile(enriched, LANGUAGE_ALTERNATES);
+  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.tryToday);
+}
+
 function pickFromPool<T extends { title?: string; subtitle?: string }>(
   options: T[],
   current: T,
@@ -252,21 +308,13 @@ function pickFromPool<T extends { title?: string; subtitle?: string }>(
   return pool[rotationIndex % pool.length]!;
 }
 
-function profilePool<T>(
-  profile: BriefProfile,
-  ranker: (profile: EnrichedRotateProfile, items: T[]) => T[],
-  items: T[]
-): T[] {
-  const enriched = enrichRotateProfile(profile);
-  return ranker(enriched, items);
-}
-
 export function pickAlternateRecipe(
   profile: BriefProfile,
   current: DailyBriefRecipe,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefRecipe {
-  const pool = profilePool(profile, rankRecipesForProfile, RECIPE_ALTERNATES);
+  const pool = mergeRecipePool(profile, library?.recipes);
   const base = pickFromPool(pool, current, (item) => item.subtitle, rotationIndex);
   const personalized = personalizeRecipe(base, enrichRotateProfile(profile));
   return normalizeRotatedRecipe(personalized, current);
@@ -275,9 +323,10 @@ export function pickAlternateRecipe(
 export function pickAlternatePlay(
   profile: BriefProfile,
   current: DailyBriefPlay,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefPlay {
-  const pool = profilePool(profile, rankPlayForProfile, PLAY_ALTERNATES);
+  const pool = mergePlayPool(profile, library?.play);
   const base = pickFromPool(pool, current, (item) => item.title, rotationIndex);
   const personalized = personalizePlay(base, enrichRotateProfile(profile));
   return normalizeRotatedPlay(personalized, current);
@@ -286,10 +335,11 @@ export function pickAlternatePlay(
 export function pickAlternateStory(
   profile: BriefProfile,
   current: DailyBriefStory,
-  rotationIndex: number
+  rotationIndex: number,
+  library?: RotateLibraryPools
 ): DailyBriefStory {
   const enriched = enrichRotateProfile(profile);
-  const options = rankStoriesForProfile(enriched, storyAlternates(profile));
+  const options = mergeStoryPool(profile, library?.stories);
   const base = pickFromPool(options, current, (item) => item.title, rotationIndex);
   const personalized = personalizeStory(base, enriched);
   return normalizeRotatedStory(personalized, current);
@@ -298,10 +348,11 @@ export function pickAlternateStory(
 export function pickAlternateLanguage(
   current: DailyBriefDevelopment,
   rotationIndex: number,
-  profile?: BriefProfile
+  profile?: BriefProfile,
+  library?: RotateLibraryPools
 ): DailyBriefDevelopment {
   const enriched = enrichRotateProfile(profile ?? {});
-  const ranked = rankLanguageForProfile(enriched, LANGUAGE_ALTERNATES);
+  const ranked = mergeLanguagePool(profile ?? {}, library?.language);
   const currentKey = normalizeKey(current.tryToday);
   const different = ranked.filter((item) => normalizeKey(item.tryToday) !== currentKey);
   const pool = different.length > 0 ? different : ranked;
