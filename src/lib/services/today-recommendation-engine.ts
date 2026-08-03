@@ -314,6 +314,42 @@ const DEFAULT_WEEKLY_FOCUS: WeeklyFocus = {
   reason: "Small moments of presence and play strengthen your bond this week.",
 };
 
+/** Read persisted weekly focus only — no AI call (fast path for Today load). */
+export async function getWeeklyFocusFast(
+  userId: string
+): Promise<{ focus: WeeklyFocus; needsAi: boolean }> {
+  const weekStart = getWeekStartKey();
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weeklyFocusTitle: true,
+        weeklyFocusReason: true,
+        weeklyFocusWeekStart: true,
+      },
+    });
+
+    if (
+      user?.weeklyFocusTitle &&
+      user.weeklyFocusWeekStart &&
+      format(user.weeklyFocusWeekStart, "yyyy-MM-dd") === weekStart
+    ) {
+      return {
+        focus: {
+          title: user.weeklyFocusTitle,
+          reason: user.weeklyFocusReason ?? "Chosen to support your family's goals this week.",
+        },
+        needsAi: false,
+      };
+    }
+  } catch (error) {
+    console.warn("Weekly focus read failed:", error);
+  }
+
+  return { focus: DEFAULT_WEEKLY_FOCUS, needsAi: true };
+}
+
 export async function getOrCreateWeeklyFocus(
   userId: string,
   profile: BriefProfile,

@@ -26,12 +26,56 @@ import {
   buildWeightedRecommendationContext,
   gatherAIMemorySignals,
   getOrCreateWeeklyFocus,
+  getWeeklyFocusFast,
   refreshWeeklyFocus,
 } from "@/lib/services/today-recommendation-engine";
 import { normalizeBriefContent, isValidBriefContent } from "@/lib/today-plan-utils";
 
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
+
+const inflightBriefGeneration = new Map<string, Promise<DailyBriefContent>>();
+
+/** Return today's cached brief from DB only — no AI generation. */
+export async function getCachedDailyBrief(userId: string): Promise<DailyBriefContent | null> {
+  const today = toDateKey();
+  const existing = await prisma.dailyBrief.findUnique({
+    where: { userId_date: { userId, date: today } },
+  });
+  if (!existing) return null;
+
+  const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
+  return isValidBriefContent(normalized) ? normalized : null;
+}
+
+/** Start AI generation once per user if today's brief is missing. */
+export function ensureTodayPlanGenerating(userId: string): void {
+  if (inflightBriefGeneration.has(userId)) return;
+
+  const task = getOrCreateDailyBrief(userId)
+    .catch((err) => {
+      console.warn("Background today plan generation failed:", err);
+      throw err;
+    })
+    .finally(() => {
+      inflightBriefGeneration.delete(userId);
+    });
+
+  inflightBriefGeneration.set(userId, task);
+}
+
+export { getWeeklyFocusFast };
+
+function warmWeeklyFocusInBackground(
+  userId: string,
+  profile: BriefProfile,
+  memories: { content: string; category: import("@prisma/client").MemoryCategory }[],
+  memorySignals: Awaited<ReturnType<typeof gatherAIMemorySignals>>
+): void {
+  void getOrCreateWeeklyFocus(userId, profile, memories, memorySignals, generateWeeklyFocus).catch(
+    (err) => console.warn("Background weekly focus generation failed:", err)
+  );
+}
 
 const LEGACY_PROFILE_SELECT = {
   name: true,
@@ -142,43 +186,26 @@ export async function generateAndSaveBriefIllustrations(
 }
 
 async function fetchBriefContext(userId: string) {
-  const [profile, memories, recentMessages, memorySignals] = await Promise.all([
+  const [profile, memories, memorySignals] = await Promise.all([
     fetchUserProfile(userId),
     prisma.familyMemory.findMany({
       where: { userId },
       select: { content: true, category: true },
       orderBy: { createdAt: "desc" },
-      take: 15,
-    }),
-    prisma.message.findMany({
-      where: { conversation: { userId } },
-      orderBy: { createdAt: "desc" },
-      take: 12,
-      select: { content: true },
+      take: 10,
     }),
     safeMemorySignals(userId),
   ]);
 
-  let weeklyFocus = {
-    title: "Building Connection",
-    reason: "Small moments of presence strengthen your bond this week.",
-  };
-  try {
-    weeklyFocus = await getOrCreateWeeklyFocus(
-      userId,
-      profile,
-      memories,
-      memorySignals,
-      generateWeeklyFocus
-    );
-  } catch (error) {
-    console.warn("Weekly focus setup failed:", error);
+  const { focus: weeklyFocus, needsAi: weeklyFocusNeedsAi } = await getWeeklyFocusFast(userId);
+  if (weeklyFocusNeedsAi) {
+    warmWeeklyFocusInBackground(userId, profile, memories, memorySignals);
   }
 
   return {
     profile,
     memories,
-    recentMessages: recentMessages.map((m) => m.content),
+    recentMessages: [] as string[],
     weeklyFocus,
     memorySignals,
   };
@@ -226,13 +253,11 @@ export async function fetchRotateContext(userId: string) {
     reason: "Small moments of presence strengthen your bond this week.",
   };
   try {
-    weeklyFocus = await getOrCreateWeeklyFocus(
-      userId,
-      profile,
-      memories,
-      memorySignals,
-      generateWeeklyFocus
-    );
+    const result = await getWeeklyFocusFast(userId);
+    weeklyFocus = result.focus;
+    if (result.needsAi) {
+      warmWeeklyFocusInBackground(userId, profile, memories, memorySignals);
+    }
   } catch (error) {
     console.warn("Weekly focus setup failed:", error);
   }

@@ -8,6 +8,7 @@ import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { TodaySectionHeader, TodayConnectCard } from '@/components/today/today-cards';
+import { TodayFocusBanner } from '@/components/today/today-focus-banner';
 import { TodayPlanCard } from '@/components/today/today-plan-card';
 import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
@@ -79,18 +80,14 @@ export default function TodayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState<TodayData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
   const [rotating, setRotating] = useState<RotateSection | null>(null);
 
-  const loadToday = useCallback(() => {
+  const loadConnectData = useCallback(() => {
     return Promise.all([
-      fetch('/api/today', { cache: 'no-store' }).then(async (r) => {
-        const json = await parseApiJson<{ brief: DailyBriefContent; profile: TodayData['profile']; error?: string }>(r);
-        if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
-        return json;
-      }),
       fetch('/api/connect/status')
         .then(async (r) => (r.ok ? parseApiJson<{ statuses: unknown[] }>(r) : { statuses: [] }))
         .catch(() => ({ statuses: [] })),
@@ -98,24 +95,54 @@ export default function TodayPage() {
         .then(async (r) => (r.ok ? parseApiJson<{ events: ConnectEventPreview[] }>(r) : { events: [] }))
         .catch(() => ({ events: [] })),
     ])
-      .then(([briefData, statusData, eventsData]) => {
+      .then(([statusData, eventsData]) => {
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                connectAvailableCount: statusData.statuses?.length ?? 0,
+                upcomingEvent: eventsData.events?.[0] ?? null,
+              }
+            : prev
+        );
+      });
+  }, []);
+
+  const loadToday = useCallback((options?: { silent?: boolean }) => {
+    if (!options?.silent) setPlanLoading(true);
+    return fetch('/api/today', { cache: 'no-store' })
+      .then(async (r) => {
+        const json = await parseApiJson<{
+          brief: DailyBriefContent;
+          profile: TodayData['profile'];
+          generating?: boolean;
+          error?: string;
+        }>(r);
+        if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
+        return json;
+      })
+      .then((briefData) => {
         if (!briefData.brief || !isValidBriefContent(briefData.brief)) {
           throw new Error('Today\'s plan could not be loaded. Please try again.');
         }
         setLoadError(null);
-        setData({
+        setGeneratingPlan(Boolean(briefData.generating));
+        setData((prev) => ({
           brief: briefData.brief,
           profile: briefData.profile,
-          connectAvailableCount: statusData.statuses?.length ?? 0,
-          upcomingEvent: eventsData.events?.[0] ?? null,
-        });
-        trackEvent('today_dashboard_viewed');
-        trackEvent('today_plan_viewed');
-        trackReturnVisit();
+          connectAvailableCount: prev?.connectAvailableCount ?? 0,
+          upcomingEvent: prev?.upcomingEvent ?? null,
+        }));
+        if (!options?.silent) {
+          trackEvent('today_dashboard_viewed');
+          trackEvent('today_plan_viewed');
+          trackReturnVisit();
+        }
       })
       .catch((err: unknown) => {
         setLoadError(err instanceof Error ? err.message : 'Failed to load today\'s plan');
-      });
+      })
+      .finally(() => setPlanLoading(false));
   }, []);
 
   useEffect(() => {
@@ -131,12 +158,31 @@ export default function TodayPage() {
         if (!profile?.onboardingComplete) router.push('/onboarding');
       });
 
-    loadToday().finally(() => setLoading(false));
-  }, [status, router, loadToday]);
+    loadToday();
+    loadConnectData();
+  }, [status, router, loadToday, loadConnectData]);
+
+  useEffect(() => {
+    if (!generatingPlan || status !== 'authenticated') return;
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const interval = setInterval(() => {
+      attempts += 1;
+      if (attempts > maxAttempts) {
+        setGeneratingPlan(false);
+        return;
+      }
+      void loadToday({ silent: true });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [generatingPlan, status, loadToday]);
 
   const reloadTodayPlan = useCallback(() => {
-    setLoading(true);
-    loadToday().finally(() => setLoading(false));
+    setPlanLoading(true);
+    loadToday({ silent: true }).finally(() => setPlanLoading(false));
   }, [loadToday]);
 
   useEffect(() => {
@@ -314,7 +360,7 @@ export default function TodayPage() {
     setActiveDetail(null);
   };
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <AppShell>
         <div className="container max-w-lg mx-auto p-6 flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -419,18 +465,25 @@ export default function TodayPage() {
             <p className="text-sm text-muted-foreground">What can I do with my child today?</p>
           )}
           {weeklyFocus && (
-            <div className="visual-card p-3 bg-amber-50/80 border-amber-100/80">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-amber-800/80">This week&apos;s focus</p>
-              <p className="font-semibold text-sm text-amber-950">{weeklyFocus.title}</p>
-              <p className="text-xs text-amber-900/80 mt-0.5 line-clamp-2">{weeklyFocus.reason}</p>
-            </div>
+            <TodayFocusBanner
+              label="This week's focus"
+              title={weeklyFocus.title}
+              reason={weeklyFocus.reason}
+              variant="weekly"
+            />
           )}
           {todayFocus && (
-            <div className="visual-card p-3 bg-primary/5 border-primary/10">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-primary/80">Today&apos;s focus</p>
-              <p className="font-semibold text-sm">{todayFocus.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">{todayFocus.reason}</p>
-            </div>
+            <TodayFocusBanner
+              label="Today's focus"
+              title={todayFocus.title}
+              reason={todayFocus.reason}
+              variant="today"
+            />
+          )}
+          {generatingPlan && (
+            <p className="text-xs text-muted-foreground px-0.5 animate-pulse">
+              Personalising your full plan…
+            </p>
           )}
         </header>
 
@@ -448,16 +501,19 @@ export default function TodayPage() {
           <div className="visual-card p-4 text-center space-y-2 border border-destructive/20">
             <p className="text-sm text-destructive">{loadError}</p>
             <Button size="sm" variant="outline" className="rounded-full" onClick={() => {
-              setLoading(true);
-              loadToday().finally(() => setLoading(false));
+              setPlanLoading(true);
+              loadToday().finally(() => setPlanLoading(false));
             }}>
               Try again
             </Button>
           </div>
         )}
 
-        {!loadError && !brief && (
+        {!loadError && planLoading && !brief && (
           <div className="visual-card p-4 text-center space-y-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 flex items-center justify-center mx-auto animate-gentle-bounce">
+              <Sun className="h-5 w-5 text-primary" />
+            </div>
             <p className="text-sm text-muted-foreground">Loading your personalised plan…</p>
           </div>
         )}
