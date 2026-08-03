@@ -330,12 +330,17 @@ export default function TodayPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section }),
       });
-      if (!res.ok) throw new Error('Request failed');
       const json = await parseApiJson<{
-        brief: DailyBriefContent;
+        brief?: DailyBriefContent;
         changed?: boolean;
         updatedAt?: string;
+        error?: string;
       }>(res);
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Could not load another suggestion.');
+      }
+
       const afterSnapshot = json.brief ? sectionSnapshot(json.brief, section) : '';
       const changed = json.changed ?? beforeSnapshot !== afterSnapshot;
 
@@ -348,7 +353,7 @@ export default function TodayPage() {
       if (json.updatedAt) {
         lastBriefUpdatedAtRef.current = json.updatedAt;
       }
-      setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+      setData((prev) => (prev ? { ...prev, brief: json.brief! } : prev));
       setGeneratingPlan(false);
       if (section === 'recipe') {
         trackEvent('meal_rotated', { title: json.brief?.recipe?.subtitle });
@@ -371,8 +376,10 @@ export default function TodayPage() {
         trackEvent('language_activity_started');
       }
       toast.success('Here\'s another idea!', { id: toastId });
-    } catch {
-      toast.error('Could not rotate suggestion.', { id: toastId });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Could not load another suggestion.';
+      toast.error(message, { id: toastId });
     } finally {
       rotatingRef.current = false;
       setRotating(null);
