@@ -512,7 +512,7 @@ function pickNextRecipe(
   profile: BriefProfile,
   rotationIndex: number
 ): DailyBriefRecipe {
-  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
     const candidate = pickAlternateRecipe(profile, current, i);
     if (!isSameRecipe(candidate, current)) return candidate;
   }
@@ -524,7 +524,7 @@ function pickNextPlay(
   profile: BriefProfile,
   rotationIndex: number
 ): DailyBriefPlay {
-  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
     const candidate = pickAlternatePlay(profile, current, i);
     if (!isSamePlay(candidate, current)) return candidate;
   }
@@ -536,7 +536,7 @@ function pickNextStory(
   profile: BriefProfile,
   rotationIndex: number
 ): DailyBriefStory {
-  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
     const candidate = pickAlternateStory(profile, current, i);
     if (!isSameStory(candidate, current)) return candidate;
   }
@@ -547,7 +547,7 @@ function pickNextLanguage(
   current: DailyBriefDevelopment,
   rotationIndex: number
 ): DailyBriefDevelopment {
-  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+  for (let i = rotationIndex; i < rotationIndex + 20; i++) {
     const candidate = pickAlternateLanguage(current, i);
     if (!isSameLanguage(candidate, current)) return candidate;
   }
