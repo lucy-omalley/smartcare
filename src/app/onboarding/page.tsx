@@ -17,6 +17,7 @@ import {
 } from '@/lib/constants';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
+import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
 
 const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'ready'] as const;
 type Step = (typeof STEPS)[number];
@@ -29,7 +30,7 @@ export default function OnboardingPage() {
 
   const [name, setName] = useState(session?.user?.name || '');
   const [childNickname, setChildNickname] = useState('');
-  const [childAge, setChildAge] = useState('');
+  const [childBirthday, setChildBirthday] = useState<string | null>(null);
   const [childInterests, setChildInterests] = useState('');
   const [foodPreferences, setFoodPreferences] = useState('');
   const [routineNotes, setRoutineNotes] = useState('');
@@ -53,7 +54,7 @@ export default function OnboardingPage() {
           if (!profile) return;
           if (profile.name) setName(profile.name);
           if (profile.childNickname) setChildNickname(profile.childNickname);
-          if (profile.childAge) setChildAge(profile.childAge);
+          if (profile.childBirthday) setChildBirthday(profile.childBirthday);
           if (profile.childInterests?.length) setChildInterests(profile.childInterests.join(', '));
           if (profile.foodPreferences?.length) setFoodPreferences(profile.foodPreferences.join(', '));
           if (profile.routineNotes) setRoutineNotes(profile.routineNotes);
@@ -90,7 +91,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           name,
           childNickname,
-          childAge,
+          childBirthday,
           childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
           foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
           routineNotes,
@@ -113,7 +114,7 @@ export default function OnboardingPage() {
       ? Math.round((Date.now() - parseInt(startRaw, 10)) / 1000)
       : undefined;
     trackEvent("onboarding_completed", durationSeconds ? { duration_seconds: durationSeconds } : undefined);
-    if (childAge) trackEvent('child_profile_created');
+    if (childBirthday) trackEvent('child_profile_created');
     if (parentingGoals.length) trackEvent('parenting_goals_selected', { count: parentingGoals.length });
     if (currentChallenges.length) trackEvent('current_challenges_selected', { count: currentChallenges.length });
     if (broadArea || location) trackEvent('connect_area_selected');
@@ -180,12 +181,19 @@ export default function OnboardingPage() {
                 <Input id="nickname" value={childNickname} onChange={(e) => setChildNickname(e.target.value)} placeholder="Emma" className="mt-1" />
               </div>
               <div>
-                <Label htmlFor="age">Child&apos;s age</Label>
-                <Input id="age" value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="2 years old" required className="mt-1" />
+                <ChildBirthdayPicker
+                  value={childBirthday}
+                  onChange={setChildBirthday}
+                  idPrefix="onboarding-child-dob"
+                />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('welcome')}><ArrowLeft className="h-4 w-4" /></Button>
-                <Button className="flex-1 rounded-xl" onClick={() => setStep('goals')} disabled={!childAge.trim()}>
+                <Button
+                  className="flex-1 rounded-xl"
+                  onClick={() => setStep('goals')}
+                  disabled={!childBirthday}
+                >
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>

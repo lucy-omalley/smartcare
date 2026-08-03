@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import {
+  enrichProfileWithChildAge,
+  formatChildAgeFromBirthday,
+  isValidBirthdayISO,
+} from "@/lib/child-age";
 import { invalidateTodayPlan, warmTodayPlanInBackground } from "@/lib/services/daily-brief";
 import { bodyAffectsTodayPlan } from "@/lib/today-plan-stale";
 
@@ -38,7 +43,7 @@ export async function GET() {
     select: profileSelect,
   });
 
-  return NextResponse.json({ profile: user });
+  return NextResponse.json({ profile: enrichProfileWithChildAge(user) });
 }
 
 export async function POST(request: Request) {
@@ -72,13 +77,27 @@ export async function POST(request: Request) {
 
   const goals = parentingGoals ?? (parentingGoal ? [parentingGoal] : undefined);
 
+  let resolvedBirthday: string | null | undefined;
+  let resolvedAge: string | null | undefined;
+
+  if (childBirthday !== undefined) {
+    const trimmed = childBirthday?.trim() || null;
+    if (trimmed && !isValidBirthdayISO(trimmed)) {
+      return NextResponse.json({ error: "Invalid date of birth" }, { status: 400 });
+    }
+    resolvedBirthday = trimmed;
+    resolvedAge = trimmed ? formatChildAgeFromBirthday(trimmed) : null;
+  } else if (childAge !== undefined) {
+    resolvedAge = childAge?.trim() || null;
+  }
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       ...(name && { name: name.trim() }),
       ...(childNickname !== undefined && { childNickname: childNickname?.trim() || null }),
-      ...(childAge !== undefined && { childAge: childAge?.trim() || null }),
-      ...(childBirthday !== undefined && { childBirthday: childBirthday?.trim() || null }),
+      ...(resolvedAge !== undefined && { childAge: resolvedAge }),
+      ...(resolvedBirthday !== undefined && { childBirthday: resolvedBirthday }),
       ...(childInterests !== undefined && { childInterests: childInterests ?? [] }),
       ...(foodPreferences !== undefined && { foodPreferences: foodPreferences ?? [] }),
       ...(routineNotes !== undefined && { routineNotes: routineNotes?.trim() || null }),
@@ -107,7 +126,10 @@ export async function POST(request: Request) {
     todayPlanRegenerated = true;
   }
 
-  return NextResponse.json({ profile: user, todayPlanRegenerated });
+  return NextResponse.json({
+    profile: enrichProfileWithChildAge(user),
+    todayPlanRegenerated,
+  });
 }
 
 export async function PATCH(request: Request) {

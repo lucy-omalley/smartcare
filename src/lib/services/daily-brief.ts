@@ -30,6 +30,7 @@ import {
   refreshWeeklyFocus,
 } from "@/lib/services/today-recommendation-engine";
 import { normalizeBriefContent, isValidBriefContent } from "@/lib/today-plan-utils";
+import { enrichProfileWithChildAge } from "@/lib/child-age";
 
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
@@ -97,11 +98,11 @@ const LEGACY_PROFILE_SELECT = {
 async function fetchUserProfile(userId: string): Promise<BriefProfile> {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: PROFILE_SELECT });
-    return (user ?? {}) as BriefProfile;
+    return (enrichProfileWithChildAge(user) ?? {}) as BriefProfile;
   } catch (error) {
     console.warn("Extended profile fetch failed, using legacy fields:", error);
     const user = await prisma.user.findUnique({ where: { id: userId }, select: LEGACY_PROFILE_SELECT });
-    return (user ?? {}) as BriefProfile;
+    return (enrichProfileWithChildAge(user) ?? {}) as BriefProfile;
   }
 }
 

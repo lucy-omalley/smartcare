@@ -22,11 +22,14 @@ import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 import { markTodayPlanStale } from '@/lib/today-plan-stale';
 import { toast } from 'sonner';
+import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
+import { formatBirthdayDisplay, resolveChildAgeDisplay } from '@/lib/child-age';
 
 interface Profile {
   name: string;
   childNickname?: string | null;
   childAge?: string | null;
+  childBirthday?: string | null;
   childInterests?: string[];
   foodPreferences?: string[];
   routineNotes?: string | null;
@@ -76,7 +79,7 @@ function ProfileContent() {
   const [saving, setSaving] = useState(false);
 
   const [childNickname, setChildNickname] = useState('');
-  const [childAge, setChildAge] = useState('');
+  const [childBirthday, setChildBirthday] = useState<string | null>(null);
   const [childInterests, setChildInterests] = useState('');
   const [foodPreferences, setFoodPreferences] = useState('');
   const [routineNotes, setRoutineNotes] = useState('');
@@ -100,7 +103,7 @@ function ProfileContent() {
           setProfile(p);
           if (p) {
             setChildNickname(p.childNickname || '');
-            setChildAge(p.childAge || '');
+            setChildBirthday(p.childBirthday || null);
             setChildInterests((p.childInterests || []).join(', '));
             setFoodPreferences((p.foodPreferences || []).join(', '));
             setRoutineNotes(p.routineNotes || '');
@@ -161,7 +164,7 @@ function ProfileContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           childNickname,
-          childAge,
+          childBirthday,
           childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
           foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
           routineNotes,
@@ -183,8 +186,11 @@ function ProfileContent() {
       } else {
         toast.success('Profile saved.');
       }
-      if (childAge || childInterests) {
-        trackEvent('child_profile_updated', { has_age: Boolean(childAge), has_interests: Boolean(childInterests) });
+      if (childBirthday || childInterests) {
+        trackEvent('child_profile_updated', {
+          has_birthday: Boolean(childBirthday),
+          has_interests: Boolean(childInterests),
+        });
       }
     } finally {
       setSaving(false);
@@ -224,7 +230,7 @@ function ProfileContent() {
                 <Label className="text-xs font-medium flex items-center gap-1"><Baby className="h-3 w-3" /> Child Profile</Label>
                 <div className="space-y-2 mt-2">
                   <Input value={childNickname} onChange={(e) => setChildNickname(e.target.value)} placeholder="Nickname" />
-                  <Input value={childAge} onChange={(e) => setChildAge(e.target.value)} placeholder="Age" />
+                  <ChildBirthdayPicker value={childBirthday} onChange={setChildBirthday} idPrefix="profile-child-dob" />
                   <Input value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="Interests (comma-separated)" />
                   <Input value={foodPreferences} onChange={(e) => setFoodPreferences(e.target.value)} placeholder="Food preferences" />
                   <Textarea value={routineNotes} onChange={(e) => setRoutineNotes(e.target.value)} placeholder="Routine notes" rows={2} />
@@ -319,7 +325,12 @@ function ProfileContent() {
                 {profile?.childNickname ? (
                   <>
                     <p><span className="text-muted-foreground">Nickname:</span> {profile.childNickname}</p>
-                    {profile.childAge && <p><span className="text-muted-foreground">Age:</span> {profile.childAge}</p>}
+                    {resolveChildAgeDisplay(profile) && (
+                      <p><span className="text-muted-foreground">Age:</span> {resolveChildAgeDisplay(profile)}</p>
+                    )}
+                    {profile.childBirthday && formatBirthdayDisplay(profile.childBirthday) && (
+                      <p><span className="text-muted-foreground">Born:</span> {formatBirthdayDisplay(profile.childBirthday)}</p>
+                    )}
                     {profile.childInterests?.length ? (
                       <p><span className="text-muted-foreground">Interests:</span> {profile.childInterests.join(', ')}</p>
                     ) : null}
