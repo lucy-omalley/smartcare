@@ -25,7 +25,7 @@ import {
   getWeeklyFocusFast,
   refreshWeeklyFocus,
 } from "@/lib/services/today-recommendation-engine";
-import { normalizeBriefContent, isValidBriefContent } from "@/lib/today-plan-utils";
+import { normalizeBriefContent, isValidBriefContent, repairBriefContent } from "@/lib/today-plan-utils";
 import {
   isSameLanguage,
   isSamePlay,
@@ -62,7 +62,18 @@ export async function getCachedDailyBriefWithMeta(userId: string) {
   if (!existing) return null;
 
   const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
-  if (!isValidBriefContent(normalized)) return null;
+  if (!isValidBriefContent(normalized)) {
+    const defaults = await loadDefaultBriefForUser(userId);
+    const repaired = repairBriefContent(normalized, defaults);
+    await prisma.dailyBrief.update({
+      where: { userId_date: { userId, date: today } },
+      data: { content: repaired as object },
+    }).catch(() => {});
+    return {
+      brief: repaired,
+      updatedAt: existing.updatedAt,
+    };
+  }
 
   return {
     brief: normalized,
@@ -381,22 +392,19 @@ export async function updateDailyBriefSection(
   value: DailyBriefRecipe | DailyBriefPlay | DailyBriefStory | DailyBriefDevelopment
 ) {
   const today = toDateKey();
-  const existing = await prisma.dailyBrief.findUnique({
-    where: { userId_date: { userId, date: today } },
-  });
-
-  if (!existing) {
-    await getOrCreateDailyBrief(userId);
-  }
+  await ensureTodayBriefRecord(userId);
 
   const brief = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
   });
 
-  let content = withRotationCount(
+  const defaults = await loadDefaultBriefForUser(userId);
+  const baseContent = repairBriefContent(
     normalizeBriefContent(brief!.content as unknown as DailyBriefContent),
-    section
+    defaults
   );
+
+  let content = withRotationCount(baseContent, section);
   if (section === "recipe") content.recipe = value as DailyBriefRecipe;
   if (section === "play") content.play = value as DailyBriefPlay;
   if (section === "story") {
@@ -412,6 +420,8 @@ export async function updateDailyBriefSection(
     else content.development.unshift(lang);
   }
 
+  content = repairBriefContent(normalizeBriefContent(content), defaults);
+
   await prisma.dailyBrief.update({
     where: { userId_date: { userId, date: today } },
     data: { content: content as object },
@@ -422,10 +432,23 @@ export async function updateDailyBriefSection(
     select: { content: true, updatedAt: true },
   });
 
+  const saved = repairBriefContent(
+    normalizeBriefContent(fresh!.content as unknown as DailyBriefContent),
+    defaults
+  );
+
   return {
-    brief: normalizeBriefContent(fresh!.content as unknown as DailyBriefContent),
+    brief: saved,
     updatedAt: fresh!.updatedAt,
   };
+}
+
+async function loadDefaultBriefForUser(userId: string): Promise<DailyBriefContent> {
+  const [profile, weeklyFocusResult] = await Promise.all([
+    fetchRotateProfile(userId),
+    getWeeklyFocusFast(userId),
+  ]);
+  return normalizeBriefContent(defaultDailyBrief(profile, weeklyFocusResult.focus));
 }
 
 async function ensureTodayBriefRecord(userId: string) {
@@ -433,30 +456,26 @@ async function ensureTodayBriefRecord(userId: string) {
   let brief = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
   });
-  if (brief) return brief;
 
-  const [profile, weeklyFocusResult] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        childNickname: true,
-        childAge: true,
-        childBirthday: true,
-        parentingGoals: true,
-        priorityGoal: true,
-      },
-    }),
-    getWeeklyFocusFast(userId),
-  ]);
+  const defaults = await loadDefaultBriefForUser(userId);
 
-  const fallback = normalizeBriefContent(
-    defaultDailyBrief((profile ?? {}) as BriefProfile, weeklyFocusResult.focus)
-  );
+  if (brief) {
+    const content = repairBriefContent(
+      normalizeBriefContent(brief.content as unknown as DailyBriefContent),
+      defaults
+    );
+    if (!isValidBriefContent(normalizeBriefContent(brief.content as unknown as DailyBriefContent))) {
+      await prisma.dailyBrief.update({
+        where: { userId_date: { userId, date: today } },
+        data: { content: content as object },
+      });
+    }
+    return brief;
+  }
 
   try {
     await prisma.dailyBrief.create({
-      data: { userId, date: today, content: fallback as object },
+      data: { userId, date: today, content: defaults as object },
     });
   } catch {
     // Another request created today's brief first.

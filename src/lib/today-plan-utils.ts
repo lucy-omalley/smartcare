@@ -77,6 +77,41 @@ export function normalizeBriefContent(brief: DailyBriefContent): DailyBriefConte
   return normalized;
 }
 
+/** Fill in missing plan sections so meal / activity / story cards always render. */
+export function repairBriefContent(
+  brief: DailyBriefContent,
+  defaults: DailyBriefContent
+): DailyBriefContent {
+  const valid = !!(
+    brief?.recipe?.subtitle &&
+    brief?.play?.title &&
+    brief?.bedtimeStory?.title
+  );
+  if (valid) return normalizeBriefContent(brief);
+
+  const repaired = normalizeBriefContent({
+    ...defaults,
+    ...brief,
+    recipe: brief.recipe?.subtitle
+      ? { ...defaults.recipe, ...brief.recipe }
+      : defaults.recipe,
+    play: brief.play?.title ? { ...defaults.play, ...brief.play } : defaults.play,
+    bedtimeStory: brief.bedtimeStory?.title
+      ? { ...defaults.bedtimeStory, ...brief.bedtimeStory }
+      : defaults.bedtimeStory,
+    development: brief.development?.length ? brief.development : defaults.development,
+    weeklyFocus: brief.weeklyFocus ?? defaults.weeklyFocus,
+    todayFocus: brief.todayFocus ?? defaults.todayFocus,
+    tip: brief.tip ?? defaults.tip,
+    encouragement: brief.encouragement ?? defaults.encouragement,
+    greeting: brief.greeting ?? defaults.greeting,
+    childAgeDisplay: brief.childAgeDisplay ?? defaults.childAgeDisplay,
+    _rotationCounts: brief._rotationCounts ?? defaults._rotationCounts,
+  });
+
+  return isValidBriefContent(repaired) ? repaired : defaults;
+}
+
 export function isValidBriefContent(brief: DailyBriefContent | null | undefined): brief is DailyBriefContent {
   return !!(
     brief?.recipe?.subtitle &&
