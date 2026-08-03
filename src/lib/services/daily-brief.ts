@@ -3,10 +3,6 @@ import {
   defaultDailyBrief,
   generateDailyBrief,
   generateWeeklyFocus,
-  regeneratePlay,
-  regenerateRecipe,
-  regenerateStory,
-  regenerateLanguage,
   type TodayPlanContext,
 } from "@/lib/services/mumbot";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
@@ -35,10 +31,6 @@ import {
   isSamePlay,
   isSameRecipe,
   isSameStory,
-  normalizeRotatedLanguage,
-  normalizeRotatedPlay,
-  normalizeRotatedRecipe,
-  normalizeRotatedStory,
   pickAlternatePlay,
   pickAlternateRecipe,
   pickAlternateStory,
@@ -441,14 +433,33 @@ async function ensureTodayBriefRecord(userId: string) {
   let brief = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
   });
-
   if (brief) return brief;
 
-  const pending = inflightBriefGeneration.get(userId);
-  if (pending) {
-    await pending.catch(() => {});
-  } else {
-    await getOrCreateDailyBrief(userId);
+  const [profile, weeklyFocusResult] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        childNickname: true,
+        childAge: true,
+        childBirthday: true,
+        parentingGoals: true,
+        priorityGoal: true,
+      },
+    }),
+    getWeeklyFocusFast(userId),
+  ]);
+
+  const fallback = normalizeBriefContent(
+    defaultDailyBrief((profile ?? {}) as BriefProfile, weeklyFocusResult.focus)
+  );
+
+  try {
+    await prisma.dailyBrief.create({
+      data: { userId, date: today, content: fallback as object },
+    });
+  } catch {
+    // Another request created today's brief first.
   }
 
   brief = await prisma.dailyBrief.findUnique({
@@ -456,14 +467,75 @@ async function ensureTodayBriefRecord(userId: string) {
   });
 
   if (!brief) {
-    throw new Error("Today's brief could not be loaded");
+    throw new Error("Today's plan is still loading. Please try again in a moment.");
   }
 
   return brief;
 }
 
-const ROTATE_ATTEMPTS = 3;
+const ROTATE_PROFILE_SELECT = {
+  name: true,
+  childNickname: true,
+  childAge: true,
+  childBirthday: true,
+} as const;
 
+async function fetchRotateProfile(userId: string): Promise<BriefProfile> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: ROTATE_PROFILE_SELECT,
+  });
+  return (user ?? {}) as BriefProfile;
+}
+
+function pickNextRecipe(
+  current: DailyBriefRecipe,
+  profile: BriefProfile,
+  rotationIndex: number
+): DailyBriefRecipe {
+  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+    const candidate = pickAlternateRecipe(profile, current, i);
+    if (!isSameRecipe(candidate, current)) return candidate;
+  }
+  return pickAlternateRecipe(profile, current, rotationIndex + 1);
+}
+
+function pickNextPlay(
+  current: DailyBriefPlay,
+  profile: BriefProfile,
+  rotationIndex: number
+): DailyBriefPlay {
+  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+    const candidate = pickAlternatePlay(profile, current, i);
+    if (!isSamePlay(candidate, current)) return candidate;
+  }
+  return pickAlternatePlay(profile, current, rotationIndex + 1);
+}
+
+function pickNextStory(
+  current: DailyBriefStory,
+  profile: BriefProfile,
+  rotationIndex: number
+): DailyBriefStory {
+  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+    const candidate = pickAlternateStory(profile, current, i);
+    if (!isSameStory(candidate, current)) return candidate;
+  }
+  return pickAlternateStory(profile, current, rotationIndex + 1);
+}
+
+function pickNextLanguage(
+  current: DailyBriefDevelopment,
+  rotationIndex: number
+): DailyBriefDevelopment {
+  for (let i = rotationIndex; i < rotationIndex + 10; i++) {
+    const candidate = pickAlternateLanguage(current, i);
+    if (!isSameLanguage(candidate, current)) return candidate;
+  }
+  return pickAlternateLanguage(current, rotationIndex + 1);
+}
+
+/** Fast Try another — instant alternate suggestion, no AI wait. */
 export async function regenerateDailyBriefSection(
   userId: string,
   section: RotateSection
@@ -472,44 +544,10 @@ export async function regenerateDailyBriefSection(
   const content = normalizeBriefContent(brief.content as unknown as DailyBriefContent);
   const beforeSnapshot = sectionSnapshot(content, section);
   const rotationIndex = getRotationCount(content, section) + 1;
-  const { profile, memories, weeklyFocus, memorySignals } = await fetchRotateContext(userId);
-  const weather =
-    section === "play" && profile.location
-      ? await fetchWeatherForLocation(profile.location)
-      : null;
-
-  const planContext = await buildPlanContext(
-    userId,
-    profile,
-    memories,
-    [],
-    weeklyFocus,
-    memorySignals,
-    weather?.weather ?? null,
-    content.todayFocus
-  );
+  const profile = await fetchRotateProfile(userId);
 
   if (section === "recipe") {
-    const current = content.recipe;
-    let recipe = current;
-
-    for (let attempt = 0; attempt < ROTATE_ATTEMPTS; attempt++) {
-      const raw = await regenerateRecipe(profile, memories, current, planContext, attempt);
-      const candidate = normalizeRotatedRecipe(raw, current);
-      if (!isSameRecipe(candidate, current)) {
-        recipe = candidate;
-        break;
-      }
-      recipe = candidate;
-    }
-
-    if (isSameRecipe(recipe, current)) {
-      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
-        recipe = pickAlternateRecipe(profile, current, i);
-        if (!isSameRecipe(recipe, current)) break;
-      }
-    }
-
+    const recipe = pickNextRecipe(content.recipe, profile, rotationIndex);
     delete recipe.imageData;
     const saved = await updateDailyBriefSection(userId, "recipe", recipe);
     return {
@@ -519,33 +557,7 @@ export async function regenerateDailyBriefSection(
   }
 
   if (section === "play") {
-    const current = content.play;
-    let play = current;
-
-    for (let attempt = 0; attempt < ROTATE_ATTEMPTS; attempt++) {
-      const raw = await regeneratePlay(
-        profile,
-        memories,
-        current,
-        weather?.weather ?? null,
-        planContext,
-        attempt
-      );
-      const candidate = normalizeRotatedPlay(raw, current);
-      if (!isSamePlay(candidate, current)) {
-        play = candidate;
-        break;
-      }
-      play = candidate;
-    }
-
-    if (isSamePlay(play, current)) {
-      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
-        play = pickAlternatePlay(profile, current, i);
-        if (!isSamePlay(play, current)) break;
-      }
-    }
-
+    const play = pickNextPlay(content.play, profile, rotationIndex);
     delete play.imageData;
     const saved = await updateDailyBriefSection(userId, "play", play);
     return {
@@ -555,26 +567,7 @@ export async function regenerateDailyBriefSection(
   }
 
   if (section === "story") {
-    const current = content.bedtimeStory;
-    let story = current;
-
-    for (let attempt = 0; attempt < ROTATE_ATTEMPTS; attempt++) {
-      const raw = await regenerateStory(profile, memories, current, planContext, attempt);
-      const candidate = normalizeRotatedStory(raw, current);
-      if (!isSameStory(candidate, current)) {
-        story = candidate;
-        break;
-      }
-      story = candidate;
-    }
-
-    if (isSameStory(story, current)) {
-      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
-        story = pickAlternateStory(profile, current, i);
-        if (!isSameStory(story, current)) break;
-      }
-    }
-
+    const story = pickNextStory(content.bedtimeStory, profile, rotationIndex);
     delete story.illustrationData;
     const saved = await updateDailyBriefSection(userId, "story", story);
     return {
@@ -586,26 +579,7 @@ export async function regenerateDailyBriefSection(
   const languageItem =
     content.development.find((d) => /language|speech/i.test(d.domain)) ??
     content.development[0];
-  const currentLanguage = languageItem;
-  let language = currentLanguage;
-
-  for (let attempt = 0; attempt < ROTATE_ATTEMPTS; attempt++) {
-    const raw = await regenerateLanguage(profile, memories, currentLanguage, planContext, attempt);
-    const candidate = normalizeRotatedLanguage(raw, currentLanguage);
-    if (!isSameLanguage(candidate, currentLanguage)) {
-      language = candidate;
-      break;
-    }
-    language = candidate;
-  }
-
-  if (isSameLanguage(language, currentLanguage)) {
-    for (let i = rotationIndex; i < rotationIndex + 6; i++) {
-      language = pickAlternateLanguage(currentLanguage, i);
-      if (!isSameLanguage(language, currentLanguage)) break;
-    }
-  }
-
+  const language = pickNextLanguage(languageItem, rotationIndex);
   const saved = await updateDailyBriefSection(userId, "language", language);
   return {
     ...saved,

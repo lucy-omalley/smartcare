@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const SECTIONS = new Set(["recipe", "play", "story", "language"]);
 
-/** Fast Try another — regenerates one Today plan section only. */
+/** Instant Try another — swaps in a curated alternate (no AI wait). */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -26,6 +26,13 @@ export async function POST(request: Request) {
       session.user.id,
       section as "recipe" | "play" | "story" | "language"
     );
+
+    if (!changed) {
+      return NextResponse.json(
+        { error: "Could not swap to a different suggestion. Please try again." },
+        { status: 409 }
+      );
+    }
 
     if (section === "story") {
       warmTodayStoryAudio(session.user.id);
