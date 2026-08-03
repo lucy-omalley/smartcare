@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DailyBriefPlay } from '@/types/daily-brief';
 import { VisualCardHero } from '@/components/visual/visual-card-hero';
+import { ExpandableStepList } from '@/components/today/expandable-step-list';
 import { toast } from 'sonner';
 
 interface PlayCardProps {
@@ -70,12 +71,12 @@ export function PlayCard({ play, onRegenerate, loading, imagesLoading }: PlayCar
                 {play.materials.map((m) => <li key={m}>• {m}</li>)}
               </ul>
             </div>
-            <div>
-              <p className="font-medium mb-1">Steps</p>
-              <ol className="text-muted-foreground space-y-1">
-                {play.instructions.map((step, i) => <li key={i}>{i + 1}. {step}</li>)}
-              </ol>
-            </div>
+            <ExpandableStepList
+              steps={play.instructions}
+              detailedSteps={play.detailedInstructions}
+              quickLabel="Quick steps"
+              fullLabel="Full activity guide"
+            />
           </div>
         )}
         <Button size="sm" variant="outline" className="w-full rounded-full touch-target" disabled={!!loading || regenerating} onClick={handleRegenerate}>
