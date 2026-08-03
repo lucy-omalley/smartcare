@@ -1,9 +1,6 @@
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
-import {
-  getDevelopmentStage,
-  parseChildAgeMonths,
-} from "@/lib/services/today-recommendation-engine";
+import { getDevelopmentStage, parseChildAgeMonths } from "@/lib/child-development";
 import type {
   DailyBriefDevelopment,
   DailyBriefPlay,
