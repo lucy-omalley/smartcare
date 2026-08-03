@@ -42,6 +42,11 @@ import {
   pickAlternatePlay,
   pickAlternateRecipe,
   pickAlternateStory,
+  pickAlternateLanguage,
+  getRotationCount,
+  withRotationCount,
+  sectionSnapshot,
+  type RotateSection,
 } from "@/lib/services/today-rotate";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
 
@@ -52,14 +57,25 @@ const inflightBriefGeneration = new Map<string, Promise<DailyBriefContent>>();
 
 /** Return today's cached brief from DB only — no AI generation. */
 export async function getCachedDailyBrief(userId: string): Promise<DailyBriefContent | null> {
+  const cached = await getCachedDailyBriefWithMeta(userId);
+  return cached?.brief ?? null;
+}
+
+export async function getCachedDailyBriefWithMeta(userId: string) {
   const today = toDateKey();
   const existing = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
+    select: { content: true, updatedAt: true },
   });
   if (!existing) return null;
 
   const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
-  return isValidBriefContent(normalized) ? normalized : null;
+  if (!isValidBriefContent(normalized)) return null;
+
+  return {
+    brief: normalized,
+    updatedAt: existing.updatedAt,
+  };
 }
 
 /** Start AI generation once per user if today's brief is missing. */
@@ -385,7 +401,10 @@ export async function updateDailyBriefSection(
     where: { userId_date: { userId, date: today } },
   });
 
-  const content = normalizeBriefContent(brief!.content as unknown as DailyBriefContent);
+  let content = withRotationCount(
+    normalizeBriefContent(brief!.content as unknown as DailyBriefContent),
+    section
+  );
   if (section === "recipe") content.recipe = value as DailyBriefRecipe;
   if (section === "play") content.play = value as DailyBriefPlay;
   if (section === "story") {
@@ -406,7 +425,15 @@ export async function updateDailyBriefSection(
     data: { content: content as object },
   });
 
-  return content;
+  const fresh = await prisma.dailyBrief.findUnique({
+    where: { userId_date: { userId, date: today } },
+    select: { content: true, updatedAt: true },
+  });
+
+  return {
+    brief: normalizeBriefContent(fresh!.content as unknown as DailyBriefContent),
+    updatedAt: fresh!.updatedAt,
+  };
 }
 
 async function ensureTodayBriefRecord(userId: string) {
@@ -439,10 +466,12 @@ const ROTATE_ATTEMPTS = 3;
 
 export async function regenerateDailyBriefSection(
   userId: string,
-  section: "recipe" | "play" | "story" | "language"
+  section: RotateSection
 ) {
   const brief = await ensureTodayBriefRecord(userId);
   const content = normalizeBriefContent(brief.content as unknown as DailyBriefContent);
+  const beforeSnapshot = sectionSnapshot(content, section);
+  const rotationIndex = getRotationCount(content, section) + 1;
   const { profile, memories, weeklyFocus, memorySignals } = await fetchRotateContext(userId);
   const weather =
     section === "play" && profile.location
@@ -475,11 +504,18 @@ export async function regenerateDailyBriefSection(
     }
 
     if (isSameRecipe(recipe, current)) {
-      recipe = pickAlternateRecipe(profile, current);
+      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
+        recipe = pickAlternateRecipe(profile, current, i);
+        if (!isSameRecipe(recipe, current)) break;
+      }
     }
 
     delete recipe.imageData;
-    return updateDailyBriefSection(userId, "recipe", recipe);
+    const saved = await updateDailyBriefSection(userId, "recipe", recipe);
+    return {
+      ...saved,
+      changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
+    };
   }
 
   if (section === "play") {
@@ -504,11 +540,18 @@ export async function regenerateDailyBriefSection(
     }
 
     if (isSamePlay(play, current)) {
-      play = pickAlternatePlay(profile, current);
+      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
+        play = pickAlternatePlay(profile, current, i);
+        if (!isSamePlay(play, current)) break;
+      }
     }
 
     delete play.imageData;
-    return updateDailyBriefSection(userId, "play", play);
+    const saved = await updateDailyBriefSection(userId, "play", play);
+    return {
+      ...saved,
+      changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
+    };
   }
 
   if (section === "story") {
@@ -526,11 +569,18 @@ export async function regenerateDailyBriefSection(
     }
 
     if (isSameStory(story, current)) {
-      story = pickAlternateStory(profile, current);
+      for (let i = rotationIndex; i < rotationIndex + 6; i++) {
+        story = pickAlternateStory(profile, current, i);
+        if (!isSameStory(story, current)) break;
+      }
     }
 
     delete story.illustrationData;
-    return updateDailyBriefSection(userId, "story", story);
+    const saved = await updateDailyBriefSection(userId, "story", story);
+    return {
+      ...saved,
+      changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
+    };
   }
 
   const languageItem =
@@ -549,7 +599,18 @@ export async function regenerateDailyBriefSection(
     language = candidate;
   }
 
-  return updateDailyBriefSection(userId, "language", language);
+  if (isSameLanguage(language, currentLanguage)) {
+    for (let i = rotationIndex; i < rotationIndex + 6; i++) {
+      language = pickAlternateLanguage(currentLanguage, i);
+      if (!isSameLanguage(language, currentLanguage)) break;
+    }
+  }
+
+  const saved = await updateDailyBriefSection(userId, "language", language);
+  return {
+    ...saved,
+    changed: sectionSnapshot(saved.brief, section) !== beforeSnapshot,
+  };
 }
 
 export async function getYesterdayJournalMemory(userId: string) {

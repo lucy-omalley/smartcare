@@ -116,6 +116,8 @@ export interface DailyBriefContent {
   encouragement: string;
   bedtimeStory: DailyBriefStory;
   weatherNote?: string;
+  /** Internal counter used to cycle Try another suggestions. */
+  _rotationCounts?: Partial<Record<"recipe" | "play" | "story" | "language", number>>;
 }
 
 export interface LibraryRecommendation {
