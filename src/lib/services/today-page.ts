@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
 import {
   getCachedDailyBrief,
+  getCachedDailyBriefWithMeta,
   ensureTodayPlanGenerating,
   getWeeklyFocusFast,
 } from "@/lib/services/daily-brief";
@@ -17,8 +18,8 @@ import type { DailyBriefContent } from "@/types/daily-brief";
 
 /** Minimal data for the Today dashboard — cached brief first, fallback while AI generates. */
 export async function getTodayPageData(userId: string) {
-  const [cachedBrief, profile, weeklyFocusResult] = await Promise.all([
-    getCachedDailyBrief(userId),
+  const [cached, profile, weeklyFocusResult] = await Promise.all([
+    getCachedDailyBriefWithMeta(userId),
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -36,11 +37,12 @@ export async function getTodayPageData(userId: string) {
 
   const profileOut = enrichProfileWithChildAge(profile) ?? { name: "there" };
 
-  if (cachedBrief) {
+  if (cached) {
     return {
-      brief: cachedBrief,
+      brief: cached.brief,
       profile: profileOut,
       generating: false,
+      briefUpdatedAt: cached.updatedAt.toISOString(),
     };
   }
 
@@ -54,6 +56,7 @@ export async function getTodayPageData(userId: string) {
     brief: fallback,
     profile: profileOut,
     generating: true,
+    briefUpdatedAt: null,
   };
 }
 

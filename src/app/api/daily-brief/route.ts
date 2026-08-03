@@ -75,23 +75,23 @@ export async function PATCH(request: Request) {
     }
 
     if (action === "regenerate-recipe") {
-      const brief = await regenerateDailyBriefSection(session.user.id, "recipe");
+      const { brief } = await regenerateDailyBriefSection(session.user.id, "recipe");
       return NextResponse.json({ brief });
     }
 
     if (action === "regenerate-play") {
-      const brief = await regenerateDailyBriefSection(session.user.id, "play");
+      const { brief } = await regenerateDailyBriefSection(session.user.id, "play");
       return NextResponse.json({ brief });
     }
 
     if (action === "regenerate-story") {
-      const brief = await regenerateDailyBriefSection(session.user.id, "story");
+      const { brief } = await regenerateDailyBriefSection(session.user.id, "story");
       warmTodayStoryAudio(session.user.id);
       return NextResponse.json({ brief });
     }
 
     if (action === "regenerate-language") {
-      const brief = await regenerateDailyBriefSection(session.user.id, "language");
+      const { brief } = await regenerateDailyBriefSection(session.user.id, "language");
       return NextResponse.json({ brief });
     }
 

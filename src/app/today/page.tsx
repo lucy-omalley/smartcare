@@ -26,6 +26,7 @@ import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
 import { truncateWords } from '@/lib/today-focus';
 import { languageFromDevelopment, isValidBriefContent } from '@/lib/today-plan-utils';
+import { sectionSnapshot } from '@/lib/services/today-rotate';
 import { consumeTodayPlanStale } from '@/lib/today-plan-stale';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
@@ -88,6 +89,8 @@ export default function TodayPage() {
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
   const [rotating, setRotating] = useState<RotateSection | null>(null);
   const rotatingRef = useRef(false);
+  const lastRotateAtRef = useRef(0);
+  const lastBriefUpdatedAtRef = useRef<string | null>(null);
 
   const loadConnectData = useCallback(() => {
     return Promise.all([
@@ -119,6 +122,7 @@ export default function TodayPage() {
           brief: DailyBriefContent;
           profile: TodayData['profile'];
           generating?: boolean;
+          briefUpdatedAt?: string | null;
           error?: string;
         }>(r);
         if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
@@ -136,6 +140,21 @@ export default function TodayPage() {
           }
           if (
             options?.silent &&
+            Date.now() - lastRotateAtRef.current < 20000
+          ) {
+            return prev;
+          }
+          if (
+            options?.silent &&
+            briefData.briefUpdatedAt &&
+            lastBriefUpdatedAtRef.current &&
+            new Date(briefData.briefUpdatedAt).getTime() <
+              new Date(lastBriefUpdatedAtRef.current).getTime()
+          ) {
+            return prev;
+          }
+          if (
+            options?.silent &&
             briefData.generating &&
             prev?.brief &&
             isValidBriefContent(prev.brief)
@@ -145,6 +164,9 @@ export default function TodayPage() {
               profile: briefData.profile,
               generating: true,
             };
+          }
+          if (briefData.briefUpdatedAt) {
+            lastBriefUpdatedAtRef.current = briefData.briefUpdatedAt;
           }
           return {
             brief: briefData.brief,
@@ -300,18 +322,34 @@ export default function TodayPage() {
     rotatingRef.current = true;
     trackEvent('today_refresh_clicked', { section });
     const toastId = toast.loading('Finding another idea…');
+    const beforeSnapshot = data?.brief ? sectionSnapshot(data.brief, section) : '';
     try {
       const res = await fetch('/api/today/rotate', {
         method: 'POST',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section }),
       });
       if (!res.ok) throw new Error('Request failed');
-      const json = await res.json();
-      if (json.brief) {
-        setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
-        setGeneratingPlan(false);
+      const json = await parseApiJson<{
+        brief: DailyBriefContent;
+        changed?: boolean;
+        updatedAt?: string;
+      }>(res);
+      const afterSnapshot = json.brief ? sectionSnapshot(json.brief, section) : '';
+      const changed = json.changed ?? beforeSnapshot !== afterSnapshot;
+
+      if (!json.brief || !changed) {
+        toast.error('Could not find a different suggestion. Please try again.', { id: toastId });
+        return;
       }
+
+      lastRotateAtRef.current = Date.now();
+      if (json.updatedAt) {
+        lastBriefUpdatedAtRef.current = json.updatedAt;
+      }
+      setData((prev) => (prev ? { ...prev, brief: json.brief } : prev));
+      setGeneratingPlan(false);
       if (section === 'recipe') {
         trackEvent('meal_rotated', { title: json.brief?.recipe?.subtitle });
         invalidateTodayRecipeIllustrationCache();

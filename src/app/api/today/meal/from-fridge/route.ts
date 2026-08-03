@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     });
     delete recipe.imageData;
 
-    const brief = await updateDailyBriefSection(session.user.id, "recipe", recipe);
+    const { brief } = await updateDailyBriefSection(session.user.id, "recipe", recipe);
     warmTodayRecipeIllustration(session.user.id);
 
     return NextResponse.json({ brief, recipe });
