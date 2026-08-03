@@ -82,13 +82,11 @@ export default function TodayPage() {
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
-  const [connectLoading, setConnectLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
   const [rotating, setRotating] = useState<RotateSection | null>(null);
 
   const loadConnectData = useCallback(() => {
-    setConnectLoading(true);
     return Promise.all([
       fetch('/api/connect/status')
         .then(async (r) => (r.ok ? parseApiJson<{ statuses: unknown[] }>(r) : { statuses: [] }))
@@ -107,8 +105,7 @@ export default function TodayPage() {
               }
             : prev
         );
-      })
-      .finally(() => setConnectLoading(false));
+      });
   }, []);
 
   const loadToday = useCallback((options?: { silent?: boolean }) => {
