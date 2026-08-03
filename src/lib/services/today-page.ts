@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
-import { getOrCreateDailyBrief } from "@/lib/services/daily-brief";
+import {
+  getCachedDailyBrief,
+  ensureTodayPlanGenerating,
+  getWeeklyFocusFast,
+} from "@/lib/services/daily-brief";
+import { defaultDailyBrief } from "@/lib/services/mumbot";
+import { normalizeBriefContent } from "@/lib/today-plan-utils";
+import type { BriefProfile } from "@/lib/daily-brief-context";
 import { recipeIllustrationPrompt } from "@/lib/illustration-prompts";
 import { generateCardIllustration } from "@/lib/services/card-illustrations";
 import { getTodayBriefStory } from "@/lib/services/story-audio-cache";
@@ -8,10 +15,10 @@ import { generateStoryIllustration } from "@/lib/services/story-media";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
 import type { DailyBriefContent } from "@/types/daily-brief";
 
-/** Minimal data for the Today dashboard — avoids meetups, weather, and other home-only queries. */
+/** Minimal data for the Today dashboard — cached brief first, fallback while AI generates. */
 export async function getTodayPageData(userId: string) {
-  const [brief, profile] = await Promise.all([
-    getOrCreateDailyBrief(userId),
+  const [cachedBrief, profile, weeklyFocusResult] = await Promise.all([
+    getCachedDailyBrief(userId),
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -24,11 +31,29 @@ export async function getTodayPageData(userId: string) {
         currentChallenges: true,
       },
     }),
+    getWeeklyFocusFast(userId),
   ]);
 
+  const profileOut = enrichProfileWithChildAge(profile) ?? { name: "there" };
+
+  if (cachedBrief) {
+    return {
+      brief: cachedBrief,
+      profile: profileOut,
+      generating: false,
+    };
+  }
+
+  ensureTodayPlanGenerating(userId);
+
+  const fallback = normalizeBriefContent(
+    defaultDailyBrief(profileOut as BriefProfile, weeklyFocusResult.focus)
+  );
+
   return {
-    brief,
-    profile: enrichProfileWithChildAge(profile) ?? { name: "there" },
+    brief: fallback,
+    profile: profileOut,
+    generating: true,
   };
 }
 

@@ -18,9 +18,9 @@ export async function GET() {
   }
 
   try {
-    const { brief, profile } = await getTodayPageData(session.user.id);
+    const { brief, profile, generating } = await getTodayPageData(session.user.id);
     warmTodayStoryAudio(session.user.id);
-    return NextResponse.json({ brief, profile });
+    return NextResponse.json({ brief, profile, generating: generating ?? false });
   } catch (error) {
     console.error("Today GET error:", error);
     try {
@@ -39,6 +39,7 @@ export async function GET() {
       return NextResponse.json({
         brief,
         profile: user ?? { name: "there" },
+        generating: false,
         fallback: true,
       });
     } catch (fallbackError) {
