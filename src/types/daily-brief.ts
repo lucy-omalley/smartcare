@@ -11,6 +11,8 @@ export interface DailyBriefRecipe {
   whyThisMeal: string;
   ingredients: string[];
   steps: string[];
+  /** Optional 6–8 step full guide; quick `steps` stay short for scanning. */
+  detailedSteps?: string[];
   imageData?: string;
   difficulty?: "Easy" | "Medium";
   nutritionalHighlights?: string[];
@@ -24,6 +26,8 @@ export interface DailyBriefPlay {
   title: string;
   materials: string[];
   instructions: string[];
+  /** Optional extended play guide with setup, variations, and wrap-up. */
+  detailedInstructions?: string[];
   skillsDeveloped: string[];
   durationMinutes: number;
   indoorOutdoor: "indoor" | "outdoor" | "either";

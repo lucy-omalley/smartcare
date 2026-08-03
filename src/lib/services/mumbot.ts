@@ -265,12 +265,14 @@ const DAILY_BRIEF_JSON_SCHEMA = `Return JSON with this exact structure:
     "healthyAlternative": "Simple swap if child refuses",
     "whyThisMeal": "Recommended because... (personalised reason)",
     "ingredients": ["item1", "item2"],
-    "steps": ["step1", "step2"]
+    "steps": ["3-4 quick summary steps"],
+    "detailedSteps": ["6-8 full step-by-step instructions with prep, cooking, serving, and child-involvement tips"]
   },
   "play": {
     "title": "Activity name",
     "materials": ["item1"],
-    "instructions": ["step1"],
+    "instructions": ["3-4 quick summary steps"],
+    "detailedInstructions": ["6-8 full guide with setup, play, extensions, and wrap-up"],
     "skillsDeveloped": ["Fine motor", "Language"],
     "durationMinutes": 20,
     "indoorOutdoor": "indoor" | "outdoor" | "either",
@@ -318,8 +320,8 @@ const BRIEF_TONE_RULES = `Rules:
 - Reduce anxiety, celebrate small wins, be warm and practical
 - Personalise using family context (age, goals, memories, allergies if mentioned)
 - EVERY recommendation needs a "reason" or "whyThisMeal" starting with "Recommended because..."
-- Recipe: consider picky eating, quick prep (~15-30 min default)
-- Play: age-appropriate, clear materials and steps; match indoorOutdoor to today's weather when provided
+- Recipe: consider picky eating, quick prep (~15-30 min default); steps = 3-4 quick overview, detailedSteps = 6-8 full guide
+- Play: age-appropriate, clear materials and steps; instructions = 3-4 quick overview, detailedInstructions = 6-8 full guide; match indoorOutdoor to today's weather when provided
 - Language: natural speech support with words, conversation starters, and a mini game
 - Milestone: one age-appropriate domain from Speech, Social, Emotional, Fine Motor, Gross Motor, Cognitive, Independence
 - Bedtime story: child nickname as hero if provided; use favourite things from memories when available
@@ -364,11 +366,30 @@ export function defaultDailyBrief(profile: BriefProfile, weeklyFocus?: WeeklyFoc
       whyThisMeal: "Recommended because a familiar pasta base with finely chopped vegetables is gentle for picky eaters.",
       ingredients: ["Pasta", "Cherry tomatoes", "Peas", "Olive oil", "Cheese"],
       steps: ["Cook pasta.", "Sauté chopped veg until soft.", "Mix together and serve warm."],
+      detailedSteps: [
+        "Fill a pot with water, add a pinch of salt, and bring to a boil.",
+        "Add pasta and cook until soft — usually 1–2 minutes longer than packet time for young eaters.",
+        "While pasta cooks, halve cherry tomatoes and warm peas in a pan with a little olive oil.",
+        "Drain pasta, reserving a splash of cooking water.",
+        "Toss pasta with vegetables and a drizzle of olive oil; add cooking water if needed for a silky texture.",
+        "Let your child sprinkle cheese on their own portion.",
+        "Serve warm at a safe temperature and eat together at the table.",
+        "Store leftovers in the fridge for up to 2 days.",
+      ],
     },
     play: {
       title: "Colour Treasure Hunt",
       materials: ["Coloured paper or toys", "A small basket"],
       instructions: ["Hide colourful items around one room.", "Give your child a colour to find.", "Celebrate each discovery together."],
+      detailedInstructions: [
+        "Choose 5–8 small items in clear colours (red, blue, yellow, green).",
+        "Hide them at your child's eye level in one safe room.",
+        "Explain the game: 'Can you find something red?'",
+        "Give one colour at a time and wait for them to search.",
+        "When they find an item, name the colour together and place it in the basket.",
+        "Try a second round with new hiding spots or let your child hide items for you.",
+        "End with a high-five and put toys away together.",
+      ],
       skillsDeveloped: ["Colour recognition", "Gross motor", "Turn-taking"],
       durationMinutes: 20,
       indoorOutdoor: "indoor",
@@ -506,12 +527,12 @@ export async function regenerateRecipe(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional", "healthyAlternative": "optional" }. whyThisMeal must start with "Recommended because". Keep steps short (3-4). Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
+        content: `Generate ONE new personalised recipe as JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "detailedSteps": [], "healthyTip": "optional", "healthyAlternative": "optional" }. whyThisMeal must start with "Recommended because". steps = 3-4 quick summary bullets. detailedSteps = 6-8 fuller instructions (prep, cook, serve, involve child, storage). Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
     temperature: Math.min(0.88 + attempt * 0.06, 1),
-    max_tokens: 550,
+    max_tokens: 800,
     response_format: { type: "json_object" },
   });
 
@@ -546,12 +567,12 @@ export async function generateRecipeFromFridge(
     messages: [
       {
         role: "system",
-        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed.${prefLine}${avoid} Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "healthyTip": "optional" }. Keep steps short (3-4). Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
+        content: `Create ONE child-friendly meal or recipe using these fridge ingredients as the main focus: ${fridgeList}. You may add small pantry staples (oil, salt, herbs) only if needed.${prefLine}${avoid} Return JSON: { "title", "subtitle", "prepTimeMinutes", "whyThisMeal", "ingredients": [], "steps": [], "detailedSteps": [], "healthyTip": "optional" }. steps = 3-4 quick bullets; detailedSteps = 6-8 full guide. Make it practical for a busy parent. ${BRIEF_TONE_RULES}`,
       },
       { role: "user", content: `${context}\n\nAvailable from the fridge: ${fridgeList}${prefLine}` },
     ],
     temperature: 0.85,
-    max_tokens: 650,
+    max_tokens: 750,
     response_format: { type: "json_object" },
   });
 
@@ -565,6 +586,7 @@ export async function generateRecipeFromFridge(
       whyThisMeal: parsed.whyThisMeal,
       ingredients: parsed.ingredients ?? [],
       steps: parsed.steps ?? [],
+      detailedSteps: parsed.detailedSteps,
       healthyTip: parsed.healthyTip,
       fromFridge: true,
     };
@@ -600,12 +622,12 @@ export async function regeneratePlay(
     messages: [
       {
         role: "system",
-        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation", "reason": "Recommended because..." }. Keep instructions to 3-4 short steps. Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
+        content: `Generate ONE new personalised play activity as JSON: { "title", "materials": [], "instructions": [], "detailedInstructions": [], "skillsDeveloped": [], "durationMinutes", "indoorOutdoor", "ageRecommendation", "reason": "Recommended because..." }. instructions = 3-4 quick steps; detailedInstructions = 6-8 full guide (setup, play, extensions, cleanup). Must be clearly different from the current suggestion. ${BRIEF_TONE_RULES}${focusLock}${avoid}${variation}`,
       },
       { role: "user", content: context },
     ],
     temperature: Math.min(0.88 + attempt * 0.06, 1),
-    max_tokens: 550,
+    max_tokens: 800,
     response_format: { type: "json_object" },
   });
 

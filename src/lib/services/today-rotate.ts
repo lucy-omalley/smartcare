@@ -182,6 +182,7 @@ export function normalizeRotatedRecipe(
     whyThisMeal: raw.whyThisMeal?.trim() || fallback.whyThisMeal,
     ingredients: raw.ingredients?.length ? raw.ingredients : fallback.ingredients,
     steps: raw.steps?.length ? raw.steps : fallback.steps,
+    detailedSteps: raw.detailedSteps?.length ? raw.detailedSteps : fallback.detailedSteps,
     imageData: undefined,
     sampleLinks: undefined,
     fromFridge: false,
@@ -199,6 +200,9 @@ export function normalizeRotatedPlay(raw: Partial<DailyBriefPlay>, fallback: Dai
     title: raw.title?.trim() || fallback.title,
     materials: raw.materials?.length ? raw.materials : fallback.materials,
     instructions: raw.instructions?.length ? raw.instructions : fallback.instructions,
+    detailedInstructions: raw.detailedInstructions?.length
+      ? raw.detailedInstructions
+      : fallback.detailedInstructions,
     skillsDeveloped: raw.skillsDeveloped?.length ? raw.skillsDeveloped : fallback.skillsDeveloped,
     durationMinutes: raw.durationMinutes ?? fallback.durationMinutes,
     indoorOutdoor: raw.indoorOutdoor ?? fallback.indoorOutdoor,

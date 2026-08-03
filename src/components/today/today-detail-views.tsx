@@ -19,6 +19,7 @@ import { fetchTodayStoryIllustration, prefetchTodayStoryIllustration, warmTodayS
 import { fetchTodayRecipeIllustration, prefetchTodayRecipeIllustration, warmTodayRecipeIllustration } from '@/lib/recipe-illustration-prefetch';
 import { isGenericRecipeLink } from '@/lib/recipe-link-utils';
 import { StoryListenButton } from '@/components/story/story-listen-button';
+import { ExpandableStepList } from '@/components/today/expandable-step-list';
 
 const MEAL_STYLE_OPTIONS = ['Soup', 'Pasta', 'Rice bowl', 'Salad', 'Stir-fry', 'Sandwich', 'Casserole', 'Smoothie'] as const;
 
@@ -436,14 +437,12 @@ export function MealDetailContent() {
           ))}
         </ul>
       </div>
-      <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Simple steps</p>
-        <ol className="list-decimal pl-4 space-y-2 text-muted-foreground">
-          {recipe.steps.map((step, i) => (
-            <li key={i}>{step}</li>
-          ))}
-        </ol>
-      </div>
+      <ExpandableStepList
+        steps={recipe.steps}
+        detailedSteps={recipe.detailedSteps}
+        quickLabel="Quick steps"
+        fullLabel="Full step-by-step guide"
+      />
     </div>
   );
 }
@@ -538,14 +537,12 @@ export function ActivityDetailView({
           ))}
         </ul>
       </div>
-      <div>
-        <p className="text-xs font-medium uppercase text-muted-foreground mb-2">Steps</p>
-        <ol className="list-decimal pl-4 space-y-2 text-muted-foreground">
-          {play.instructions.map((step, i) => (
-            <li key={i}>{step}</li>
-          ))}
-        </ol>
-      </div>
+      <ExpandableStepList
+        steps={play.instructions}
+        detailedSteps={play.detailedInstructions}
+        quickLabel="Quick steps"
+        fullLabel="Full activity guide"
+      />
       {play.skillsDeveloped?.length > 0 && (
         <div>
           <p className="text-xs font-medium uppercase text-muted-foreground mb-1">Skills supported</p>

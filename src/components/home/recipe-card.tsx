@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Bookmark, ShoppingCart, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import type { DailyBriefRecipe } from '@/types/daily-brief';
 import { VisualCardHero } from '@/components/visual/visual-card-hero';
+import { ExpandableStepList } from '@/components/today/expandable-step-list';
 import { toast } from 'sonner';
 
 interface RecipeCardProps {
@@ -88,11 +89,7 @@ export function RecipeCard({ recipe, onRegenerate, onSave, loading, imagesLoadin
                 <li key={item} className="flex gap-2"><span>•</span>{item}</li>
               ))}
             </ul>
-            <ol className="space-y-2 text-muted-foreground">
-              {recipe.steps.map((step, i) => (
-                <li key={i} className="flex gap-2"><span className="font-medium text-foreground">{i + 1}.</span>{step}</li>
-              ))}
-            </ol>
+            <ExpandableStepList steps={recipe.steps} detailedSteps={recipe.detailedSteps} />
           </div>
         )}
         <div className="grid grid-cols-3 gap-2 pt-1">
