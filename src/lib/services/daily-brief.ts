@@ -497,6 +497,23 @@ const ROTATE_PROFILE_SELECT = {
   childNickname: true,
   childAge: true,
   childBirthday: true,
+  childGender: true,
+  childInterests: true,
+  favouriteToys: true,
+  favouriteThemes: true,
+  favouriteBooks: true,
+  favouriteFoods: true,
+  foodPreferences: true,
+  foodDislikes: true,
+  sleepRoutine: true,
+  personality: true,
+  homeLanguage: true,
+  developmentNotes: true,
+  parentingGoal: true,
+  parentingGoals: true,
+  priorityGoal: true,
+  currentChallenges: true,
+  weeklyFocusTitle: true,
 } as const;
 
 async function fetchRotateProfile(userId: string): Promise<BriefProfile> {
@@ -504,7 +521,7 @@ async function fetchRotateProfile(userId: string): Promise<BriefProfile> {
     where: { id: userId },
     select: ROTATE_PROFILE_SELECT,
   });
-  return (user ?? {}) as BriefProfile;
+  return enrichProfileWithChildAge((user ?? {}) as BriefProfile) ?? ({} as BriefProfile);
 }
 
 function pickNextRecipe(
@@ -545,13 +562,14 @@ function pickNextStory(
 
 function pickNextLanguage(
   current: DailyBriefDevelopment,
-  rotationIndex: number
+  rotationIndex: number,
+  profile: BriefProfile
 ): DailyBriefDevelopment {
   for (let i = rotationIndex; i < rotationIndex + 20; i++) {
-    const candidate = pickAlternateLanguage(current, i);
+    const candidate = pickAlternateLanguage(current, i, profile);
     if (!isSameLanguage(candidate, current)) return candidate;
   }
-  return pickAlternateLanguage(current, rotationIndex + 1);
+  return pickAlternateLanguage(current, rotationIndex + 1, profile);
 }
 
 /** Fast Try another — instant alternate suggestion, no AI wait. */
@@ -598,7 +616,7 @@ export async function regenerateDailyBriefSection(
   const languageItem =
     content.development.find((d) => /language|speech/i.test(d.domain)) ??
     content.development[0];
-  const language = pickNextLanguage(languageItem, rotationIndex);
+  const language = pickNextLanguage(languageItem, rotationIndex, profile);
   const saved = await updateDailyBriefSection(userId, "language", language);
   return {
     ...saved,

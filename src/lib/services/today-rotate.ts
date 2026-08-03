@@ -12,6 +12,18 @@ import {
   RECIPE_ALTERNATES,
   storyAlternates,
 } from "@/lib/services/today-rotate-content";
+import {
+  enrichRotateProfile,
+  personalizeLanguage,
+  personalizePlay,
+  personalizeRecipe,
+  personalizeStory,
+  rankLanguageForProfile,
+  rankPlayForProfile,
+  rankRecipesForProfile,
+  rankStoriesForProfile,
+  type EnrichedRotateProfile,
+} from "@/lib/services/today-rotate-profile";
 
 export type RotateSection = "recipe" | "play" | "story" | "language";
 
@@ -240,22 +252,35 @@ function pickFromPool<T extends { title?: string; subtitle?: string }>(
   return pool[rotationIndex % pool.length]!;
 }
 
+function profilePool<T>(
+  profile: BriefProfile,
+  ranker: (profile: EnrichedRotateProfile, items: T[]) => T[],
+  items: T[]
+): T[] {
+  const enriched = enrichRotateProfile(profile);
+  return ranker(enriched, items);
+}
+
 export function pickAlternateRecipe(
-  _profile: BriefProfile,
+  profile: BriefProfile,
   current: DailyBriefRecipe,
   rotationIndex: number
 ): DailyBriefRecipe {
-  const base = pickFromPool(RECIPE_ALTERNATES, current, (item) => item.subtitle, rotationIndex);
-  return normalizeRotatedRecipe(base, current);
+  const pool = profilePool(profile, rankRecipesForProfile, RECIPE_ALTERNATES);
+  const base = pickFromPool(pool, current, (item) => item.subtitle, rotationIndex);
+  const personalized = personalizeRecipe(base, enrichRotateProfile(profile));
+  return normalizeRotatedRecipe(personalized, current);
 }
 
 export function pickAlternatePlay(
-  _profile: BriefProfile,
+  profile: BriefProfile,
   current: DailyBriefPlay,
   rotationIndex: number
 ): DailyBriefPlay {
-  const base = pickFromPool(PLAY_ALTERNATES, current, (item) => item.title, rotationIndex);
-  return normalizeRotatedPlay(base, current);
+  const pool = profilePool(profile, rankPlayForProfile, PLAY_ALTERNATES);
+  const base = pickFromPool(pool, current, (item) => item.title, rotationIndex);
+  const personalized = personalizePlay(base, enrichRotateProfile(profile));
+  return normalizeRotatedPlay(personalized, current);
 }
 
 export function pickAlternateStory(
@@ -263,20 +288,26 @@ export function pickAlternateStory(
   current: DailyBriefStory,
   rotationIndex: number
 ): DailyBriefStory {
-  const options = storyAlternates(profile);
+  const enriched = enrichRotateProfile(profile);
+  const options = rankStoriesForProfile(enriched, storyAlternates(profile));
   const base = pickFromPool(options, current, (item) => item.title, rotationIndex);
-  return normalizeRotatedStory(base, current);
+  const personalized = personalizeStory(base, enriched);
+  return normalizeRotatedStory(personalized, current);
 }
 
 export function pickAlternateLanguage(
   current: DailyBriefDevelopment,
-  rotationIndex: number
+  rotationIndex: number,
+  profile?: BriefProfile
 ): DailyBriefDevelopment {
+  const enriched = enrichRotateProfile(profile ?? {});
+  const ranked = rankLanguageForProfile(enriched, LANGUAGE_ALTERNATES);
   const currentKey = normalizeKey(current.tryToday);
-  const different = LANGUAGE_ALTERNATES.filter((item) => normalizeKey(item.tryToday) !== currentKey);
-  const pool = different.length > 0 ? different : LANGUAGE_ALTERNATES;
+  const different = ranked.filter((item) => normalizeKey(item.tryToday) !== currentKey);
+  const pool = different.length > 0 ? different : ranked;
   const base = pool[rotationIndex % pool.length]!;
-  return normalizeRotatedLanguage(base, current);
+  const personalized = personalizeLanguage(base, enriched);
+  return normalizeRotatedLanguage(personalized, current);
 }
 
 export function rotateVariationHint(attempt: number): string {
