@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import {
   defaultDailyBrief,
-  generateWeeklyFocus,
   type TodayPlanContext,
 } from "@/lib/services/mumbot";
 import { buildPersonalizedDailyBrief } from "@/lib/services/today-plan-engine";
@@ -114,7 +113,7 @@ function warmWeeklyFocusInBackground(
   memories: { content: string; category: import("@prisma/client").MemoryCategory }[],
   memorySignals: Awaited<ReturnType<typeof gatherAIMemorySignals>>
 ): void {
-  void getOrCreateWeeklyFocus(userId, profile, memories, memorySignals, generateWeeklyFocus).catch(
+  void getOrCreateWeeklyFocus(userId, profile, memories, memorySignals).catch(
     (err) => console.warn("Background weekly focus generation failed:", err)
   );
 }
@@ -382,7 +381,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
 
 export async function refreshUserWeeklyFocus(userId: string) {
   const { profile, memories, memorySignals } = await fetchRotateContext(userId);
-  return refreshWeeklyFocus(userId, profile, memories, memorySignals, generateWeeklyFocus);
+  return refreshWeeklyFocus(userId, profile, memories, memorySignals);
 }
 
 function developmentToLanguageSection(lang: DailyBriefDevelopment): DailyBriefLanguageSection {

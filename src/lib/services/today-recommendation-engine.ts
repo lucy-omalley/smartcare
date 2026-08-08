@@ -13,6 +13,7 @@ import type {
   WeatherInfo,
 } from "@/types/daily-brief";
 import { weatherContextLine } from "@/lib/services/weather";
+import { buildPersonalizedWeeklyFocus } from "@/lib/services/weekly-focus-engine";
 
 export { languageFromDevelopment, normalizeBriefContent };
 
@@ -312,8 +313,7 @@ export async function getOrCreateWeeklyFocus(
   userId: string,
   profile: BriefProfile,
   memories: BriefMemory[],
-  memorySignals: AIMemorySignals,
-  generateFocus: (context: string) => Promise<WeeklyFocus>
+  memorySignals: AIMemorySignals
 ): Promise<WeeklyFocus> {
   const weekStart = getWeekStartKey();
 
@@ -352,9 +352,9 @@ export async function getOrCreateWeeklyFocus(
 
   let focus = DEFAULT_WEEKLY_FOCUS;
   try {
-    focus = await generateFocus(context);
+    focus = await buildPersonalizedWeeklyFocus({ userId, profile, contextSummary: context });
   } catch (error) {
-    console.warn("Weekly focus AI generation failed, using default:", error);
+    console.warn("Weekly focus generation failed, using default:", error);
   }
 
   try {
@@ -377,8 +377,7 @@ export async function refreshWeeklyFocus(
   userId: string,
   profile: BriefProfile,
   memories: BriefMemory[],
-  memorySignals: AIMemorySignals,
-  generateFocus: (context: string) => Promise<WeeklyFocus>
+  memorySignals: AIMemorySignals
 ): Promise<WeeklyFocus> {
   const weekStart = getWeekStartKey();
   const context = buildWeightedRecommendationContext(
@@ -390,7 +389,12 @@ export async function refreshWeeklyFocus(
     null
   );
 
-  const focus = await generateFocus(`${context}\n\nGenerate a NEW weekly focus different from: ${profile.weeklyFocusTitle ?? "previous focus"}.`);
+  const focus = await buildPersonalizedWeeklyFocus({
+    userId,
+    profile,
+    contextSummary: context,
+    excludeTitle: profile.weeklyFocusTitle,
+  });
 
   await prisma.user.update({
     where: { id: userId },

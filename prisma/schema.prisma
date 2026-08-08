@@ -66,6 +66,22 @@ enum SubscriptionPlan {
   FAMILY
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  INCOMPLETE
+}
+
+enum KnowledgeArticleCategory {
+  FAQ
+  GUIDE
+  DEVELOPMENT
+  HEALTH
+  GENERAL
+}
+
 enum KnowledgeTipCategory {
   BEHAVIOUR
   SLEEP
@@ -122,10 +138,14 @@ model User {
   visibilityPreference String @default("public")
   openToConnect      Boolean  @default(true)
   onboardingComplete Boolean  @default(false)
-  planTier           SubscriptionPlan @default(FREE)
-  isAdmin            Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  planTier               SubscriptionPlan @default(FREE)
+  isAdmin                Boolean  @default(false)
+  stripeCustomerId       String?  @unique
+  stripeSubscriptionId   String?  @unique
+  subscriptionStatus     SubscriptionStatus?
+  subscriptionPeriodEnd  DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   accounts            Account[]
   sessions            Session[]
@@ -683,6 +703,56 @@ model KnowledgeTip {
 
   @@index([category])
   @@index([minAgeMonths, maxAgeMonths])
+}
+
+model KnowledgeWeeklyTheme {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  reason       String   @db.Text
+  minAgeMonths Int
+  maxAgeMonths Int
+  domain       String
+  tags         String[] @default([])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([minAgeMonths, maxAgeMonths])
+  @@index([domain])
+}
+
+model KnowledgeArticle {
+  id           String                   @id @default(cuid())
+  slug         String                   @unique
+  title        String
+  category     KnowledgeArticleCategory
+  body         String                   @db.Text
+  summary      String?                  @db.Text
+  minAgeMonths Int                      @default(0)
+  maxAgeMonths Int                      @default(216)
+  tags         String[]                 @default([])
+  published    Boolean                  @default(false)
+  sortOrder    Int                      @default(0)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  @@index([published, sortOrder])
+  @@index([category])
+}
+
+model KnowledgeFaq {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  question  String
+  answer    String   @db.Text
+  category  String   @default("General")
+  sortOrder Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+  @@index([category])
 }
 
 // Semantic cache — DB-backed; swap to Redis via AICacheService without changing callers
