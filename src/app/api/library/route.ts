@@ -2,40 +2,34 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
-import { generateLibraryRecommendations } from "@/lib/services/mumbot";
+import { buildPlanContext, fetchLibraryArticles } from "@/lib/knowledge/repository";
+import { fetchWeatherForLocation } from "@/lib/services/weather";
+import { enrichProfileWithChildAge } from "@/lib/child-age";
+import type { BriefProfile } from "@/lib/daily-brief-context";
 
+/** Parenting library — DB-first, no AI generation */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = session.user.id;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      name: true,
+      childNickname: true,
+      childAge: true,
+      childBirthday: true,
+      parentingGoal: true,
+      location: true,
+    },
+  });
 
-  const [user, memories, recentMessages] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, childNickname: true, childAge: true, parentingGoal: true },
-    }),
-    prisma.familyMemory.findMany({
-      where: { userId },
-      select: { content: true, category: true },
-      orderBy: { createdAt: "desc" },
-      take: 15,
-    }),
-    prisma.message.findMany({
-      where: { conversation: { userId } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: { content: true },
-    }),
-  ]);
+  const profile = enrichProfileWithChildAge((user ?? {}) as BriefProfile) ?? ({} as BriefProfile);
+  const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
+  const ctx = buildPlanContext(profile, weather?.weather ?? null);
+  const recommendations = await fetchLibraryArticles(profile, ctx);
 
-  const recommendations = await generateLibraryRecommendations(
-    user ?? {},
-    memories,
-    recentMessages.map((m) => m.content)
-  );
-
-  return NextResponse.json({ recommendations });
+  return NextResponse.json({ recommendations, source: "knowledge_base" });
 }

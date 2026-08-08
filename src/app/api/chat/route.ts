@@ -6,6 +6,8 @@ import { getOrCreateDailyBrief } from "@/lib/services/daily-brief";
 import { buildTodayPlanContextForMumBot } from "@/lib/services/today-recommendation-engine";
 import { normalizeBriefContent } from "@/lib/today-plan-utils";
 import { getMumBotResponse } from "@/lib/services/mumbot";
+import { assertCanChat, assertCanUseAI, recordChatUsed } from "@/lib/ai/usage";
+import { UsageLimitError } from "@/lib/ai/usage";
 import { trackServerError } from "@/lib/analytics/server-errors";
 import { checkMumBotRateLimit } from "@/lib/rate-limit";
 
@@ -54,6 +56,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: MUMBOT_BREAK_MESSAGE }, { status: 429 });
     }
 
+    try {
+      await assertCanChat(userId);
+      await assertCanUseAI(userId);
+    } catch (err) {
+      if (err instanceof UsageLimitError) {
+        return NextResponse.json({ error: err.message }, { status: 429 });
+      }
+      throw err;
+    }
+
     const [user, memories, todayBrief] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -89,6 +101,8 @@ export async function POST(request: Request) {
       profile: user ?? undefined,
       todayPlanContext,
     });
+
+    await recordChatUsed(userId);
 
     let activeConversationId = conversationId as string | undefined;
 
