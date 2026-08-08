@@ -280,18 +280,79 @@ export async function fetchLibraryArticles(
     where: { active: true, ...ageFilter(0, 216, ctx.ageMonths) },
     take: 6,
   });
+  const articles = await fetchPublishedArticles(profile, ctx, 6);
 
   const fromTips: LibraryRecommendation[] = tips.map((t) => ({
     title: t.title,
     summary: t.content.slice(0, 280),
     relevance: `Matches ${t.category.toLowerCase()} support for your child's age.`,
+    slug: t.slug,
+    type: "tip" as const,
   }));
 
   const fromBooks: LibraryRecommendation[] = books.map((b) => ({
     title: b.title,
     summary: b.summary.slice(0, 280),
     relevance: `Theme: ${b.theme} — suitable for ${profile.childAge ?? "young children"}.`,
+    slug: b.slug,
+    type: "book" as const,
   }));
 
-  return [...fromTips, ...fromBooks].slice(0, 10);
+  const fromArticles: LibraryRecommendation[] = articles.map((a) => ({
+    title: a.title,
+    summary: (a.summary ?? a.body).slice(0, 280),
+    relevance: `${a.category.toLowerCase()} guide for your family.`,
+    slug: a.slug,
+    type: "article" as const,
+  }));
+
+  return [...fromTips, ...fromBooks, ...fromArticles].slice(0, 16);
+}
+
+export async function fetchWeeklyFocusCandidates(profile: BriefProfile, ctx: PlanContext) {
+  const ageWhere = ageFilter(0, 216, ctx.ageMonths);
+  const profileTags = [
+    ...(profile.childInterests ?? []),
+    ...(profile.priorityGoal ? [profile.priorityGoal] : []),
+    ...(profile.parentingGoals ?? []),
+  ];
+
+  const themes = await prisma.knowledgeWeeklyTheme.findMany({
+    where: { active: true, ...ageWhere },
+    take: 30,
+  });
+
+  const rank = <T extends { tags: string[] }>(items: T[]) =>
+    [...items].sort((a, b) => scoreTags(b.tags, profileTags) - scoreTags(a.tags, profileTags));
+
+  return rank(themes).map((t) => ({
+    slug: t.slug,
+    title: t.title,
+    reason: t.reason,
+    domain: t.domain,
+    tags: t.tags,
+  }));
+}
+
+export async function loadWeeklyThemeBySlug(slug: string) {
+  return prisma.knowledgeWeeklyTheme.findUnique({ where: { slug } });
+}
+
+export async function fetchPublishedFaqs() {
+  return prisma.knowledgeFaq.findMany({
+    where: { published: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function fetchPublishedArticles(profile: BriefProfile, ctx: PlanContext, limit = 12) {
+  return prisma.knowledgeArticle.findMany({
+    where: { published: true, ...ageFilter(0, 216, ctx.ageMonths) },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: limit,
+  });
+}
+
+export async function fetchArticleBySlug(slug: string) {
+  return prisma.knowledgeArticle.findFirst({ where: { slug, published: true } });
 }

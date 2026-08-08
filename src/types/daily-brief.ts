@@ -128,4 +128,6 @@ export interface LibraryRecommendation {
   title: string;
   summary: string;
   relevance: string;
+  slug?: string;
+  type?: "tip" | "book" | "article";
 }

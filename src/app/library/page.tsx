@@ -54,9 +54,14 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground px-1">
-          Personalised guidance based on your child&apos;s age, goals, and recent conversations — no searching required.
-        </p>
+        <div className="flex items-center justify-between px-1">
+          <p className="text-sm text-muted-foreground">
+            Personalised guidance based on your child&apos;s age, goals, and recent conversations.
+          </p>
+          <Link href="/library/faq" className="text-sm text-primary shrink-0 ml-2">
+            FAQ
+          </Link>
+        </div>
 
         {recommendations.length === 0 ? (
           <Card className="rounded-2xl">
@@ -75,12 +80,20 @@ export default function LibraryPage() {
                 <p className="text-xs text-primary/80 bg-primary/5 rounded-lg p-2.5">
                   {rec.relevance}
                 </p>
-                <Link href="/mumbot">
-                  <Button variant="outline" size="sm" className="rounded-xl mt-1">
-                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                    Ask MumBot about this
-                  </Button>
-                </Link>
+                {rec.type === 'article' && rec.slug ? (
+                  <Link href={`/library/articles/${rec.slug}`}>
+                    <Button variant="outline" size="sm" className="rounded-xl mt-1">
+                      Read article
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/mumbot">
+                    <Button variant="outline" size="sm" className="rounded-xl mt-1">
+                      <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                      Ask MumBot about this
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ))
