@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db";
 import {
   defaultDailyBrief,
-  generateDailyBrief,
   generateWeeklyFocus,
   type TodayPlanContext,
 } from "@/lib/services/mumbot";
+import { buildPersonalizedDailyBrief } from "@/lib/services/today-plan-engine";
+import { assertCanGenerateTodayPlan, recordTodayPlanGenerated } from "@/lib/ai/usage";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
 import type {
@@ -347,24 +348,22 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
     await fetchBriefContext(userId);
   const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
 
-  const planContext = await buildPlanContext(
-    userId,
-    profile,
-    memories,
-    recentMessages,
-    weeklyFocus,
-    memorySignals,
-    weather?.weather ?? null
-  );
-
   let content: DailyBriefContent;
   try {
-    content = await generateDailyBrief(planContext, profile);
+    await assertCanGenerateTodayPlan(userId);
+    content = await buildPersonalizedDailyBrief({
+      userId,
+      profile,
+      weather: weather?.weather ?? null,
+      weeklyFocus,
+    });
     if (!isValidBriefContent(content)) {
-      throw new Error("AI brief missing required sections");
+      throw new Error("Personalized brief missing required sections");
     }
+    await recordTodayPlanGenerated(userId);
   } catch (error) {
-    console.error("Daily brief AI generation failed, using fallback:", error);
+    if (error instanceof Error && error.name === "UsageLimitError") throw error;
+    console.error("Daily brief generation failed, using fallback:", error);
     content = normalizeBriefContent(defaultDailyBrief(profile, weeklyFocus));
   }
 

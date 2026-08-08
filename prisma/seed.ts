@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import { seedKnowledgeBase } from './seed-knowledge';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('SmartCare V2 seed — no marketplace data needed.');
-  console.log('Database ready for MumBot.');
+  console.log('Seeding Parenfy knowledge base…');
+  await seedKnowledgeBase();
+  console.log('Database ready.');
 }
 
 main()
