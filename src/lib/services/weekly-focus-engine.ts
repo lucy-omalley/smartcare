@@ -2,7 +2,7 @@ import "server-only";
 
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { completeAI } from "@/lib/ai/provider";
-import { logAIRequest } from "@/lib/ai/usage";
+import { logAIRequest, logCachedFeatureUsage } from "@/lib/ai/usage";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import { WEEKLY_FOCUS_COPY_SYSTEM } from "@/lib/ai/prompts";
 import { buildPlanContext, buildSemanticCacheKey, loadWeeklyThemeBySlug } from "@/lib/knowledge/repository";
@@ -31,6 +31,7 @@ export async function buildPersonalizedWeeklyFocus(params: {
 
   const cached = await getCachedAIResponse<{ reason?: string }>(cacheKey);
   if (cached?.reason) {
+    await logCachedFeatureUsage({ userId, feature: "WEEKLY_PLAN" });
     await logAIRequest({ userId, feature: "WEEKLY_PLAN", resolution: "CACHE_HIT" });
     return { title: pick.title, reason: cached.reason };
   }
