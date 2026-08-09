@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { MemoryCategory } from "@prisma/client";
 import { generateParentingTipStatic } from "@/lib/mumbot-messages";
 import { OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS } from "@/lib/openai-config";
+import { logAIRequest, logAIUsage } from "@/lib/ai/usage";
+import { resolveModelForFeature } from "@/lib/ai/router";
 import { buildDailyBriefContext, type BriefProfile, type BriefMemory } from "@/lib/daily-brief-context";
 import { withRecipeSampleLinks } from "@/lib/recipe-sample-links";
 import { normalizeBriefContent } from "@/lib/today-plan-utils";
@@ -104,6 +106,7 @@ export async function getMumBotResponse(
       currentChallenges?: string[];
     };
     todayPlanContext?: string;
+    userId?: string;
   }
 ): Promise<MumBotResponse> {
   const memoryContext = buildMemoryContext(context.memories, context.profile);
@@ -143,6 +146,27 @@ Only suggest a memory if it's genuinely useful and was clearly stated. Do not su
     }
     throw err;
   });
+
+  const promptTokens = completion.usage?.prompt_tokens ?? 0;
+  const completionTokens = completion.usage?.completion_tokens ?? 0;
+
+  if (context.userId) {
+    const { model, tier } = resolveModelForFeature("CHAT");
+    await logAIUsage({
+      userId: context.userId,
+      feature: "CHAT",
+      model,
+      tier,
+      promptTokens,
+      completionTokens,
+      cacheHit: false,
+    });
+    await logAIRequest({
+      userId: context.userId,
+      feature: "CHAT",
+      resolution: "LLM",
+    });
+  }
 
   const raw = completion.choices[0]?.message?.content || "I'm here whenever you need parenting advice or someone to think things through with. What's on your mind?";
 

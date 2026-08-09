@@ -4,7 +4,7 @@ import {
   type TodayPlanContext,
 } from "@/lib/services/mumbot";
 import { buildPersonalizedDailyBrief } from "@/lib/services/today-plan-engine";
-import { assertCanGenerateTodayPlan, recordTodayPlanGenerated } from "@/lib/ai/usage";
+import { assertCanGenerateTodayPlan, recordTodayPlanGenerated, logAIRequest } from "@/lib/ai/usage";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
 import type {
@@ -363,6 +363,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
   } catch (error) {
     if (error instanceof Error && error.name === "UsageLimitError") throw error;
     console.error("Daily brief generation failed, using fallback:", error);
+    await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
     content = normalizeBriefContent(defaultDailyBrief(profile, weeklyFocus));
   }
 

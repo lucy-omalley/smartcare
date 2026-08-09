@@ -99,6 +99,13 @@ enum AIFeature {
   COACHING
   REFLECTION
   PERSONALIZE
+  ROTATE
+}
+
+enum AIRequestResolution {
+  LLM
+  CACHE_HIT
+  DB_ONLY
 }
 
 model User {
@@ -163,6 +170,7 @@ model User {
   rotateLibrary       UserRotateLibrary?
   usageQuota          UserUsageQuota?
   aiUsageLogs         AIUsageLog[]
+  aiRequestLogs       AIRequestLog[]
   sentConnections     ParentConnection[] @relation("SentConnections")
   receivedConnections ParentConnection[] @relation("ReceivedConnections")
   parentMessages      ParentMessage[]
@@ -784,6 +792,20 @@ model AIUsageLog {
 
   @@index([userId, createdAt])
   @@index([feature, createdAt])
+  @@index([createdAt])
+}
+
+model AIRequestLog {
+  id         String              @id @default(cuid())
+  userId     String?
+  feature    AIFeature
+  resolution AIRequestResolution
+  createdAt  DateTime            @default(now())
+  user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([feature, createdAt])
+  @@index([resolution, createdAt])
   @@index([createdAt])
 }
 

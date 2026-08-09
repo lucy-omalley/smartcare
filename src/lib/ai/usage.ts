@@ -1,9 +1,9 @@
 import "server-only";
 
-import type { AIFeature, SubscriptionPlan } from "@prisma/client";
+import type { AIFeature, AIRequestResolution, SubscriptionPlan } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
-import { MODEL_COST_PER_1M, PLAN_LIMITS } from "@/lib/ai/types";
+import { COST_DASHBOARD_TARGETS, MODEL_COST_PER_1M, PLAN_LIMITS } from "@/lib/ai/types";
 import type { AIModelTier } from "@/lib/ai/types";
 
 export class UsageLimitError extends Error {
@@ -105,6 +105,22 @@ export function estimateCostUsd(
   return (promptTokens / 1_000_000) * rates.input + (completionTokens / 1_000_000) * rates.output;
 }
 
+export async function logAIRequest(params: {
+  userId?: string;
+  feature: AIFeature;
+  resolution: AIRequestResolution;
+}): Promise<void> {
+  await prisma.aIRequestLog
+    .create({
+      data: {
+        userId: params.userId,
+        feature: params.feature,
+        resolution: params.resolution,
+      },
+    })
+    .catch(() => {});
+}
+
 export async function logAIUsage(params: {
   userId?: string;
   feature: AIFeature;
@@ -130,21 +146,31 @@ export async function logAIUsage(params: {
 }
 
 export async function getCostDashboardStats(since: Date) {
-  const logs = await prisma.aIUsageLog.findMany({
-    where: { createdAt: { gte: since } },
-    select: {
-      feature: true,
-      estimatedCostUsd: true,
-      cacheHit: true,
-      promptTokens: true,
-      completionTokens: true,
-      userId: true,
-    },
-  });
+  const [logs, requests] = await Promise.all([
+    prisma.aIUsageLog.findMany({
+      where: { createdAt: { gte: since } },
+      select: {
+        feature: true,
+        estimatedCostUsd: true,
+        cacheHit: true,
+        promptTokens: true,
+        completionTokens: true,
+        userId: true,
+      },
+    }),
+    prisma.aIRequestLog.findMany({
+      where: { createdAt: { gte: since } },
+      select: { resolution: true },
+    }),
+  ]);
 
   const totalCost = logs.reduce((s, l) => s + l.estimatedCostUsd, 0);
-  const aiCalls = logs.filter((l) => !l.cacheHit).length;
+  const llmLogs = logs.filter((l) => !l.cacheHit);
+  const aiCalls = llmLogs.length;
   const cacheHits = logs.filter((l) => l.cacheHit).length;
+  const totalTokens = llmLogs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
+  const avgTokensPerRequest = aiCalls > 0 ? totalTokens / aiCalls : 0;
+
   const byFeature = new Map<string, { calls: number; cost: number }>();
   const byUser = new Map<string, number>();
 
@@ -163,14 +189,43 @@ export async function getCostDashboardStats(since: Date) {
     .slice(0, 5)
     .map(([feature, stats]) => ({ feature, ...stats }));
 
+  const aiEligible = cacheHits + aiCalls;
+  const cacheHitPct = aiEligible > 0 ? cacheHits / aiEligible : 0;
+  const cacheMissPct = aiEligible > 0 ? aiCalls / aiEligible : 0;
+
+  const totalRequests = requests.length;
+  const llmRequests = requests.filter((r) => r.resolution === "LLM").length;
+  const dbOnlyRequests = requests.filter((r) => r.resolution === "DB_ONLY").length;
+  const requestCacheHits = requests.filter((r) => r.resolution === "CACHE_HIT").length;
+  const llmReachPct = totalRequests > 0 ? llmRequests / totalRequests : 0;
+
+  const cacheHitHealthy =
+    aiEligible === 0 ||
+    (cacheHitPct >= COST_DASHBOARD_TARGETS.cacheHitRateMin &&
+      cacheHitPct <= COST_DASHBOARD_TARGETS.cacheHitRateMax);
+  const llmReachHealthy = totalRequests === 0 || llmReachPct <= COST_DASHBOARD_TARGETS.llmReachRateMax;
+
   return {
     totalCost,
     aiCalls,
     cacheHits,
-    cacheSavingPct: aiCalls + cacheHits > 0 ? cacheHits / (aiCalls + cacheHits) : 0,
+    cacheHitPct,
+    cacheMissPct,
+    cacheSavingPct: cacheHitPct,
+    avgTokensPerRequest,
     avgCostPerUser,
     uniqueUsers,
     topFeatures,
     estimatedMonthlySpend: totalCost * 30,
+    totalRequests,
+    llmRequests,
+    dbOnlyRequests,
+    requestCacheHits,
+    llmReachPct,
+    targets: COST_DASHBOARD_TARGETS,
+    health: {
+      cacheHit: cacheHitHealthy,
+      llmReach: llmReachHealthy,
+    },
   };
 }
