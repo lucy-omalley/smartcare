@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkDatabaseConnection } from "@/lib/db";
-import { prisma } from "@/lib/db";
+import { checkDatabaseConnection, prisma, withDbRetry } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +14,16 @@ export async function GET() {
       {
         ok: false,
         database: "unreachable",
-        hint: "Check DATABASE_URL in Vercel Production env vars and Neon project status.",
+        error: connected.error,
+        hint:
+          "In Vercel → Production env, set DATABASE_URL to Neon pooled connection string with ?sslmode=require&connect_timeout=15. Wake project at console.neon.tech if suspended.",
       },
       { status: 503 }
     );
   }
 
   try {
-    const userCount = await prisma.user.count();
+    const userCount = await withDbRetry(() => prisma.user.count());
     return NextResponse.json({
       ok: true,
       database: "connected",
