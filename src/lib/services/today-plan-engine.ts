@@ -4,114 +4,98 @@ import type { BriefProfile } from "@/lib/daily-brief-context";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
 import { completeAI } from "@/lib/ai/provider";
 import { logAIRequest } from "@/lib/ai/usage";
-import { PERSONALIZE_PLAN_SYSTEM } from "@/lib/ai/prompts";
+import { PERSONALIZE_COPY_SYSTEM } from "@/lib/ai/prompts";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import {
   buildPlanContext,
   buildSemanticCacheKey,
-  fetchKnowledgeCandidates,
   loadActivityBySlug,
   loadMilestone,
   loadRecipeBySlug,
   loadStoryBySlug,
   loadTipAsDevelopment,
 } from "@/lib/knowledge/repository";
+import { recommendTodayPlanPicks } from "@/lib/intelligence/recommend-today-plan";
 import { defaultDailyBrief } from "@/lib/services/mumbot";
+import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
 import type { DailyBriefContent, WeatherInfo, WeeklyFocus } from "@/types/daily-brief";
 
-interface PersonalizationPick {
-  recipeSlug?: string;
-  activitySlug?: string;
-  storySlug?: string;
-  tipSlug?: string;
-  milestoneSlug?: string;
+interface PersonalizationCopy {
   greeting?: string;
   todayFocusTitle?: string;
   todayFocusReason?: string;
   encouragement?: string;
 }
 
-function deterministicPick(candidates: Awaited<ReturnType<typeof fetchKnowledgeCandidates>>): PersonalizationPick {
-  return {
-    recipeSlug: candidates.recipes[0]?.slug,
-    activitySlug: candidates.activities[0]?.slug,
-    storySlug: candidates.stories[0]?.slug,
-    tipSlug: candidates.tips[0]?.slug,
-    milestoneSlug: candidates.milestones[0]?.slug,
-  };
-}
-
 /**
- * DB-first Today's Plan: retrieve candidates → cache → compact AI selection (or deterministic fallback).
- * AI never invents recipes/activities/stories — only picks and writes short copy.
+ * Parent Intelligence Engine → Today's Plan.
+ * Score-first slug selection from knowledge DB; AI writes short copy only.
  */
 export async function buildPersonalizedDailyBrief(params: {
   userId: string;
   profile: BriefProfile;
   weather: WeatherInfo | null;
   weeklyFocus: WeeklyFocus;
+  memorySignals: AIMemorySignals;
 }): Promise<DailyBriefContent> {
-  const { userId, profile, weather, weeklyFocus } = params;
+  const { userId, profile, weather, weeklyFocus, memorySignals } = params;
   const ctx = buildPlanContext(profile, weather);
-  const cacheKey = `today-plan:${buildSemanticCacheKey(profile, ctx)}`;
+  const cacheKey = `today-plan-copy:${buildSemanticCacheKey(profile, ctx)}`;
 
-  const cached = await getCachedAIResponse<PersonalizationPick>(cacheKey);
-  let pick: PersonalizationPick | null = cached;
+  const { recipeSlug, activitySlug, storySlug, tipSlug, milestoneSlug, reasons } =
+    await recommendTodayPlanPicks({ profile, ctx, memory: memorySignals });
 
-  const candidates = await fetchKnowledgeCandidates(profile, ctx);
-  if (!candidates.recipes.length && !candidates.activities.length) {
+  if (!recipeSlug && !activitySlug) {
     await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
     return defaultDailyBrief(profile, weeklyFocus);
   }
 
-  if (pick) {
-    await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "CACHE_HIT" });
-  }
+  let copy: PersonalizationCopy | null = await getCachedAIResponse<PersonalizationCopy>(cacheKey);
 
-  if (!pick) {
-    const compactInput = {
-      age: ctx.ageMonths ?? profile.childAge,
-      likes: profile.childInterests ?? [],
-      goals: profile.parentingGoals ?? [],
-      priority: profile.priorityGoal,
-      weather: ctx.weather?.description ?? "unknown",
-      weekend: ctx.isWeekend,
-      candidates,
-    };
-
+  if (!copy) {
     try {
       const result = await completeAI({
         feature: "PERSONALIZE",
-        systemPrompt: PERSONALIZE_PLAN_SYSTEM,
-        userPrompt: JSON.stringify(compactInput),
-        maxTokens: 350,
-        temperature: 0.6,
+        systemPrompt: PERSONALIZE_COPY_SYSTEM,
+        userPrompt: JSON.stringify({
+          child: profile.childNickname,
+          age: ctx.ageMonths ?? profile.childAge,
+          stage: profile.childAge,
+          weeklyFocus,
+          weather: ctx.weather?.description ?? "unknown",
+          weekend: ctx.isWeekend,
+          goals: profile.parentingGoals,
+          priority: profile.priorityGoal,
+          selected: { recipeSlug, activitySlug, storySlug, tipSlug, milestoneSlug },
+        }),
+        maxTokens: 200,
+        temperature: 0.65,
         jsonMode: true,
         userId,
         cacheKey,
         cacheTtlSeconds: 86400,
       });
-      pick = JSON.parse(result.content) as PersonalizationPick;
+      copy = JSON.parse(result.content) as PersonalizationCopy;
       if (!result.cacheHit) {
-        await setCachedAIResponse(cacheKey, "PERSONALIZE", pick, 86400);
+        await setCachedAIResponse(cacheKey, "PERSONALIZE", copy, 86400);
       }
     } catch {
       await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "DB_ONLY" });
-      pick = deterministicPick(candidates);
+      copy = {};
     }
+  } else {
+    await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "CACHE_HIT" });
   }
-
-  pick = { ...deterministicPick(candidates), ...pick };
 
   const child = profile.childNickname ?? "your little one";
   const parent = profile.name?.split(" ")[0] ?? "there";
 
   const [recipe, play, story, languageDev, milestoneRow] = await Promise.all([
-    pick.recipeSlug ? loadRecipeBySlug(pick.recipeSlug) : null,
-    pick.activitySlug ? loadActivityBySlug(pick.activitySlug) : null,
-    pick.storySlug ? loadStoryBySlug(pick.storySlug, child) : null,
-    pick.tipSlug ? loadTipAsDevelopment(pick.tipSlug) : null,
-    pick.milestoneSlug ? loadMilestone(pick.milestoneSlug) : null,
+    recipeSlug ? loadRecipeBySlug(recipeSlug) : null,
+    activitySlug ? loadActivityBySlug(activitySlug) : null,
+    storySlug ? loadStoryBySlug(storySlug, child) : null,
+    tipSlug ? loadTipAsDevelopment(tipSlug) : null,
+    milestoneSlug ? loadMilestone(milestoneSlug) : null,
   ]);
 
   const base = defaultDailyBrief(profile, weeklyFocus);
@@ -125,18 +109,22 @@ export async function buildPersonalizedDailyBrief(params: {
 
   return {
     ...base,
-    greeting: pick.greeting ?? base.greeting ?? `Good morning, ${parent}!`,
+    greeting: copy?.greeting ?? base.greeting ?? `Good morning, ${parent}!`,
     childAgeDisplay: resolveChildAgeDisplay(profile) ?? base.childAgeDisplay,
     weeklyFocus,
     todayFocus: {
-      title: pick.todayFocusTitle ?? weeklyFocus.title,
-      reason: pick.todayFocusReason ?? weeklyFocus.reason,
+      title: copy?.todayFocusTitle ?? weeklyFocus.title,
+      reason: copy?.todayFocusReason ?? weeklyFocus.reason,
     },
-    recipe: recipe ?? base.recipe,
-    play: play ?? base.play,
-    bedtimeStory: story ?? base.bedtimeStory,
+    recipe: recipe
+      ? { ...recipe, whyThisMeal: reasons.recipe ?? recipe.whyThisMeal }
+      : base.recipe,
+    play: play ? { ...play, reason: reasons.activity ?? play.reason } : base.play,
+    bedtimeStory: story
+      ? { ...story, reason: reasons.story ?? story.reason }
+      : base.bedtimeStory,
     development,
-    encouragement: pick.encouragement ?? base.encouragement,
+    encouragement: copy?.encouragement ?? base.encouragement,
     milestone: milestoneRow
       ? {
           domain: milestoneRow.category,
