@@ -6,7 +6,7 @@ declare global {
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: ['query', 'error', 'warn'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 };
 
@@ -16,17 +16,14 @@ if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
-// Handle connection errors
-prisma.$connect()
-  .then(() => {
-    console.log('Successfully connected to database');
-  })
-  .catch((error) => {
-    console.error('Failed to connect to database:', error);
-    process.exit(1);
-  });
-
-// Handle cleanup on app shutdown
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-}); 
+/** Lightweight connectivity check — do not exit the process on failure (serverless-safe). */
+export async function checkDatabaseConnection(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Database connectivity check failed:', message);
+    return { ok: false, error: message };
+  }
+}
