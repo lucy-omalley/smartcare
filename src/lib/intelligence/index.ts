@@ -1,4 +1,7 @@
 export { buildPlanSignals } from "./context/build-plan-signals";
+export { buildPlanSignalsForUser } from "./context/build-plan-signals-for-user";
+export { gatherParentMoodSignals, moodFromCheckIn } from "./context/gather-parent-mood";
+export { gatherNearbyEventSignals } from "./context/gather-nearby-events";
 export { recommendTodayPlanPicks, rankTodayPlanCandidates } from "./recommend-today-plan";
 export {
   pickRotateLanguage,

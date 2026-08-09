@@ -42,6 +42,7 @@ import {
   warmTodayRecipeIllustration,
   invalidateTodayRecipeIllustrationCache,
 } from '@/lib/recipe-illustration-prefetch';
+import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -91,6 +92,22 @@ export default function TodayPage() {
   const rotatingRef = useRef(false);
   const lastRotateAtRef = useRef(0);
   const lastBriefUpdatedAtRef = useRef<string | null>(null);
+
+  const submitCheckIn = useCallback(
+    async (payload: { feeling: string; win: string; challenge: string }) => {
+      const res = await fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? 'Check-in failed');
+      }
+      return parseApiJson<{ encouragement?: string }>(res);
+    },
+    []
+  );
 
   const loadConnectData = useCallback(() => {
     return Promise.all([
@@ -696,6 +713,10 @@ export default function TodayPage() {
                   </Button>
                 )}
               </div>
+            </section>
+
+            <section className="space-y-2.5">
+              <ParentCheckInCard onSubmit={submitCheckIn} />
             </section>
 
             <section className="space-y-2.5">

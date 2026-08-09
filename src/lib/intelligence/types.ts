@@ -5,6 +5,37 @@ import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine
 
 export type CandidateKind = "recipe" | "activity" | "story" | "tip" | "milestone" | "weekly";
 
+export type MoodBand = "low_energy" | "stressed" | "neutral" | "positive" | "energized";
+
+export interface ParentMoodSignals {
+  moodBand: MoodBand;
+  feeling: string | null;
+  todayWin: string | null;
+  todayChallenge: string | null;
+  checkedInToday: boolean;
+}
+
+export interface NearbyEventHighlight {
+  title: string;
+  broadArea: string;
+  activityType: string;
+  date: Date;
+}
+
+export interface NearbyEventSignals {
+  broadArea: string | null;
+  eventTokens: string[];
+  hasSocialOpportunity: boolean;
+  parentsAvailableToday: number;
+  upcomingCount: number;
+  highlightEvent: NearbyEventHighlight | null;
+}
+
+export interface PlanSignalExtras {
+  mood?: ParentMoodSignals;
+  nearby?: NearbyEventSignals;
+}
+
 export interface PlanHistory {
   previousRecipeSlugs?: string[];
   previousActivitySlugs?: string[];
@@ -30,6 +61,8 @@ export interface PlanSignals {
   isRainy: boolean;
   isSunny: boolean;
   weather: WeatherInfo | null;
+  mood: ParentMoodSignals;
+  nearby: NearbyEventSignals;
 }
 
 export interface ScoreFactor {

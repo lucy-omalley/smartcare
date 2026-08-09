@@ -4,7 +4,7 @@ import type { BriefProfile } from "@/lib/daily-brief-context";
 import { fetchWeeklyFocusCandidates } from "@/lib/knowledge/repository";
 import type { PlanContext } from "@/lib/knowledge/repository";
 import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
-import { buildPlanSignals } from "./context/build-plan-signals";
+import { buildPlanSignalsForUser } from "./context/build-plan-signals-for-user";
 import { buildRecommendationReason } from "./explain/build-reason";
 import { rankScored, scoreWeeklyTheme } from "./scoring/score-candidate";
 import type { PlanSignals, RankedWeeklyFocusPick, ScorableWeeklyTheme, ScoredCandidate } from "./types";
@@ -31,6 +31,7 @@ export function rankWeeklyThemes(
 }
 
 export async function recommendWeeklyFocusPick(params: {
+  userId: string;
   profile: BriefProfile;
   ctx: PlanContext;
   memory: AIMemorySignals;
@@ -41,7 +42,12 @@ export async function recommendWeeklyFocusPick(params: {
     ranked: ScoredCandidate<ScorableWeeklyTheme>[];
   }
 > {
-  const signals = buildPlanSignals(params.profile, params.ctx, params.memory);
+  const signals = await buildPlanSignalsForUser({
+    userId: params.userId,
+    profile: params.profile,
+    ctx: params.ctx,
+    memory: params.memory,
+  });
   const candidates = await fetchWeeklyFocusCandidates(params.profile, params.ctx);
 
   if (!candidates.length) {

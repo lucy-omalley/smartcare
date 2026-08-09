@@ -48,7 +48,7 @@ import {
   warmRotateLibraryInBackground,
 } from "@/lib/services/today-rotate-library";
 import { buildPlanContext as buildKnowledgePlanContext } from "@/lib/knowledge/repository";
-import { buildPlanSignals } from "@/lib/intelligence/context/build-plan-signals";
+import { buildPlanSignalsForUser } from "@/lib/intelligence/context/build-plan-signals-for-user";
 import type { PlanSignals } from "@/lib/intelligence/types";
 import {
   playItemKey,
@@ -607,10 +607,16 @@ async function buildRotateSignals(
   const { memorySignals } = await fetchRotateContext(userId);
   const weatherResult = profile.location ? await fetchWeatherForLocation(profile.location) : null;
   const ctx = buildKnowledgePlanContext(profile, weatherResult?.weather ?? null);
-  return buildPlanSignals(profile, ctx, memorySignals, new Date(), {
-    previousRecipeSlugs: [recipeItemKey(content.recipe)],
-    previousActivitySlugs: [playItemKey(content.play)],
-    previousStorySlugs: [storyItemKey(content.bedtimeStory)],
+  return buildPlanSignalsForUser({
+    userId,
+    profile,
+    ctx,
+    memory: memorySignals,
+    history: {
+      previousRecipeSlugs: [recipeItemKey(content.recipe)],
+      previousActivitySlugs: [playItemKey(content.play)],
+      previousStorySlugs: [storyItemKey(content.bedtimeStory)],
+    },
   });
 }
 

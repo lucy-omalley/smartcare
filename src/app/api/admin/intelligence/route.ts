@@ -97,8 +97,8 @@ export async function GET(request: Request) {
   const ctx = buildPlanContext(profile, weatherResult?.weather ?? null);
 
   const [todayPlan, weeklyFocus] = await Promise.all([
-    recommendTodayPlanPicks({ profile, ctx, memory }),
-    recommendWeeklyFocusPick({ profile, ctx, memory }),
+    recommendTodayPlanPicks({ userId: targetUserId, profile, ctx, memory }),
+    recommendWeeklyFocusPick({ userId: targetUserId, profile, ctx, memory }),
   ]);
 
   const recipeRanked = rankScored(todayPlan.pool.recipes.map((r) => scoreRecipe(todayPlan.signals, r)));
@@ -124,6 +124,16 @@ export async function GET(request: Request) {
       challenges: todayPlan.signals.challenges,
       favouriteFoods: todayPlan.signals.favouriteFoods,
       foodDislikes: todayPlan.signals.foodDislikes,
+      mood: todayPlan.signals.mood,
+      nearby: {
+        ...todayPlan.signals.nearby,
+        highlightEvent: todayPlan.signals.nearby.highlightEvent
+          ? {
+              ...todayPlan.signals.nearby.highlightEvent,
+              date: todayPlan.signals.nearby.highlightEvent.date.toISOString(),
+            }
+          : null,
+      },
     },
     todayPlan: {
       picks: {

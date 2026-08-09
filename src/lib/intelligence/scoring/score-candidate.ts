@@ -1,5 +1,6 @@
-import type { PlanSignals, ScoreFactor, ScoredCandidate } from "../types";
+import type { CandidateKind, PlanSignals, ScoreFactor, ScoredCandidate } from "../types";
 import { SCORING_WEIGHTS } from "./weights";
+import { moodFitRaw, nearbyEventRaw } from "./mood-nearby";
 import { ageFitNormalized, haystack, normalizeTokens, stageDomainBoost, tokenMatchScore } from "./utils";
 
 function factor(id: string, label: string, weight: number, raw: number): ScoreFactor {
@@ -14,6 +15,7 @@ function buildFactors(
   minAgeMonths: number,
   maxAgeMonths: number,
   historyTitles: string[],
+  kind: CandidateKind,
   weatherOpts?: { indoorOutdoor?: string; rainyDay?: boolean; sunnyDay?: boolean }
 ): ScoreFactor[] {
   const { ctx, interests, goals, challenges, developmentStage } = signals;
@@ -49,6 +51,9 @@ function buildFactors(
     }
   }
 
+  const moodRaw = moodFitRaw(signals.mood, text, kind);
+  const nearbyRaw = nearbyEventRaw(signals.nearby, text);
+
   return [
     factor("age", "Age fit", SCORING_WEIGHTS.ageFit, ageRaw),
     factor("stage", "Development stage", SCORING_WEIGHTS.developmentStage, stageRaw),
@@ -58,6 +63,8 @@ function buildFactors(
     factor("weather", "Weather", SCORING_WEIGHTS.weather, weatherRaw),
     factor("weekday", "Weekday / weekend", SCORING_WEIGHTS.weekday, weekdayRaw),
     factor("history", "Activity history", SCORING_WEIGHTS.history, historyRaw),
+    factor("mood", "Parent mood", SCORING_WEIGHTS.parentMood, moodRaw),
+    factor("nearby", "Nearby events", SCORING_WEIGHTS.nearbyEvents, nearbyRaw),
   ];
 }
 
@@ -94,7 +101,8 @@ export function scoreRecipe(
       ...signals.memory.completedActivities,
       ...signals.memory.savedMeals,
       ...signals.previousRecipeSlugs,
-    ]
+    ],
+    "recipe"
   );
 
   const favBoost = tokenMatchScore(text, signals.favouriteFoods);
@@ -123,6 +131,7 @@ export function scoreActivity(
     activity.minAgeMonths,
     activity.maxAgeMonths,
     [...signals.memory.completedActivities, ...signals.previousActivitySlugs],
+    "activity",
     {
       indoorOutdoor: activity.indoorOutdoor,
       rainyDay: activity.rainyDay,
@@ -153,7 +162,8 @@ export function scoreStory(
     story.theme,
     story.minAgeMonths,
     story.maxAgeMonths,
-    [...signals.memory.completedStories, ...signals.previousStorySlugs]
+    [...signals.memory.completedStories, ...signals.previousStorySlugs],
+    "story"
   );
 
   if (signals.profile.sleepRoutine && /bedtime|calm|sleep/i.test(signals.profile.sleepRoutine)) {
@@ -176,7 +186,8 @@ export function scoreTip(
     tip.category,
     tip.minAgeMonths,
     tip.maxAgeMonths,
-    []
+    [],
+    "tip"
   );
 
   if (signals.profile.priorityGoal && /speech|language/i.test(signals.profile.priorityGoal)) {
@@ -199,7 +210,8 @@ export function scoreMilestone(
     milestone.category,
     milestone.minAgeMonths,
     milestone.maxAgeMonths,
-    []
+    [],
+    "milestone"
   );
   return { item: milestone, kind: "milestone", total: totalFromFactors(factors), factors };
 }
@@ -215,7 +227,8 @@ export function scoreWeeklyTheme(
     theme.domain,
     theme.minAgeMonths,
     theme.maxAgeMonths,
-    []
+    [],
+    "weekly"
   );
   return { item: theme, kind: "weekly", total: totalFromFactors(factors), factors };
 }

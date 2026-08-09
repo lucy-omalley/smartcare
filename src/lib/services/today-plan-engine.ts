@@ -43,7 +43,7 @@ export async function buildPersonalizedDailyBrief(params: {
   const cacheKey = `today-plan-copy:${buildSemanticCacheKey(profile, ctx)}`;
 
   const { recipeSlug, activitySlug, storySlug, tipSlug, milestoneSlug, reasons } =
-    await recommendTodayPlanPicks({ profile, ctx, memory: memorySignals });
+    await recommendTodayPlanPicks({ userId, profile, ctx, memory: memorySignals });
 
   if (!recipeSlug && !activitySlug) {
     await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });

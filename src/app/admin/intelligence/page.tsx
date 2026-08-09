@@ -38,6 +38,21 @@ interface IntelligenceDebug {
     challenges: string[];
     favouriteFoods: string[];
     foodDislikes: string[];
+    mood: {
+      moodBand: string;
+      feeling: string | null;
+      todayWin: string | null;
+      todayChallenge: string | null;
+      checkedInToday: boolean;
+    };
+    nearby: {
+      broadArea: string | null;
+      eventTokens: string[];
+      hasSocialOpportunity: boolean;
+      parentsAvailableToday: number;
+      upcomingCount: number;
+      highlightEvent: { title: string; activityType: string; date: string } | null;
+    };
   };
   todayPlan: {
     picks: {
@@ -177,6 +192,32 @@ export default function AdminIntelligencePage() {
               {data.context.isRainy ? 'Rainy' : data.context.isSunny ? 'Sunny' : 'Neutral'}
               {' · '}
               {data.context.isWeekend ? 'Weekend' : 'Weekday'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Parent mood</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-semibold capitalize">{data.signals.mood.moodBand.replace(/_/g, ' ')}</p>
+            <p className="text-xs text-muted-foreground">
+              {data.signals.mood.checkedInToday ? 'Checked in today' : 'No check-in today'}
+              {data.signals.mood.feeling ? ` · "${data.signals.mood.feeling}"` : ''}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Nearby events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-semibold">{data.signals.nearby.upcomingCount} this week</p>
+            <p className="text-xs text-muted-foreground">
+              {data.signals.nearby.parentsAvailableToday} parents available today
+              {data.signals.nearby.highlightEvent
+                ? ` · Next: ${data.signals.nearby.highlightEvent.title}`
+                : ''}
             </p>
           </CardContent>
         </Card>

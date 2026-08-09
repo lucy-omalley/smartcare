@@ -20,6 +20,7 @@ export async function buildPersonalizedWeeklyFocus(params: {
   const { userId, profile, contextSummary, memorySignals, excludeTitle } = params;
   const ctx = buildPlanContext(profile, null);
   const pick = await recommendWeeklyFocusPick({
+    userId,
     profile,
     ctx,
     memory: memorySignals,
