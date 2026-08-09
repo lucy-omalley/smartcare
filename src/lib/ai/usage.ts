@@ -5,6 +5,10 @@ import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
 import { COST_DASHBOARD_TARGETS, MODEL_COST_PER_1M, PLAN_LIMITS } from "@/lib/ai/types";
 import type { AIModelTier } from "@/lib/ai/types";
+import { resolveModelForFeature } from "@/lib/ai/router";
+
+/** Features that use semantic cache — CHAT is excluded from cache hit rate */
+const CACHE_ELIGIBLE_FEATURES = new Set<AIFeature>(["PERSONALIZE", "WEEKLY_PLAN", "TODAY_PLAN"]);
 
 export class UsageLimitError extends Error {
   constructor(message: string) {
@@ -145,6 +149,22 @@ export async function logAIUsage(params: {
   });
 }
 
+export async function logCachedFeatureUsage(params: {
+  userId?: string;
+  feature: AIFeature;
+}): Promise<void> {
+  const { model, tier } = resolveModelForFeature(params.feature);
+  await logAIUsage({
+    userId: params.userId,
+    feature: params.feature,
+    model,
+    tier,
+    promptTokens: 0,
+    completionTokens: 0,
+    cacheHit: true,
+  });
+}
+
 export async function getCostDashboardStats(since: Date) {
   const [logs, requests] = await Promise.all([
     prisma.aIUsageLog.findMany({
@@ -165,10 +185,12 @@ export async function getCostDashboardStats(since: Date) {
   ]);
 
   const totalCost = logs.reduce((s, l) => s + l.estimatedCostUsd, 0);
-  const llmLogs = logs.filter((l) => !l.cacheHit);
-  const aiCalls = llmLogs.length;
-  const cacheHits = logs.filter((l) => l.cacheHit).length;
-  const totalTokens = llmLogs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
+  const allLlmLogs = logs.filter((l) => !l.cacheHit);
+  const cacheEligibleLogs = logs.filter((l) => CACHE_ELIGIBLE_FEATURES.has(l.feature));
+  const aiCalls = allLlmLogs.length;
+  const cacheHits = cacheEligibleLogs.filter((l) => l.cacheHit).length;
+  const personalizationLlmCalls = cacheEligibleLogs.filter((l) => !l.cacheHit).length;
+  const totalTokens = allLlmLogs.reduce((s, l) => s + l.promptTokens + l.completionTokens, 0);
   const avgTokensPerRequest = aiCalls > 0 ? totalTokens / aiCalls : 0;
 
   const byFeature = new Map<string, { calls: number; cost: number }>();
@@ -189,9 +211,9 @@ export async function getCostDashboardStats(since: Date) {
     .slice(0, 5)
     .map(([feature, stats]) => ({ feature, ...stats }));
 
-  const aiEligible = cacheHits + aiCalls;
-  const cacheHitPct = aiEligible > 0 ? cacheHits / aiEligible : 0;
-  const cacheMissPct = aiEligible > 0 ? aiCalls / aiEligible : 0;
+  const aiEligible = cacheHits + personalizationLlmCalls;
+  const cacheHitPct = aiEligible > 0 ? cacheHits / aiEligible : 1;
+  const cacheMissPct = aiEligible > 0 ? personalizationLlmCalls / aiEligible : 0;
 
   const totalRequests = requests.length;
   const llmRequests = requests.filter((r) => r.resolution === "LLM").length;
@@ -199,8 +221,10 @@ export async function getCostDashboardStats(since: Date) {
   const requestCacheHits = requests.filter((r) => r.resolution === "CACHE_HIT").length;
   const llmReachPct = totalRequests > 0 ? llmRequests / totalRequests : 0;
 
+  // Healthy when: no cache-eligible calls yet, low sample size, or hit rate in target band
   const cacheHitHealthy =
     aiEligible === 0 ||
+    aiEligible < 3 ||
     (cacheHitPct >= COST_DASHBOARD_TARGETS.cacheHitRateMin &&
       cacheHitPct <= COST_DASHBOARD_TARGETS.cacheHitRateMax);
   const llmReachHealthy = totalRequests === 0 || llmReachPct <= COST_DASHBOARD_TARGETS.llmReachRateMax;
@@ -212,6 +236,7 @@ export async function getCostDashboardStats(since: Date) {
     cacheHitPct,
     cacheMissPct,
     cacheSavingPct: cacheHitPct,
+    cacheEligibleRequests: aiEligible,
     avgTokensPerRequest,
     avgCostPerUser,
     uniqueUsers,

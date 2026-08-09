@@ -13,6 +13,7 @@ interface CostDashboard {
     cacheHitPct: number;
     cacheMissPct: number;
     cacheSavingPct: number;
+    cacheEligibleRequests: number;
     avgTokensPerRequest: number;
     avgCostPerUser: number;
     uniqueUsers: number;
@@ -101,8 +102,8 @@ export default function AdminCostDashboardPage() {
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Targets: {pct(today.targets.cacheHitRateMin)}–{pct(today.targets.cacheHitRateMax)} cache hit (AI-eligible),
-          {' '}≤{pct(today.targets.llmReachRateMax)} of all requests reaching LLM
+          Targets: {pct(today.targets.cacheHitRateMin)}–{pct(today.targets.cacheHitRateMax)} cache hit on personalization
+          (PERSONALIZE / weekly focus), ≤{pct(today.targets.llmReachRateMax)} of all requests reaching LLM
         </p>
       </div>
 
@@ -122,7 +123,9 @@ export default function AdminCostDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{pct(today.cacheHitPct)}</p>
-            <p className="text-xs text-muted-foreground">{today.cacheHits} hits of {today.cacheHits + today.aiCalls} AI-eligible</p>
+            <p className="text-xs text-muted-foreground">
+              {today.cacheHits} hits of {today.cacheEligibleRequests} personalization calls (excludes chat)
+            </p>
           </CardContent>
         </Card>
         <Card>

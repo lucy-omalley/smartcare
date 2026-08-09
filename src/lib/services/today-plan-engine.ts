@@ -3,7 +3,7 @@ import "server-only";
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
 import { completeAI } from "@/lib/ai/provider";
-import { logAIRequest } from "@/lib/ai/usage";
+import { logAIRequest, logCachedFeatureUsage } from "@/lib/ai/usage";
 import { PERSONALIZE_COPY_SYSTEM } from "@/lib/ai/prompts";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import {
@@ -84,6 +84,7 @@ export async function buildPersonalizedDailyBrief(params: {
       copy = {};
     }
   } else {
+    await logCachedFeatureUsage({ userId, feature: "PERSONALIZE" });
     await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "CACHE_HIT" });
   }
 
