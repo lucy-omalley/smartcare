@@ -1,3 +1,4 @@
+import { hasUnlimitedUsage } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 
 const MUMBOT_HOURLY_LIMIT = 15;
@@ -10,6 +11,10 @@ export type RateLimitResult = {
 
 /** Basic per-user MumBot rate limits using message history. */
 export async function checkMumBotRateLimit(userId: string): Promise<RateLimitResult> {
+  if (await hasUnlimitedUsage(userId)) {
+    return { allowed: true };
+  }
+
   const now = Date.now();
   const oneHourAgo = new Date(now - 60 * 60 * 1000);
   const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
