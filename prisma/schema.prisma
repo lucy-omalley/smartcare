@@ -157,6 +157,7 @@ model User {
   accounts            Account[]
   sessions            Session[]
   memories            FamilyMemory[]
+  parentCheckIns      ParentCheckIn[]
   conversations       Conversation[]
   posts               CommunityPost[]
   meetups             Meetup[]
@@ -230,6 +231,19 @@ model FamilyMemory {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model ParentCheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  feeling   String
+  win       String?
+  challenge String?
+  moodBand  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Conversation {

@@ -13,6 +13,8 @@ const FACTOR_LABELS: Record<string, string> = {
   sleep: "supports bedtime routine",
   priority: "aligns with your priority focus",
   personality: "matches their personality",
+  mood: "fits how you're feeling today",
+  nearby: "connects with nearby events",
 };
 
 /** Build a human-readable reason from top scoring factors */

@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { KnowledgeScoringPool, PlanSignals, RankedPlanPicks } from "./types";
-import { buildPlanSignals } from "./context/build-plan-signals";
+import type { KnowledgeScoringPool, PlanHistory, PlanSignals, RankedPlanPicks } from "./types";
+import { buildPlanSignalsForUser } from "./context/build-plan-signals-for-user";
 import { buildRecommendationReason } from "./explain/build-reason";
 import {
   rankScored,
@@ -16,7 +16,8 @@ import type { BriefProfile } from "@/lib/daily-brief-context";
 import type { PlanContext } from "@/lib/knowledge/repository";
 import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
 
-export { buildPlanSignals };
+export { buildPlanSignals } from "./context/build-plan-signals";
+export { buildPlanSignalsForUser } from "./context/build-plan-signals-for-user";
 
 /**
  * Parent Intelligence Engine — score-first recommendation.
@@ -55,11 +56,19 @@ export function rankTodayPlanCandidates(
 }
 
 export async function recommendTodayPlanPicks(params: {
+  userId: string;
   profile: BriefProfile;
   ctx: PlanContext;
   memory: AIMemorySignals;
+  history?: PlanHistory;
 }): Promise<RankedPlanPicks & { signals: PlanSignals; pool: KnowledgeScoringPool }> {
-  const signals = buildPlanSignals(params.profile, params.ctx, params.memory);
+  const signals = await buildPlanSignalsForUser({
+    userId: params.userId,
+    profile: params.profile,
+    ctx: params.ctx,
+    memory: params.memory,
+    history: params.history,
+  });
   const pool = await fetchKnowledgeScoringPool(params.profile, params.ctx);
   const ranked = rankTodayPlanCandidates(signals, pool);
   return { ...ranked, signals, pool };

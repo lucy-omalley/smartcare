@@ -352,7 +352,12 @@ export async function getOrCreateWeeklyFocus(
 
   let focus = DEFAULT_WEEKLY_FOCUS;
   try {
-    focus = await buildPersonalizedWeeklyFocus({ userId, profile, contextSummary: context });
+    focus = await buildPersonalizedWeeklyFocus({
+      userId,
+      profile,
+      contextSummary: context,
+      memorySignals,
+    });
   } catch (error) {
     console.warn("Weekly focus generation failed, using default:", error);
   }
@@ -393,6 +398,7 @@ export async function refreshWeeklyFocus(
     userId,
     profile,
     contextSummary: context,
+    memorySignals,
     excludeTitle: profile.weeklyFocusTitle,
   });
 

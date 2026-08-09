@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -87,6 +88,11 @@ export default function AdminCostDashboardPage() {
       <div>
         <h1 className="text-2xl font-bold">AI Cost Dashboard</h1>
         <p className="text-muted-foreground text-sm">Database-first architecture metrics</p>
+        <p className="text-sm mt-2">
+          <Link href="/admin/intelligence" className="text-primary underline">
+            Intelligence engine debug
+          </Link>
+        </p>
         <div className="flex flex-wrap gap-2 mt-3">
           <HealthBadge ok={today.health.cacheHit} label="Cache hit rate" />
           <HealthBadge ok={today.health.llmReach} label="LLM reach" />

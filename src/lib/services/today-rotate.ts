@@ -6,6 +6,13 @@ import type {
   DailyBriefStory,
 } from "@/types/daily-brief";
 import type { BriefProfile } from "@/lib/daily-brief-context";
+import type { PlanSignals } from "@/lib/intelligence/types";
+import {
+  pickRotateLanguage,
+  pickRotatePlay,
+  pickRotateRecipe,
+  pickRotateStory,
+} from "@/lib/intelligence/recommend-rotate";
 import {
   LANGUAGE_ALTERNATES,
   PLAY_ALTERNATES,
@@ -18,10 +25,6 @@ import {
   personalizePlay,
   personalizeRecipe,
   personalizeStory,
-  rankLanguageForProfile,
-  rankPlayForProfile,
-  rankRecipesForProfile,
-  rankStoriesForProfile,
 } from "@/lib/services/today-rotate-profile";
 
 export type RotateSection = "recipe" | "play" | "story" | "language";
@@ -263,64 +266,41 @@ function dedupeByKey<T>(items: T[], keyFn: (item: T) => string): T[] {
 }
 
 function mergeRecipePool(
-  profile: BriefProfile,
   aiLibrary: DailyBriefRecipe[] = []
 ): Omit<DailyBriefRecipe, "imageData" | "sampleLinks" | "fromFridge">[] {
-  const enriched = enrichRotateProfile(profile);
-  const aiRanked = aiLibrary.length ? rankRecipesForProfile(enriched, aiLibrary) : [];
-  const staticRanked = rankRecipesForProfile(enriched, RECIPE_ALTERNATES);
-  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.subtitle);
+  return dedupeByKey([...aiLibrary, ...RECIPE_ALTERNATES], (item) => item.subtitle);
 }
 
-function mergePlayPool(profile: BriefProfile, aiLibrary: DailyBriefPlay[] = []): Omit<DailyBriefPlay, "imageData">[] {
-  const enriched = enrichRotateProfile(profile);
-  const aiRanked = aiLibrary.length ? rankPlayForProfile(enriched, aiLibrary) : [];
-  const staticRanked = rankPlayForProfile(enriched, PLAY_ALTERNATES);
-  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.title);
+function mergePlayPool(aiLibrary: DailyBriefPlay[] = []): Omit<DailyBriefPlay, "imageData">[] {
+  return dedupeByKey([...aiLibrary, ...PLAY_ALTERNATES], (item) => item.title);
 }
 
 function mergeStoryPool(
   profile: BriefProfile,
   aiLibrary: DailyBriefStory[] = []
 ): Omit<DailyBriefStory, "illustrationData">[] {
-  const enriched = enrichRotateProfile(profile);
   const staticStories = storyAlternates(profile);
-  const aiRanked = aiLibrary.length ? rankStoriesForProfile(enriched, aiLibrary) : [];
-  const staticRanked = rankStoriesForProfile(enriched, staticStories);
-  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.title);
+  return dedupeByKey([...aiLibrary, ...staticStories], (item) => item.title);
 }
 
-function mergeLanguagePool(
-  profile: BriefProfile,
-  aiLibrary: DailyBriefDevelopment[] = []
-): DailyBriefDevelopment[] {
-  const enriched = enrichRotateProfile(profile);
-  const aiRanked = aiLibrary.length ? rankLanguageForProfile(enriched, aiLibrary) : [];
-  const staticRanked = rankLanguageForProfile(enriched, LANGUAGE_ALTERNATES);
-  return dedupeByKey([...aiRanked, ...staticRanked], (item) => item.tryToday);
-}
-
-function pickFromPool<T extends { title?: string; subtitle?: string }>(
-  options: T[],
-  current: T,
-  key: (item: T) => string,
-  rotationIndex: number
-): T {
-  const currentKey = normalizeKey(key(current));
-  const different = options.filter((item) => normalizeKey(key(item)) !== currentKey);
-  const pool = different.length > 0 ? different : options;
-  return pool[rotationIndex % pool.length]!;
+function mergeLanguagePool(aiLibrary: DailyBriefDevelopment[] = []): DailyBriefDevelopment[] {
+  return dedupeByKey([...aiLibrary, ...LANGUAGE_ALTERNATES], (item) => item.tryToday);
 }
 
 export function pickAlternateRecipe(
   profile: BriefProfile,
   current: DailyBriefRecipe,
   rotationIndex: number,
-  library?: RotateLibraryPools
+  library: RotateLibraryPools | undefined,
+  signals: PlanSignals
 ): DailyBriefRecipe {
-  const pool = mergeRecipePool(profile, library?.recipes);
-  const base = pickFromPool(pool, current, (item) => item.subtitle, rotationIndex);
+  const pool = mergeRecipePool(library?.recipes);
+  const pick = pickRotateRecipe(signals, pool, current, rotationIndex);
+  const base = pick?.item ?? pool[rotationIndex % Math.max(pool.length, 1)]!;
   const personalized = personalizeRecipe(base, enrichRotateProfile(profile));
+  if (pick?.reason) {
+    personalized.whyThisMeal = pick.reason;
+  }
   return normalizeRotatedRecipe(personalized, current);
 }
 
@@ -328,11 +308,16 @@ export function pickAlternatePlay(
   profile: BriefProfile,
   current: DailyBriefPlay,
   rotationIndex: number,
-  library?: RotateLibraryPools
+  library: RotateLibraryPools | undefined,
+  signals: PlanSignals
 ): DailyBriefPlay {
-  const pool = mergePlayPool(profile, library?.play);
-  const base = pickFromPool(pool, current, (item) => item.title, rotationIndex);
+  const pool = mergePlayPool(library?.play);
+  const pick = pickRotatePlay(signals, pool, current, rotationIndex);
+  const base = pick?.item ?? pool[rotationIndex % Math.max(pool.length, 1)]!;
   const personalized = personalizePlay(base, enrichRotateProfile(profile));
+  if (pick?.reason) {
+    personalized.reason = pick.reason;
+  }
   return normalizeRotatedPlay(personalized, current);
 }
 
@@ -340,28 +325,35 @@ export function pickAlternateStory(
   profile: BriefProfile,
   current: DailyBriefStory,
   rotationIndex: number,
-  library?: RotateLibraryPools
+  library: RotateLibraryPools | undefined,
+  signals: PlanSignals
 ): DailyBriefStory {
   const enriched = enrichRotateProfile(profile);
-  const options = mergeStoryPool(profile, library?.stories);
-  const base = pickFromPool(options, current, (item) => item.title, rotationIndex);
+  const pool = mergeStoryPool(profile, library?.stories);
+  const pick = pickRotateStory(signals, pool, current, rotationIndex);
+  const base = pick?.item ?? pool[rotationIndex % Math.max(pool.length, 1)]!;
   const personalized = personalizeStory(base, enriched);
+  if (pick?.reason) {
+    personalized.reason = pick.reason;
+  }
   return normalizeRotatedStory(personalized, current);
 }
 
 export function pickAlternateLanguage(
   current: DailyBriefDevelopment,
   rotationIndex: number,
-  profile?: BriefProfile,
-  library?: RotateLibraryPools
+  profile: BriefProfile,
+  library: RotateLibraryPools | undefined,
+  signals: PlanSignals
 ): DailyBriefDevelopment {
-  const enriched = enrichRotateProfile(profile ?? {});
-  const ranked = mergeLanguagePool(profile ?? {}, library?.language);
-  const currentKey = normalizeKey(current.tryToday);
-  const different = ranked.filter((item) => normalizeKey(item.tryToday) !== currentKey);
-  const pool = different.length > 0 ? different : ranked;
-  const base = pool[rotationIndex % pool.length]!;
+  const enriched = enrichRotateProfile(profile);
+  const pool = mergeLanguagePool(library?.language);
+  const pick = pickRotateLanguage(signals, pool, current, rotationIndex);
+  const base = pick?.item ?? pool[rotationIndex % Math.max(pool.length, 1)]!;
   const personalized = personalizeLanguage(base, enriched);
+  if (pick?.reason) {
+    personalized.reason = pick.reason;
+  }
   return normalizeRotatedLanguage(personalized, current);
 }
 

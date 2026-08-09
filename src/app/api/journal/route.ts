@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { generateJournalEntry } from "@/lib/services/mumbot";
+import { moodFromCheckIn } from "@/lib/intelligence/context/gather-parent-mood";
 import { MemoryCategory } from "@prisma/client";
 
 export async function POST(request: Request) {
@@ -40,13 +41,32 @@ export async function POST(request: Request) {
 
   const journalEntry = await generateJournalEntry(user ?? {}, checkInSentence);
 
-  const memory = await prisma.familyMemory.create({
-    data: {
-      userId: session.user.id,
-      content: journalEntry,
-      category: MemoryCategory.JOURNAL,
-    },
-  });
+  const [, memory] = await prisma.$transaction([
+    feeling?.trim()
+      ? prisma.parentCheckIn.create({
+          data: {
+            userId: session.user.id,
+            feeling: feeling.trim(),
+            win: win?.trim() || null,
+            challenge: challenge?.trim() || null,
+            moodBand: moodFromCheckIn(feeling.trim(), win, challenge).moodBand,
+          },
+        })
+      : prisma.parentCheckIn.create({
+          data: {
+            userId: session.user.id,
+            feeling: checkInSentence.slice(0, 200),
+            moodBand: moodFromCheckIn(checkInSentence).moodBand,
+          },
+        }),
+    prisma.familyMemory.create({
+      data: {
+        userId: session.user.id,
+        content: journalEntry,
+        category: MemoryCategory.JOURNAL,
+      },
+    }),
+  ]);
 
   const encouragement = journalEntry.split(".").slice(-2).join(".").trim() || journalEntry;
 

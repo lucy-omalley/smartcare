@@ -3,14 +3,18 @@ import { getDevelopmentStage } from "@/lib/child-development";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
 import type { PlanContext } from "@/lib/knowledge/repository";
 import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
-import type { PlanSignals } from "../types";
+import type { PlanHistory, PlanSignalExtras, PlanSignals } from "../types";
+import { DEFAULT_MOOD } from "./gather-parent-mood";
+import { DEFAULT_NEARBY } from "./gather-nearby-events";
 import { normalizeTokens } from "../scoring/utils";
 
 export function buildPlanSignals(
   profile: BriefProfile,
   ctx: PlanContext,
   memory: AIMemorySignals,
-  date = new Date()
+  date = new Date(),
+  history: PlanHistory = {},
+  extras: PlanSignalExtras = {}
 ): PlanSignals {
   const display = resolveChildAgeDisplay(profile);
   const developmentStage = getDevelopmentStage(display ?? profile.childAge, profile.childBirthday);
@@ -36,13 +40,15 @@ export function buildPlanSignals(
       ...(profile.foodPreferences ?? []),
     ]),
     foodDislikes: normalizeTokens(profile.foodDislikes),
-    previousRecipeSlugs: [],
-    previousActivitySlugs: [],
-    previousStorySlugs: [],
+    previousRecipeSlugs: history.previousRecipeSlugs ?? [],
+    previousActivitySlugs: history.previousActivitySlugs ?? [],
+    previousStorySlugs: history.previousStorySlugs ?? [],
     weekday: date.getDay(),
     isWeekend: ctx.isWeekend,
     isRainy: ctx.isRainy,
     isSunny: ctx.isSunny,
     weather: ctx.weather,
+    mood: extras.mood ?? DEFAULT_MOOD,
+    nearby: extras.nearby ?? DEFAULT_NEARBY,
   };
 }
