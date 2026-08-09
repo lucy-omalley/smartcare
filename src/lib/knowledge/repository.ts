@@ -13,6 +13,7 @@ import type {
   DailyBriefStory,
   LibraryRecommendation,
 } from "@/types/daily-brief";
+import type { KnowledgeScoringPool } from "@/lib/intelligence/types";
 
 export interface PlanContext {
   ageMonths: number | null;
@@ -138,6 +139,80 @@ export async function fetchKnowledgeCandidates(
     tips: rank(tips).slice(0, 5).map((t) => ({ slug: t.slug, title: t.title, category: t.category })),
     milestones: rank(milestones).slice(0, 3).map((m) => ({ slug: m.slug, title: m.title, category: m.category })),
     books: rank(books).slice(0, 3).map((b) => ({ slug: b.slug, title: b.title, theme: b.theme })),
+  };
+}
+
+/** Full candidate pool for Parent Intelligence Engine scoring */
+export async function fetchKnowledgeScoringPool(
+  profile: BriefProfile,
+  ctx: PlanContext
+): Promise<KnowledgeScoringPool> {
+  const ageWhere = ageFilter(0, 216, ctx.ageMonths);
+  const activityWhere = {
+    active: true,
+    ...ageWhere,
+    ...(ctx.isRainy ? { rainyDay: true } : {}),
+    ...(ctx.isSunny && !ctx.isRainy ? { sunnyDay: true } : {}),
+  };
+
+  const [recipes, activities, stories, tips, milestones] = await Promise.all([
+    prisma.knowledgeRecipe.findMany({ where: { active: true, ...ageWhere }, take: 40 }),
+    prisma.knowledgeActivity.findMany({ where: activityWhere, take: 40 }),
+    prisma.knowledgeStory.findMany({ where: { active: true, ...ageWhere }, take: 30 }),
+    prisma.knowledgeTip.findMany({ where: { active: true, ...ageWhere }, take: 30 }),
+    prisma.knowledgeMilestone.findMany({ where: { active: true, ...ageWhere }, take: 20 }),
+  ]);
+
+  return {
+    recipes: recipes.map((r) => ({
+      slug: r.slug,
+      subtitle: r.subtitle,
+      ingredients: r.ingredients,
+      tags: r.tags,
+      minAgeMonths: r.minAgeMonths,
+      maxAgeMonths: r.maxAgeMonths,
+      whyThisMeal: r.whyThisMeal,
+      nutritionTags: r.nutritionTags,
+    })),
+    activities: activities.map((a) => ({
+      slug: a.slug,
+      title: a.title,
+      tags: a.tags,
+      minAgeMonths: a.minAgeMonths,
+      maxAgeMonths: a.maxAgeMonths,
+      indoorOutdoor: a.indoorOutdoor,
+      rainyDay: a.rainyDay,
+      sunnyDay: a.sunnyDay,
+      skillsDeveloped: a.skillsDeveloped,
+      materials: a.materials,
+      reason: a.reason,
+    })),
+    stories: stories.map((s) => ({
+      slug: s.slug,
+      theme: s.theme,
+      tags: s.tags,
+      minAgeMonths: s.minAgeMonths,
+      maxAgeMonths: s.maxAgeMonths,
+      titleTemplate: s.titleTemplate,
+    })),
+    tips: tips.map((t) => ({
+      slug: t.slug,
+      title: t.title,
+      category: t.category,
+      tags: t.tags,
+      content: t.content,
+      tryToday: t.tryToday,
+      minAgeMonths: t.minAgeMonths,
+      maxAgeMonths: t.maxAgeMonths,
+    })),
+    milestones: milestones.map((m) => ({
+      slug: m.slug,
+      title: m.title,
+      category: m.category,
+      tags: m.tags,
+      minAgeMonths: m.minAgeMonths,
+      maxAgeMonths: m.maxAgeMonths,
+    })),
   };
 }
 

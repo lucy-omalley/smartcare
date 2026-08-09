@@ -355,6 +355,7 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
       profile,
       weather: weather?.weather ?? null,
       weeklyFocus,
+      memorySignals,
     });
     if (!isValidBriefContent(content)) {
       throw new Error("Personalized brief missing required sections");
