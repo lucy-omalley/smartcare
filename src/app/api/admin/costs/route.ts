@@ -42,5 +42,6 @@ export async function GET() {
     today: costs,
     cache,
     dailyActiveUsers: dau.length,
+    costPerActiveUser: dau.length > 0 ? costs.totalCost / dau.length : 0,
   });
 }

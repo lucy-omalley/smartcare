@@ -2,6 +2,7 @@ import "server-only";
 
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { completeAI } from "@/lib/ai/provider";
+import { logAIRequest } from "@/lib/ai/usage";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import { buildPlanContext, buildSemanticCacheKey } from "@/lib/knowledge/repository";
 import { fetchWeeklyFocusCandidates, loadWeeklyThemeBySlug } from "@/lib/knowledge/repository";
@@ -33,6 +34,7 @@ export async function buildPersonalizedWeeklyFocus(params: {
   const candidates = await fetchWeeklyFocusCandidates(profile, ctx);
 
   if (!candidates.length) {
+    await logAIRequest({ userId, feature: "WEEKLY_PLAN", resolution: "DB_ONLY" });
     return {
       title: "Building Connection",
       reason: "Small moments of presence and play strengthen your bond this week.",
@@ -40,6 +42,9 @@ export async function buildPersonalizedWeeklyFocus(params: {
   }
 
   let pick = cached ?? null;
+  if (pick) {
+    await logAIRequest({ userId, feature: "WEEKLY_PLAN", resolution: "CACHE_HIT" });
+  }
   if (!pick) {
     const filtered = excludeTitle
       ? candidates.filter((c) => c.title.toLowerCase() !== excludeTitle.toLowerCase())

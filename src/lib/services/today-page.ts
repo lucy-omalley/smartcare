@@ -14,6 +14,7 @@ import { generateCardIllustration } from "@/lib/services/card-illustrations";
 import { getTodayBriefStory } from "@/lib/services/story-audio-cache";
 import { generateStoryIllustration } from "@/lib/services/story-media";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
+import { logAIRequest } from "@/lib/ai/usage";
 import type { DailyBriefContent } from "@/types/daily-brief";
 
 /** Minimal data for the Today dashboard — cached brief first, fallback while AI generates. */
@@ -38,6 +39,7 @@ export async function getTodayPageData(userId: string) {
   const profileOut = enrichProfileWithChildAge(profile) ?? { name: "there" };
 
   if (cached) {
+    await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
     return {
       brief: cached.brief,
       profile: profileOut,

@@ -3,6 +3,7 @@ import "server-only";
 import type { BriefProfile } from "@/lib/daily-brief-context";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
 import { completeAI } from "@/lib/ai/provider";
+import { logAIRequest } from "@/lib/ai/usage";
 import { PERSONALIZE_PLAN_SYSTEM } from "@/lib/ai/prompts";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import {
@@ -59,7 +60,12 @@ export async function buildPersonalizedDailyBrief(params: {
 
   const candidates = await fetchKnowledgeCandidates(profile, ctx);
   if (!candidates.recipes.length && !candidates.activities.length) {
+    await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
     return defaultDailyBrief(profile, weeklyFocus);
+  }
+
+  if (pick) {
+    await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "CACHE_HIT" });
   }
 
   if (!pick) {
@@ -90,6 +96,7 @@ export async function buildPersonalizedDailyBrief(params: {
         await setCachedAIResponse(cacheKey, "PERSONALIZE", pick, 86400);
       }
     } catch {
+      await logAIRequest({ userId, feature: "PERSONALIZE", resolution: "DB_ONLY" });
       pick = deterministicPick(candidates);
     }
   }

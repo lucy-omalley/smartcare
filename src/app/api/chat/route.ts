@@ -100,6 +100,7 @@ export async function POST(request: Request) {
       memories,
       profile: user ?? undefined,
       todayPlanContext,
+      userId,
     });
 
     await recordChatUsed(userId);

@@ -23,6 +23,12 @@ export interface AICompletionResult {
   cacheHit: boolean;
 }
 
+export const COST_DASHBOARD_TARGETS = {
+  cacheHitRateMin: 0.7,
+  cacheHitRateMax: 0.9,
+  llmReachRateMax: 0.2,
+} as const;
+
 export const PLAN_LIMITS = {
   FREE: {
     dailyPlansPerDay: 1,

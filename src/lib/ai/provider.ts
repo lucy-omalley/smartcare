@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import type { AIFeature } from "@prisma/client";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import { resolveModelForFeature } from "@/lib/ai/router";
-import { logAIUsage } from "@/lib/ai/usage";
+import { logAIUsage, logAIRequest } from "@/lib/ai/usage";
 import type { AICompletionRequest, AICompletionResult } from "@/lib/ai/types";
 
 /**
@@ -40,6 +40,11 @@ export async function completeAI(request: AICompletionRequest): Promise<AIComple
         promptTokens: 0,
         completionTokens: 0,
         cacheHit: true,
+      });
+      await logAIRequest({
+        userId: request.userId,
+        feature: request.feature,
+        resolution: "CACHE_HIT",
       });
       return {
         content: cached.content,
@@ -88,6 +93,11 @@ export async function completeAI(request: AICompletionRequest): Promise<AIComple
     promptTokens,
     completionTokens,
     cacheHit: false,
+  });
+  await logAIRequest({
+    userId: request.userId,
+    feature: request.feature,
+    resolution: "LLM",
   });
 
   return { content, model, promptTokens, completionTokens, estimatedCostUsd, cacheHit: false };

@@ -2,20 +2,52 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface CostDashboard {
   today: {
     totalCost: number;
     aiCalls: number;
     cacheHits: number;
+    cacheHitPct: number;
+    cacheMissPct: number;
     cacheSavingPct: number;
+    avgTokensPerRequest: number;
     avgCostPerUser: number;
     uniqueUsers: number;
     topFeatures: Array<{ feature: string; calls: number; cost: number }>;
     estimatedMonthlySpend: number;
+    totalRequests: number;
+    llmRequests: number;
+    dbOnlyRequests: number;
+    requestCacheHits: number;
+    llmReachPct: number;
+    targets: {
+      cacheHitRateMin: number;
+      cacheHitRateMax: number;
+      llmReachRateMax: number;
+    };
+    health: {
+      cacheHit: boolean;
+      llmReach: boolean;
+    };
   };
-  cache: { hits: number; misses: number; hitRate: number };
+  cache: { hits: number; misses: number; hitRate: number; redisEnabled?: boolean };
   dailyActiveUsers: number;
+  costPerActiveUser: number;
+}
+
+function HealthBadge({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        'text-xs font-medium px-2 py-0.5 rounded-full',
+        ok ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+      )}
+    >
+      {label}: {ok ? 'On target' : 'Needs attention'}
+    </span>
+  );
 }
 
 export default function AdminCostDashboardPage() {
@@ -47,22 +79,82 @@ export default function AdminCostDashboardPage() {
     return <div className="p-6">Loading cost dashboard…</div>;
   }
 
-  const { today, cache, dailyActiveUsers } = data;
+  const { today, cache, dailyActiveUsers, costPerActiveUser } = data;
+  const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">AI Cost Dashboard</h1>
         <p className="text-muted-foreground text-sm">Database-first architecture metrics</p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <HealthBadge ok={today.health.cacheHit} label="Cache hit rate" />
+          <HealthBadge ok={today.health.llmReach} label="LLM reach" />
+          {cache.redisEnabled && (
+            <span className="text-xs text-muted-foreground px-2 py-0.5">Redis enabled</span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Targets: {pct(today.targets.cacheHitRateMin)}–{pct(today.targets.cacheHitRateMax)} cache hit (AI-eligible),
+          {' '}≤{pct(today.targets.llmReachRateMax)} of all requests reaching LLM
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Today&apos;s AI calls</CardTitle>
+            <CardTitle className="text-sm font-medium">AI calls / day</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{today.aiCalls}</p>
+            <p className="text-xs text-muted-foreground">Real LLM calls (excludes cache hits)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Cache hit %</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{pct(today.cacheHitPct)}</p>
+            <p className="text-xs text-muted-foreground">{today.cacheHits} hits of {today.cacheHits + today.aiCalls} AI-eligible</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Cache miss %</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{pct(today.cacheMissPct)}</p>
+            <p className="text-xs text-muted-foreground">LLM calls ÷ AI-eligible requests</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg tokens / request</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{Math.round(today.avgTokensPerRequest)}</p>
+            <p className="text-xs text-muted-foreground">Prompt + completion per LLM call</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">LLM reach %</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{pct(today.llmReachPct)}</p>
+            <p className="text-xs text-muted-foreground">
+              {today.llmRequests} LLM / {today.totalRequests} total requests
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">DB-only requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{today.dbOnlyRequests}</p>
+            <p className="text-xs text-muted-foreground">Served from knowledge DB / cache</p>
           </CardContent>
         </Card>
         <Card>
@@ -75,19 +167,20 @@ export default function AdminCostDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Avg cost / user</CardTitle>
+            <CardTitle className="text-sm font-medium">Cost / AI user</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">${today.avgCostPerUser.toFixed(4)}</p>
+            <p className="text-xs text-muted-foreground">{today.uniqueUsers} users with AI activity</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cache saving</CardTitle>
+            <CardTitle className="text-sm font-medium">Cost / active user (DAU)</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{(today.cacheSavingPct * 100).toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">{cache.hits} hits / {cache.misses} misses</p>
+            <p className="text-2xl font-bold">${costPerActiveUser.toFixed(4)}</p>
+            <p className="text-xs text-muted-foreground">{dailyActiveUsers} daily active users</p>
           </CardContent>
         </Card>
         <Card>
@@ -96,6 +189,7 @@ export default function AdminCostDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">${today.estimatedMonthlySpend.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Today × 30 projection</p>
           </CardContent>
         </Card>
         <Card>

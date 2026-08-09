@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { regenerateDailyBriefSection } from "@/lib/services/daily-brief";
+import { logAIRequest } from "@/lib/ai/usage";
 import { warmTodayStoryAudio } from "@/lib/services/story-audio-cache";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
+
+    await logAIRequest({ userId: session.user.id, feature: "ROTATE", resolution: "DB_ONLY" });
 
     if (section === "story") {
       warmTodayStoryAudio(session.user.id);
