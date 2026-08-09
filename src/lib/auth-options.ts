@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-url";
 import { captureServerEvent } from "@/lib/analytics/posthog-server";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 import { buildAuthProviders } from "@/lib/auth-providers";
@@ -17,10 +18,12 @@ async function resolveUserIdFromToken(token: {
   const email = token.email?.trim().toLowerCase();
   if (!email) return undefined;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
+  const user = await withDbRetry(() =>
+    prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    })
+  );
 
   return user?.id;
 }
@@ -77,10 +80,12 @@ export const authOptions: NextAuthOptions = {
         return "/auth/error?error=OAuthSignin";
       }
 
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, image: true, name: true },
-      });
+      const existingUser = await withDbRetry(() =>
+        prisma.user.findUnique({
+          where: { email },
+          select: { id: true, image: true, name: true },
+        })
+      );
 
       if (!existingUser) {
         return true;
@@ -88,13 +93,15 @@ export const authOptions: NextAuthOptions = {
 
       user.id = existingUser.id;
 
-      await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          image: existingUser.image ?? user.image ?? undefined,
-          name: existingUser.name || user.name || email.split("@")[0],
-        },
-      });
+      await withDbRetry(() =>
+        prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            image: existingUser.image ?? user.image ?? undefined,
+            name: existingUser.name || user.name || email.split("@")[0],
+          },
+        })
+      );
 
       return true;
     },

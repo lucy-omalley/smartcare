@@ -4,6 +4,7 @@ import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-url";
 
 function oauthProfileName(
   name: string | null | undefined,
@@ -81,9 +82,11 @@ export function buildAuthProviders(): Provider[] {
         }
 
         const email = credentials.email.trim().toLowerCase();
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
+        const user = await withDbRetry(() =>
+          prisma.user.findUnique({
+            where: { email },
+          })
+        );
 
         if (!user?.password) {
           return null;
