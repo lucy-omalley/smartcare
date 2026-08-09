@@ -140,9 +140,10 @@ export function ChatInterface() {
 
       if (!response.ok) {
         const friendly =
-          response.status === 429
+          data.error ||
+          (response.status === 429
             ? 'MumBot is taking a short break. Please try again in a moment.'
-            : data.error || 'MumBot is taking a short break. Please try again in a moment.';
+            : 'MumBot is taking a short break. Please try again in a moment.');
         throw new Error(friendly);
       }
 
