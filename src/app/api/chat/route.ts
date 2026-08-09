@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
-import { getOrCreateDailyBrief } from "@/lib/services/daily-brief";
+import { getCachedDailyBrief } from "@/lib/services/daily-brief";
 import { buildTodayPlanContextForMumBot } from "@/lib/services/today-recommendation-engine";
 import { normalizeBriefContent } from "@/lib/today-plan-utils";
 import { getMumBotResponse } from "@/lib/services/mumbot";
@@ -32,8 +32,9 @@ export async function POST(request: Request) {
     }
 
     if (!process.env.OPENAI_API_KEY?.trim()) {
+      console.error("Chat API: OPENAI_API_KEY is not configured");
       return NextResponse.json(
-        { error: MUMBOT_BREAK_MESSAGE },
+        { error: MUMBOT_BREAK_MESSAGE, code: "OPENAI_NOT_CONFIGURED" },
         { status: 503 }
       );
     }
@@ -53,7 +54,13 @@ export async function POST(request: Request) {
 
     const rateLimit = await checkMumBotRateLimit(userId);
     if (!rateLimit.allowed) {
-      return NextResponse.json({ error: MUMBOT_BREAK_MESSAGE }, { status: 429 });
+      return NextResponse.json(
+        {
+          error: `You've sent quite a few messages recently. Please try again in ${rateLimit.retryAfterMinutes ?? 15} minutes.`,
+          code: "RATE_LIMIT",
+        },
+        { status: 429 }
+      );
     }
 
     try {
@@ -88,7 +95,7 @@ export async function POST(request: Request) {
         orderBy: { createdAt: "desc" },
         take: 20,
       }),
-      getOrCreateDailyBrief(userId).catch(() => null),
+      getCachedDailyBrief(userId),
     ]);
 
     const normalizedBrief = todayBrief ? normalizeBriefContent(todayBrief) : null;
@@ -156,11 +163,16 @@ export async function POST(request: Request) {
       session?.user?.id,
       { provider: "openai" }
     );
-    const message =
-      error instanceof Error && error.message.includes("API key")
-        ? MUMBOT_BREAK_MESSAGE
-        : MUMBOT_BREAK_MESSAGE;
-    return NextResponse.json({ error: message }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    let message = MUMBOT_BREAK_MESSAGE;
+    let code = "CHAT_ERROR";
+    if (errMsg.includes("API key") || errMsg.includes("invalid_api_key")) {
+      code = "OPENAI_AUTH";
+    } else if (errMsg.includes("quota") || errMsg.includes("billing")) {
+      message = "MumBot is temporarily unavailable due to AI service limits. Please try again later.";
+      code = "OPENAI_QUOTA";
+    }
+    return NextResponse.json({ error: message, code }, { status: 500 });
   }
 }
 
