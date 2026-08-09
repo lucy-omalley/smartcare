@@ -90,7 +90,11 @@ export function scoreRecipe(
     "eating nutrition",
     recipe.minAgeMonths,
     recipe.maxAgeMonths,
-    [...signals.memory.completedActivities, ...signals.memory.savedMeals]
+    [
+      ...signals.memory.completedActivities,
+      ...signals.memory.savedMeals,
+      ...signals.previousRecipeSlugs,
+    ]
   );
 
   const favBoost = tokenMatchScore(text, signals.favouriteFoods);
@@ -118,7 +122,7 @@ export function scoreActivity(
     activity.skillsDeveloped.join(" "),
     activity.minAgeMonths,
     activity.maxAgeMonths,
-    signals.memory.completedActivities,
+    [...signals.memory.completedActivities, ...signals.previousActivitySlugs],
     {
       indoorOutdoor: activity.indoorOutdoor,
       rainyDay: activity.rainyDay,
@@ -149,7 +153,7 @@ export function scoreStory(
     story.theme,
     story.minAgeMonths,
     story.maxAgeMonths,
-    signals.memory.completedStories
+    [...signals.memory.completedStories, ...signals.previousStorySlugs]
   );
 
   if (signals.profile.sleepRoutine && /bedtime|calm|sleep/i.test(signals.profile.sleepRoutine)) {
@@ -198,6 +202,22 @@ export function scoreMilestone(
     []
   );
   return { item: milestone, kind: "milestone", total: totalFromFactors(factors), factors };
+}
+
+export function scoreWeeklyTheme(
+  signals: PlanSignals,
+  theme: import("../types").ScorableWeeklyTheme
+): ScoredCandidate<import("../types").ScorableWeeklyTheme> {
+  const text = haystack(theme.title, theme.reason, theme.domain, theme.tags);
+  const factors = buildFactors(
+    signals,
+    text,
+    theme.domain,
+    theme.minAgeMonths,
+    theme.maxAgeMonths,
+    []
+  );
+  return { item: theme, kind: "weekly", total: totalFromFactors(factors), factors };
 }
 
 export function rankScored<T extends { slug: string }>(

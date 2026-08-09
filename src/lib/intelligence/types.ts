@@ -3,7 +3,13 @@ import type { PlanContext } from "@/lib/knowledge/repository";
 import type { WeatherInfo } from "@/types/daily-brief";
 import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
 
-export type CandidateKind = "recipe" | "activity" | "story" | "tip" | "milestone";
+export type CandidateKind = "recipe" | "activity" | "story" | "tip" | "milestone" | "weekly";
+
+export interface PlanHistory {
+  previousRecipeSlugs?: string[];
+  previousActivitySlugs?: string[];
+  previousStorySlugs?: string[];
+}
 
 export interface PlanSignals {
   profile: BriefProfile;
@@ -110,6 +116,23 @@ export interface ScorableMilestone {
   tags: string[];
   minAgeMonths: number;
   maxAgeMonths: number;
+}
+
+export interface ScorableWeeklyTheme {
+  slug: string;
+  title: string;
+  reason: string;
+  domain: string;
+  tags: string[];
+  minAgeMonths: number;
+  maxAgeMonths: number;
+}
+
+export interface RankedWeeklyFocusPick {
+  themeSlug: string;
+  title: string;
+  reason: string;
+  scored?: ScoredCandidate<ScorableWeeklyTheme>;
 }
 
 export interface KnowledgeScoringPool {
