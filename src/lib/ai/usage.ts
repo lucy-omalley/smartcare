@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AIFeature, AIRequestResolution, SubscriptionPlan } from "@prisma/client";
+import { hasUnlimitedUsage } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
 import { COST_DASHBOARD_TARGETS, MODEL_COST_PER_1M, PLAN_LIMITS } from "@/lib/ai/types";
@@ -50,6 +51,7 @@ async function ensureQuota(userId: string) {
 }
 
 export async function getUserPlan(userId: string): Promise<SubscriptionPlan> {
+  if (await hasUnlimitedUsage(userId)) return "PREMIUM";
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { planTier: true } });
   return user?.planTier ?? "FREE";
 }
