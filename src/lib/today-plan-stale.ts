@@ -31,14 +31,18 @@ export function bodyAffectsTodayPlan(body: Record<string, unknown>): boolean {
 export const TODAY_PLAN_STALE_KEY = "today_plan_stale";
 
 export function markTodayPlanStale(): void {
-  if (typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(TODAY_PLAN_STALE_KEY, "1");
-  }
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(TODAY_PLAN_STALE_KEY, "1");
+  localStorage.setItem(TODAY_PLAN_STALE_KEY, "1");
 }
 
 export function consumeTodayPlanStale(): boolean {
-  if (typeof sessionStorage === "undefined") return false;
-  if (sessionStorage.getItem(TODAY_PLAN_STALE_KEY) !== "1") return false;
+  if (typeof window === "undefined") return false;
+  const stale =
+    sessionStorage.getItem(TODAY_PLAN_STALE_KEY) === "1" ||
+    localStorage.getItem(TODAY_PLAN_STALE_KEY) === "1";
+  if (!stale) return false;
   sessionStorage.removeItem(TODAY_PLAN_STALE_KEY);
+  localStorage.removeItem(TODAY_PLAN_STALE_KEY);
   return true;
 }

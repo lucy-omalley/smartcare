@@ -119,11 +119,19 @@ export async function POST(request: Request) {
     select: profileSelect,
   });
 
+  const planAffectingUpdate = bodyAffectsTodayPlan(body as Record<string, unknown>);
   let todayPlanRegenerated = false;
-  if (bodyAffectsTodayPlan(body as Record<string, unknown>)) {
-    await invalidateTodayPlan(session.user.id);
-    warmTodayPlanInBackground(session.user.id);
-    todayPlanRegenerated = true;
+  if (planAffectingUpdate) {
+    try {
+      await invalidateTodayPlan(session.user.id);
+      warmTodayPlanInBackground(session.user.id, "profile_refresh");
+      todayPlanRegenerated = true;
+    } catch (error) {
+      console.error("Today plan refresh after profile update failed:", error);
+      // Profile saved — still kick off regeneration so Today is not stuck empty.
+      warmTodayPlanInBackground(session.user.id, "profile_refresh");
+      todayPlanRegenerated = true;
+    }
   }
 
   return NextResponse.json({
