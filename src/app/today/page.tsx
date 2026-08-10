@@ -93,6 +93,7 @@ export default function TodayPage() {
   const rotatingRef = useRef(false);
   const lastRotateAtRef = useRef(0);
   const lastBriefUpdatedAtRef = useRef<string | null>(null);
+  const profileRefreshPollRef = useRef(false);
 
   const submitCheckIn = useCallback(
     async (payload: { feeling: string; win: string; challenge: string }) => {
@@ -132,9 +133,14 @@ export default function TodayPage() {
       });
   }, []);
 
-  const loadToday = useCallback((options?: { silent?: boolean }) => {
+  const loadToday = useCallback((options?: { silent?: boolean; generate?: boolean; profileRefresh?: boolean }) => {
     if (!options?.silent) setPlanLoading(true);
-    return fetch('/api/today', { cache: 'no-store' })
+    const params = new URLSearchParams();
+    if (options?.generate) params.set('generate', '1');
+    if (options?.profileRefresh) params.set('profileRefresh', '1');
+    const query = params.toString();
+    const url = query ? `/api/today?${query}` : '/api/today';
+    return fetch(url, { cache: 'no-store' })
       .then(async (r) => {
         const json = await parseApiJson<{
           brief: DailyBriefContent;
@@ -180,18 +186,6 @@ export default function TodayPage() {
           ) {
             return prev;
           }
-          if (
-            options?.silent &&
-            briefData.generating &&
-            prev?.brief &&
-            isValidBriefContent(prev.brief)
-          ) {
-            return {
-              ...prev,
-              profile: briefData.profile,
-              generating: true,
-            };
-          }
           if (briefData.briefUpdatedAt) {
             lastBriefUpdatedAtRef.current = briefData.briefUpdatedAt;
           }
@@ -234,20 +228,39 @@ export default function TodayPage() {
   useEffect(() => {
     if (!generatingPlan || status !== 'authenticated') return;
 
+    let cancelled = false;
     let attempts = 0;
-    const maxAttempts = 40;
+    const maxAttempts = 5;
 
-    const interval = setInterval(() => {
+    const runGeneration = async () => {
       attempts += 1;
-      if (attempts > maxAttempts) {
+      try {
+        await loadToday({
+          silent: true,
+          generate: true,
+          profileRefresh: profileRefreshPollRef.current,
+        });
+        profileRefreshPollRef.current = false;
+      } catch {
+        /* loadToday sets loadError */
+      }
+      if (cancelled) return;
+      if (attempts >= maxAttempts) {
         setGeneratingPlan(false);
         setPlanRefreshSlow(true);
-        return;
       }
-      void loadToday({ silent: true });
-    }, 3000);
+    };
 
-    return () => clearInterval(interval);
+    void runGeneration();
+    const interval = setInterval(() => {
+      if (attempts >= maxAttempts) return;
+      void runGeneration();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [generatingPlan, status, loadToday]);
 
   const reloadTodayPlan = useCallback(() => {
@@ -260,10 +273,15 @@ export default function TodayPage() {
 
     const refreshIfStale = () => {
       if (!consumeTodayPlanStale()) return;
+      lastBriefUpdatedAtRef.current = null;
+      profileRefreshPollRef.current = true;
       setGeneratingPlan(true);
       setPlanRefreshSlow(false);
+      invalidateTodayStoryAudioCache();
+      invalidateTodayStoryIllustrationCache();
+      invalidateTodayRecipeIllustrationCache();
       toast.info('Updating Today\'s Plan with your profile changes…');
-      reloadTodayPlan();
+      void loadToday({ silent: true, generate: true, profileRefresh: true });
     };
 
     refreshIfStale();
@@ -594,7 +612,7 @@ export default function TodayPage() {
                 onClick={() => {
                   setPlanRefreshSlow(false);
                   setGeneratingPlan(true);
-                  reloadTodayPlan();
+                  void loadToday({ silent: true, generate: true, profileRefresh: profileRefreshPollRef.current });
                 }}
               >
                 retry
