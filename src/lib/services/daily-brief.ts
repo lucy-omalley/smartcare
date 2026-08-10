@@ -56,6 +56,7 @@ import {
   storyItemKey,
 } from "@/lib/intelligence/adapters/brief-to-scorable";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
+import { withPlanProfileKey } from "@/lib/plan-profile-key";
 
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
@@ -68,15 +69,25 @@ function briefInflightKey(userId: string, mode: BriefGenerationMode): string {
   return mode === "profile_refresh" ? `${userId}:refresh` : userId;
 }
 
-async function persistDailyBrief(userId: string, content: DailyBriefContent): Promise<void> {
+async function persistDailyBrief(
+  userId: string,
+  content: DailyBriefContent,
+  profile: Record<string, unknown>
+): Promise<void> {
   const today = toDateKey();
+  const stamped = withPlanProfileKey(content, profile);
   await prisma.dailyBrief.upsert({
     where: { userId_date: { userId, date: today } },
-    create: { userId, date: today, content: content as object },
-    update: { content: content as object },
+    create: { userId, date: today, content: stamped as object },
+    update: { content: stamped as object },
   });
   warmTodayStoryAudio(userId);
   warmRotateLibraryInBackground(userId);
+}
+
+/** True while a profile-triggered plan refresh is running for this user. */
+export function isTodayPlanRefreshInFlight(userId: string): boolean {
+  return inflightBriefGeneration.has(briefInflightKey(userId, "profile_refresh"));
 }
 
 /** Return today's cached brief from DB only — no AI generation. */
@@ -373,6 +384,10 @@ export async function getOrCreateDailyBrief(
 ): Promise<DailyBriefContent> {
   const today = toDateKey();
 
+  if (mode === "profile_refresh") {
+    await prisma.dailyBrief.deleteMany({ where: { userId, date: today } });
+  }
+
   const existing = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
   });
@@ -423,7 +438,7 @@ export async function getOrCreateDailyBrief(
   }
 
   try {
-    await persistDailyBrief(userId, content);
+    await persistDailyBrief(userId, content, profile as Record<string, unknown>);
   } catch (error) {
     console.error("Failed to persist daily brief:", error);
     if (usedFallback) throw error;

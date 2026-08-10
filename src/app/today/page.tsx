@@ -86,6 +86,7 @@ export default function TodayPage() {
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [profileRefreshing, setProfileRefreshing] = useState(false);
   const [planRefreshSlow, setPlanRefreshSlow] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
@@ -132,7 +133,7 @@ export default function TodayPage() {
       });
   }, []);
 
-  const loadToday = useCallback((options?: { silent?: boolean }) => {
+  const loadToday = useCallback((options?: { silent?: boolean; forceRefresh?: boolean }) => {
     if (!options?.silent) setPlanLoading(true);
     return fetch('/api/today', { cache: 'no-store' })
       .then(async (r) => {
@@ -141,6 +142,7 @@ export default function TodayPage() {
           profile: TodayData['profile'];
           generating?: boolean;
           briefUpdatedAt?: string | null;
+          planRefreshing?: boolean;
           error?: string;
         }>(r);
         if (!r.ok) throw new Error(json.error || `Failed (${r.status})`);
@@ -152,8 +154,22 @@ export default function TodayPage() {
         }
         setLoadError(null);
         setGeneratingPlan(Boolean(briefData.generating));
-        if (!briefData.generating) setPlanRefreshSlow(false);
+        if (!briefData.generating) {
+          setPlanRefreshSlow(false);
+          setProfileRefreshing(false);
+        }
         setData((prev) => {
+          if (options?.forceRefresh) {
+            if (briefData.briefUpdatedAt) {
+              lastBriefUpdatedAtRef.current = briefData.briefUpdatedAt;
+            }
+            return {
+              brief: briefData.brief,
+              profile: briefData.profile,
+              connectAvailableCount: prev?.connectAvailableCount ?? 0,
+              upcomingEvent: prev?.upcomingEvent ?? null,
+            };
+          }
           if (options?.silent && rotatingRef.current) {
             return prev;
           }
@@ -179,18 +195,6 @@ export default function TodayPage() {
             !isValidBriefContent(briefData.brief)
           ) {
             return prev;
-          }
-          if (
-            options?.silent &&
-            briefData.generating &&
-            prev?.brief &&
-            isValidBriefContent(prev.brief)
-          ) {
-            return {
-              ...prev,
-              profile: briefData.profile,
-              generating: true,
-            };
           }
           if (briefData.briefUpdatedAt) {
             lastBriefUpdatedAtRef.current = briefData.briefUpdatedAt;
@@ -250,9 +254,9 @@ export default function TodayPage() {
     return () => clearInterval(interval);
   }, [generatingPlan, status, loadToday]);
 
-  const reloadTodayPlan = useCallback(() => {
+  const reloadTodayPlan = useCallback((forceRefresh = false) => {
     setPlanLoading(true);
-    loadToday({ silent: true }).finally(() => setPlanLoading(false));
+    loadToday({ silent: !forceRefresh, forceRefresh }).finally(() => setPlanLoading(false));
   }, [loadToday]);
 
   useEffect(() => {
@@ -260,10 +264,15 @@ export default function TodayPage() {
 
     const refreshIfStale = () => {
       if (!consumeTodayPlanStale()) return;
+      lastBriefUpdatedAtRef.current = null;
+      setProfileRefreshing(true);
       setGeneratingPlan(true);
       setPlanRefreshSlow(false);
+      invalidateTodayStoryAudioCache();
+      invalidateTodayStoryIllustrationCache();
+      invalidateTodayRecipeIllustrationCache();
       toast.info('Updating Today\'s Plan with your profile changes…');
-      reloadTodayPlan();
+      reloadTodayPlan(true);
     };
 
     refreshIfStale();
@@ -484,6 +493,9 @@ export default function TodayPage() {
   const weeklyFocus = brief?.weeklyFocus;
   const milestone = brief?.milestone;
   const parentTip = brief?.parentTip;
+  const showTodayPlan = Boolean(
+    brief && isValidBriefContent(brief) && !generatingPlan && !profileRefreshing
+  );
 
   const connectAvailableText =
     data?.connectAvailableCount === 0
@@ -564,7 +576,7 @@ export default function TodayPage() {
           ) : (
             <p className="text-sm text-muted-foreground">What can I do with my child today?</p>
           )}
-          {weeklyFocus && (
+          {showTodayPlan && weeklyFocus && (
             <TodayFocusBanner
               label="This week's focus"
               title={weeklyFocus.title}
@@ -572,7 +584,7 @@ export default function TodayPage() {
               variant="weekly"
             />
           )}
-          {todayFocus && (
+          {showTodayPlan && todayFocus && (
             <TodayFocusBanner
               label="Today's focus"
               title={todayFocus.title}
@@ -580,9 +592,11 @@ export default function TodayPage() {
               variant="today"
             />
           )}
-          {generatingPlan && (
+          {(generatingPlan || profileRefreshing) && (
             <p className="text-xs text-muted-foreground px-0.5 animate-pulse">
-              Personalising your full plan…
+              {profileRefreshing
+                ? `Building a fresh plan${childName ? ` for ${childName}` : ''}…`
+                : 'Personalising your full plan…'}
             </p>
           )}
           {planRefreshSlow && !generatingPlan && (
@@ -593,8 +607,9 @@ export default function TodayPage() {
                 className="underline text-primary"
                 onClick={() => {
                   setPlanRefreshSlow(false);
+                  setProfileRefreshing(true);
                   setGeneratingPlan(true);
-                  reloadTodayPlan();
+                  reloadTodayPlan(true);
                 }}
               >
                 retry
@@ -625,7 +640,18 @@ export default function TodayPage() {
           </div>
         )}
 
-        {brief && isValidBriefContent(brief) && (
+        {(generatingPlan || profileRefreshing) && hasChildProfile && (
+          <div className="visual-card p-8 text-center space-y-2">
+            <p className="text-sm font-medium">
+              Building a fresh plan{childName ? ` for ${childName}` : ''}…
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Your previous plan is hidden until the update finishes — usually under a minute.
+            </p>
+          </div>
+        )}
+
+        {showTodayPlan && brief && (
           <>
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🌟" title="Today's Plan" />

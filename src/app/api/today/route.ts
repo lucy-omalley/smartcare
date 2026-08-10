@@ -18,13 +18,14 @@ export async function GET() {
   }
 
   try {
-    const { brief, profile, generating, briefUpdatedAt } = await getTodayPageData(session.user.id);
+    const { brief, profile, generating, briefUpdatedAt, planRefreshing } = await getTodayPageData(session.user.id);
     warmTodayStoryAudio(session.user.id);
     return NextResponse.json({
       brief,
       profile,
       generating: generating ?? false,
       briefUpdatedAt,
+      planRefreshing: planRefreshing ?? false,
     });
   } catch (error) {
     console.error("Today GET error:", error);

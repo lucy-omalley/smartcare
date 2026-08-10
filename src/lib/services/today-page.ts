@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db";
 import { toDateKey } from "@/lib/date-utils";
 import {
-  getCachedDailyBrief,
   getCachedDailyBriefWithMeta,
   ensureTodayPlanGenerating,
   getWeeklyFocusFast,
+  isTodayPlanRefreshInFlight,
+  warmTodayPlanInBackground,
 } from "@/lib/services/daily-brief";
 import { defaultDailyBrief } from "@/lib/services/mumbot";
 import { normalizeBriefContent } from "@/lib/today-plan-utils";
@@ -15,11 +16,12 @@ import { getTodayBriefStory } from "@/lib/services/story-audio-cache";
 import { generateStoryIllustration } from "@/lib/services/story-media";
 import { enrichProfileWithChildAge } from "@/lib/child-age";
 import { logAIRequest } from "@/lib/ai/usage";
+import { briefMatchesProfile } from "@/lib/plan-profile-key";
 import type { DailyBriefContent } from "@/types/daily-brief";
 
 /** Minimal data for the Today dashboard — cached brief first, fallback while AI generates. */
 export async function getTodayPageData(userId: string) {
-  const [cached, profile, weeklyFocusResult] = await Promise.all([
+  const [cached, profile, weeklyFocusResult, refreshInFlight] = await Promise.all([
     getCachedDailyBriefWithMeta(userId),
     prisma.user.findUnique({
       where: { id: userId },
@@ -31,20 +33,47 @@ export async function getTodayPageData(userId: string) {
         parentingGoals: true,
         priorityGoal: true,
         currentChallenges: true,
+        childInterests: true,
+        foodPreferences: true,
+        routineNotes: true,
+        developmentNotes: true,
+        parentingGoal: true,
+        location: true,
       },
     }),
     getWeeklyFocusFast(userId),
+    Promise.resolve(isTodayPlanRefreshInFlight(userId)),
   ]);
 
   const profileOut = enrichProfileWithChildAge(profile) ?? { name: "there" };
+  const profileRecord = profileOut as Record<string, unknown>;
 
   if (cached) {
-    await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
+    const planMatchesProfile = briefMatchesProfile(cached.brief, profileRecord);
+    if (planMatchesProfile && !refreshInFlight) {
+      await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
+      return {
+        brief: cached.brief,
+        profile: profileOut,
+        generating: false,
+        briefUpdatedAt: cached.updatedAt.toISOString(),
+      };
+    }
+
+    if (!refreshInFlight) {
+      warmTodayPlanInBackground(userId, "profile_refresh");
+    }
+
+    const fallback = normalizeBriefContent(
+      defaultDailyBrief(profileOut as BriefProfile, weeklyFocusResult.focus)
+    );
+
     return {
-      brief: cached.brief,
+      brief: fallback,
       profile: profileOut,
-      generating: false,
-      briefUpdatedAt: cached.updatedAt.toISOString(),
+      generating: true,
+      briefUpdatedAt: null,
+      planRefreshing: true,
     };
   }
 
@@ -59,6 +88,7 @@ export async function getTodayPageData(userId: string) {
     profile: profileOut,
     generating: true,
     briefUpdatedAt: null,
+    planRefreshing: refreshInFlight,
   };
 }
 
