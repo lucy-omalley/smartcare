@@ -21,7 +21,7 @@ import {
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
-import { markTodayPlanStale } from '@/lib/today-plan-stale';
+import { bodyAffectsTodayPlan, markTodayPlanStale } from '@/lib/today-plan-stale';
 import { toast } from 'sonner';
 import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
 import { formatBirthdayDisplay, resolveChildAgeDisplay } from '@/lib/child-age';
@@ -162,31 +162,37 @@ function ProfileContent() {
 
   const saveProfile = async () => {
     setSaving(true);
+    const payload = {
+      childNickname,
+      childBirthday,
+      childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
+      foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
+      routineNotes,
+      developmentNotes,
+      parentingGoals,
+      priorityGoal,
+      currentChallenges,
+      broadArea,
+      bio,
+      onboardingComplete: true,
+    };
+    const affectsTodayPlan = bodyAffectsTodayPlan(payload);
     try {
       const res = await fetch('/api/onboarding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          childNickname,
-          childBirthday,
-          childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
-          foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
-          routineNotes,
-          developmentNotes,
-          parentingGoals,
-          priorityGoal,
-          currentChallenges,
-          broadArea,
-          bio,
-          onboardingComplete: true,
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? 'Could not save profile. Please try again.');
+        return;
+      }
       setProfile(data.profile);
       setEditing(false);
-      if (data.todayPlanRegenerated) {
+      if (affectsTodayPlan || data.todayPlanRegenerated) {
         markTodayPlanStale();
-        toast.success('Profile saved — refreshing Today\'s Plan with your updates.');
+        toast.success('Profile saved — updating Today\'s Plan with your changes.');
       } else {
         toast.success('Profile saved.');
       }
@@ -196,6 +202,8 @@ function ProfileContent() {
           has_interests: Boolean(childInterests),
         });
       }
+    } catch {
+      toast.error('Could not save profile. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }

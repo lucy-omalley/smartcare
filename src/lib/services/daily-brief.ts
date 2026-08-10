@@ -60,7 +60,24 @@ import { enrichProfileWithChildAge } from "@/lib/child-age";
 export { needsBriefIllustrations };
 export { warmTodayStoryAudio };
 
+export type BriefGenerationMode = "default" | "profile_refresh";
+
 const inflightBriefGeneration = new Map<string, Promise<DailyBriefContent>>();
+
+function briefInflightKey(userId: string, mode: BriefGenerationMode): string {
+  return mode === "profile_refresh" ? `${userId}:refresh` : userId;
+}
+
+async function persistDailyBrief(userId: string, content: DailyBriefContent): Promise<void> {
+  const today = toDateKey();
+  await prisma.dailyBrief.upsert({
+    where: { userId_date: { userId, date: today } },
+    create: { userId, date: today, content: content as object },
+    update: { content: content as object },
+  });
+  warmTodayStoryAudio(userId);
+  warmRotateLibraryInBackground(userId);
+}
 
 /** Return today's cached brief from DB only — no AI generation. */
 export async function getCachedDailyBrief(userId: string): Promise<DailyBriefContent | null> {
@@ -99,6 +116,7 @@ export async function getCachedDailyBriefWithMeta(userId: string) {
 /** Start AI generation once per user if today's brief is missing. */
 export function ensureTodayPlanGenerating(userId: string): void {
   warmRotateLibraryInBackground(userId);
+  if (inflightBriefGeneration.has(briefInflightKey(userId, "profile_refresh"))) return;
   if (inflightBriefGeneration.has(userId)) return;
 
   const task = getOrCreateDailyBrief(userId)
@@ -329,21 +347,37 @@ export async function invalidateTodayPlan(userId: string): Promise<void> {
 }
 
 /** Regenerate today's plan in the background after profile changes. */
-export function warmTodayPlanInBackground(userId: string): void {
+export function warmTodayPlanInBackground(
+  userId: string,
+  mode: BriefGenerationMode = "profile_refresh"
+): void {
   warmRotateLibraryInBackground(userId);
-  void getOrCreateDailyBrief(userId).catch((err) => {
-    console.warn("Background today plan regeneration failed:", err);
-  });
+  const key = briefInflightKey(userId, mode);
+  if (inflightBriefGeneration.has(key)) return;
+
+  const task = getOrCreateDailyBrief(userId, mode)
+    .catch((err) => {
+      console.warn("Background today plan regeneration failed:", err);
+      throw err;
+    })
+    .finally(() => {
+      inflightBriefGeneration.delete(key);
+    });
+
+  inflightBriefGeneration.set(key, task);
 }
 
-export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefContent> {
+export async function getOrCreateDailyBrief(
+  userId: string,
+  mode: BriefGenerationMode = "default"
+): Promise<DailyBriefContent> {
   const today = toDateKey();
 
   const existing = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
   });
 
-  if (existing) {
+  if (existing && mode === "default") {
     const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
     if (isValidBriefContent(normalized)) {
       return normalized;
@@ -351,13 +385,15 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
     console.warn("Stored daily brief invalid, regenerating for user:", userId);
   }
 
-  const { profile, memories, recentMessages, weeklyFocus, memorySignals } =
-    await fetchBriefContext(userId);
+  const { profile, weeklyFocus, memorySignals } = await fetchBriefContext(userId);
   const weather = profile.location ? await fetchWeatherForLocation(profile.location) : null;
 
   let content: DailyBriefContent;
+  let usedFallback = false;
   try {
-    await assertCanGenerateTodayPlan(userId);
+    if (mode !== "profile_refresh") {
+      await assertCanGenerateTodayPlan(userId);
+    }
     content = await buildPersonalizedDailyBrief({
       userId,
       profile,
@@ -368,22 +404,29 @@ export async function getOrCreateDailyBrief(userId: string): Promise<DailyBriefC
     if (!isValidBriefContent(content)) {
       throw new Error("Personalized brief missing required sections");
     }
-    await recordTodayPlanGenerated(userId);
+    if (mode === "profile_refresh") {
+      const quota = await prisma.userUsageQuota.findUnique({
+        where: { userId },
+        select: { dailyPlansToday: true },
+      });
+      if ((quota?.dailyPlansToday ?? 0) === 0) {
+        await recordTodayPlanGenerated(userId);
+      }
+    } else {
+      await recordTodayPlanGenerated(userId);
+    }
   } catch (error) {
-    if (error instanceof Error && error.name === "UsageLimitError") throw error;
+    usedFallback = true;
     console.error("Daily brief generation failed, using fallback:", error);
     await logAIRequest({ userId, feature: "TODAY_PLAN", resolution: "DB_ONLY" });
     content = normalizeBriefContent(defaultDailyBrief(profile, weeklyFocus));
   }
 
   try {
-    await prisma.dailyBrief.create({
-      data: { userId, date: today, content: content as object },
-    });
-    warmTodayStoryAudio(userId);
-    warmRotateLibraryInBackground(userId);
+    await persistDailyBrief(userId, content);
   } catch (error) {
     console.error("Failed to persist daily brief:", error);
+    if (usedFallback) throw error;
   }
 
   return content;

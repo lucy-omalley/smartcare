@@ -86,6 +86,7 @@ export default function TodayPage() {
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [planRefreshSlow, setPlanRefreshSlow] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDetail, setActiveDetail] = useState<DetailType>(null);
   const [rotating, setRotating] = useState<RotateSection | null>(null);
@@ -151,6 +152,7 @@ export default function TodayPage() {
         }
         setLoadError(null);
         setGeneratingPlan(Boolean(briefData.generating));
+        if (!briefData.generating) setPlanRefreshSlow(false);
         setData((prev) => {
           if (options?.silent && rotatingRef.current) {
             return prev;
@@ -233,12 +235,13 @@ export default function TodayPage() {
     if (!generatingPlan || status !== 'authenticated') return;
 
     let attempts = 0;
-    const maxAttempts = 20;
+    const maxAttempts = 40;
 
     const interval = setInterval(() => {
       attempts += 1;
       if (attempts > maxAttempts) {
         setGeneratingPlan(false);
+        setPlanRefreshSlow(true);
         return;
       }
       void loadToday({ silent: true });
@@ -257,6 +260,9 @@ export default function TodayPage() {
 
     const refreshIfStale = () => {
       if (!consumeTodayPlanStale()) return;
+      setGeneratingPlan(true);
+      setPlanRefreshSlow(false);
+      toast.info('Updating Today\'s Plan with your profile changes…');
       reloadTodayPlan();
     };
 
@@ -577,6 +583,22 @@ export default function TodayPage() {
           {generatingPlan && (
             <p className="text-xs text-muted-foreground px-0.5 animate-pulse">
               Personalising your full plan…
+            </p>
+          )}
+          {planRefreshSlow && !generatingPlan && (
+            <p className="text-xs text-muted-foreground px-0.5">
+              Plan update is taking longer than usual. Showing the latest available plan —{' '}
+              <button
+                type="button"
+                className="underline text-primary"
+                onClick={() => {
+                  setPlanRefreshSlow(false);
+                  setGeneratingPlan(true);
+                  reloadTodayPlan();
+                }}
+              >
+                retry
+              </button>
             </p>
           )}
         </header>

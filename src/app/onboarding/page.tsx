@@ -18,6 +18,7 @@ import {
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
+import { markTodayPlanStale } from '@/lib/today-plan-stale';
 
 const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'ready'] as const;
 type Step = (typeof STEPS)[number];
@@ -109,6 +110,7 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     await saveProgress(true);
+    markTodayPlanStale();
     const startRaw = localStorage.getItem("parenfy_onboarding_start");
     const durationSeconds = startRaw
       ? Math.round((Date.now() - parseInt(startRaw, 10)) / 1000)
