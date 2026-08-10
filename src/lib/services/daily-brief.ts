@@ -113,25 +113,54 @@ export async function getCachedDailyBriefWithMeta(userId: string) {
   };
 }
 
-/** Start AI generation once per user if today's brief is missing. */
-export function ensureTodayPlanGenerating(userId: string): void {
-  warmRotateLibraryInBackground(userId);
-  if (inflightBriefGeneration.has(briefInflightKey(userId, "profile_refresh"))) return;
-  if (inflightBriefGeneration.has(userId)) return;
+/** True while a profile-triggered plan refresh is running for this user. */
+export function isTodayPlanRefreshInFlight(userId: string): boolean {
+  return inflightBriefGeneration.has(briefInflightKey(userId, "profile_refresh"));
+}
 
-  const task = getOrCreateDailyBrief(userId)
+/** Start or join in-flight generation — safe to await (required on Vercel serverless). */
+export function runOrJoinBriefGeneration(
+  userId: string,
+  mode: BriefGenerationMode = "default"
+): Promise<DailyBriefContent> {
+  const key = briefInflightKey(userId, mode);
+  const pending = inflightBriefGeneration.get(key);
+  if (pending) return pending;
+
+  warmRotateLibraryInBackground(userId);
+  const task = getOrCreateDailyBrief(userId, mode)
     .catch((err) => {
-      console.warn("Background today plan generation failed:", err);
+      console.warn("Today plan generation failed:", err);
       throw err;
     })
     .finally(() => {
-      inflightBriefGeneration.delete(userId);
+      inflightBriefGeneration.delete(key);
     });
 
-  inflightBriefGeneration.set(userId, task);
+  inflightBriefGeneration.set(key, task);
+  return task;
 }
 
-export { getWeeklyFocusFast };
+/** Await today's plan generation within the current request (Vercel-safe). */
+export async function awaitTodayPlanGeneration(
+  userId: string,
+  options?: { profileRefresh?: boolean }
+): Promise<DailyBriefContent> {
+  const mode: BriefGenerationMode = options?.profileRefresh ? "profile_refresh" : "default";
+  if (mode === "default") {
+    const cached = await getCachedDailyBriefWithMeta(userId);
+    if (cached && isValidBriefContent(cached.brief)) {
+      return cached.brief;
+    }
+  }
+  return runOrJoinBriefGeneration(userId, mode);
+}
+
+/** Best-effort kickoff — may not finish on Vercel after the HTTP response ends. Prefer awaitTodayPlanGeneration. */
+export function ensureTodayPlanGenerating(userId: string): void {
+  if (isTodayPlanRefreshInFlight(userId)) return;
+  void runOrJoinBriefGeneration(userId, "default").catch(() => {});
+}
 
 function warmWeeklyFocusInBackground(
   userId: string,
@@ -346,32 +375,25 @@ export async function invalidateTodayPlan(userId: string): Promise<void> {
   await invalidateRotateLibrary(userId);
 }
 
-/** Regenerate today's plan in the background after profile changes. */
+/** Best-effort kickoff after profile save — client should poll /api/today?generate=1. */
 export function warmTodayPlanInBackground(
   userId: string,
   mode: BriefGenerationMode = "profile_refresh"
 ): void {
-  warmRotateLibraryInBackground(userId);
-  const key = briefInflightKey(userId, mode);
-  if (inflightBriefGeneration.has(key)) return;
-
-  const task = getOrCreateDailyBrief(userId, mode)
-    .catch((err) => {
-      console.warn("Background today plan regeneration failed:", err);
-      throw err;
-    })
-    .finally(() => {
-      inflightBriefGeneration.delete(key);
-    });
-
-  inflightBriefGeneration.set(key, task);
+  void runOrJoinBriefGeneration(userId, mode).catch(() => {});
 }
+
+export { getWeeklyFocusFast };
 
 export async function getOrCreateDailyBrief(
   userId: string,
   mode: BriefGenerationMode = "default"
 ): Promise<DailyBriefContent> {
   const today = toDateKey();
+
+  if (mode === "profile_refresh") {
+    await prisma.dailyBrief.deleteMany({ where: { userId, date: today } });
+  }
 
   const existing = await prisma.dailyBrief.findUnique({
     where: { userId_date: { userId, date: today } },
