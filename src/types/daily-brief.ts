@@ -122,6 +122,8 @@ export interface DailyBriefContent {
   weatherNote?: string;
   /** Internal counter used to cycle Try another suggestions. */
   _rotationCounts?: Partial<Record<"recipe" | "play" | "story" | "language", number>>;
+  /** Fingerprint of child profile when this plan was generated (server-only). */
+  _planProfileKey?: string;
 }
 
 export interface LibraryRecommendation {
