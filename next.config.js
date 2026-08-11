@@ -43,7 +43,20 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // Add any necessary webpack configurations here
     return config;
-  }
+  },
+  experimental: {
+    instrumentationHook: true,
+  },
 };
 
-module.exports = nextConfig; 
+const { withSentryConfig } = require("@sentry/nextjs");
+
+module.exports = withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});

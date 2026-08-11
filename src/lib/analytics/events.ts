@@ -6,6 +6,7 @@ export type AnalyticsEvent =
   // Authentication
   | "signup_started"
   | "signup_completed"
+  | "email_verified"
   | "login"
   | "login_completed"
   | "logout"

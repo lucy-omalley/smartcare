@@ -56,6 +56,10 @@ export default function SignIn() {
     } else if (searchParams.get('reset') === 'success') {
       setSuccessMessage('Your password was updated. Please sign in with your new password.');
       router.replace('/auth/signin', { scroll: false });
+    } else if (searchParams.get('verify') === '1') {
+      setSuccessMessage(
+        'Check your email for a verification link, then sign in. You will need to verify before using the app.'
+      );
     }
 
     const oauthError = searchParams.get('error');
@@ -149,9 +153,11 @@ export default function SignIn() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            {searchParams.get('registered')
-              ? 'Your account has been created. Please sign in.'
-              : 'Sign in to your Parenfy Public Beta account'}
+            {searchParams.get('verify') === '1'
+              ? 'Verify your email, then sign in to continue.'
+              : searchParams.get('registered')
+                ? 'Your account has been created. Please sign in.'
+                : 'Sign in to your Parenfy Public Beta account'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

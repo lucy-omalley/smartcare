@@ -24,6 +24,7 @@ export async function createSessionToken(user: {
   email: string;
   name: string;
   image?: string | null;
+  emailVerified?: boolean;
 }): Promise<string | null> {
   const secret = process.env.NEXTAUTH_SECRET?.trim();
   if (!secret) return null;
@@ -35,6 +36,7 @@ export async function createSessionToken(user: {
       email: user.email,
       name: user.name,
       picture: user.image ?? undefined,
+      emailVerified: user.emailVerified === true,
     },
     secret,
     maxAge: SESSION_MAX_AGE,

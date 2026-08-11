@@ -166,6 +166,7 @@ model User {
   lastLoginAt            DateTime?
   lastActiveAt           DateTime?
   signupPlatform         String?
+  emailVerified          DateTime?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 

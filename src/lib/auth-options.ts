@@ -6,6 +6,8 @@ import { captureServerEvent } from "@/lib/analytics/posthog-server";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 import { buildAuthProviders } from "@/lib/auth-providers";
 import { resolveSafePostAuthUrl } from "@/lib/auth/callback-url";
+import { authorizeOAuthSignIn, markEmailVerifiedForOAuth } from "@/lib/auth/oauth-signin";
+import { isEmailVerified } from "@/lib/auth/email-verification";
 
 async function resolveUserIdFromToken(token: {
   id?: string;
@@ -26,6 +28,17 @@ async function resolveUserIdFromToken(token: {
   );
 
   return user?.id;
+}
+
+async function syncEmailVerifiedFlag(userId: string): Promise<boolean> {
+  const user = await withDbRetry(() =>
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true, isAdmin: true },
+    })
+  );
+  if (!user) return false;
+  return isEmailVerified(user);
 }
 
 export const authOptions: NextAuthOptions = {
@@ -54,6 +67,10 @@ export const authOptions: NextAuthOptions = {
           data: { lastLoginAt: new Date(), lastActiveAt: new Date() },
         }),
       ];
+
+      if (method !== "credentials") {
+        tasks.push(markEmailVerifiedForOAuth(userId));
+      }
 
       if (isNewUser && method !== "credentials") {
         tasks.push(
@@ -84,43 +101,22 @@ export const authOptions: NextAuthOptions = {
         return "/auth/error?error=OAuthSignin";
       }
 
-      const existingUser = await withDbRetry(() =>
-        prisma.user.findUnique({
-          where: { email },
-          select: { id: true, image: true, name: true },
-        })
-      );
-
-      if (!existingUser) {
-        return true;
-      }
-
-      user.id = existingUser.id;
-
-      await withDbRetry(() =>
-        prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            image: existingUser.image ?? user.image ?? undefined,
-            name: existingUser.name || user.name || email.split("@")[0],
-          },
-        })
-      );
-
-      return true;
+      return authorizeOAuthSignIn(email, account.provider, account.providerAccountId, user);
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user?.id) {
         token.sub = user.id;
         token.id = user.id;
         token.email = user.email ?? token.email;
         token.name = user.name ?? token.name;
         token.picture = user.image ?? token.picture;
+        token.emailVerified = await syncEmailVerifiedFlag(user.id);
         return token;
       }
 
       if (account?.provider === "credentials" && token.sub) {
         token.id = token.sub;
+        token.emailVerified = await syncEmailVerifiedFlag(token.sub);
         return token;
       }
 
@@ -128,6 +124,10 @@ export const authOptions: NextAuthOptions = {
       if (resolvedId) {
         token.sub = token.sub ?? resolvedId;
         token.id = resolvedId;
+      }
+
+      if (token.id && (trigger === "update" || token.emailVerified === undefined)) {
+        token.emailVerified = await syncEmailVerifiedFlag(token.id as string);
       }
 
       return token;
@@ -138,6 +138,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email ?? session.user.email;
         session.user.name = token.name ?? session.user.name;
         session.user.image = (token.picture as string | undefined) ?? session.user.image;
+        session.user.emailVerified = token.emailVerified === true;
       }
       return session;
     },
