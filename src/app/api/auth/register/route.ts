@@ -9,8 +9,9 @@ import {
   checkRegistrationRateLimit,
   recordRegistrationAttempt,
 } from "@/lib/rate-limit-registration";
-import { verifyTurnstileToken } from "@/lib/turnstile";
+import { verifyTurnstileToken, isTurnstileConfigured } from "@/lib/turnstile";
 import { clientIpFromRequest } from "@/lib/upstash";
+import { looksLikeHumanName, verifyRegistrationGuard } from "@/lib/registration-guard";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -22,11 +23,21 @@ export async function POST(req: Request) {
       name?: string;
       referralSource?: string;
       turnstileToken?: string;
+      honeypot?: string;
+      formLoadedAt?: number;
     };
 
-    const captcha = await verifyTurnstileToken(body.turnstileToken, ip);
-    if (!captcha.ok) {
-      return NextResponse.json({ error: captcha.error ?? "CAPTCHA failed" }, { status: 400 });
+    if (isTurnstileConfigured()) {
+      const captcha = await verifyTurnstileToken(body.turnstileToken, ip);
+      if (!captcha.ok) {
+        return NextResponse.json({ error: captcha.error ?? "CAPTCHA failed" }, { status: 400 });
+      }
+    } else {
+      const guard = verifyRegistrationGuard(body);
+      if (!guard.ok) {
+        await recordRegistrationAttempt(ip);
+        return NextResponse.json({ error: guard.error ?? "Registration blocked" }, { status: 400 });
+      }
     }
 
     const rateLimit = await checkRegistrationRateLimit(ip);
@@ -62,6 +73,14 @@ export async function POST(req: Request) {
 
     if (trimmedName.length < 2 || trimmedName.length > 80) {
       return NextResponse.json({ error: "Please enter a valid name" }, { status: 400 });
+    }
+
+    if (!looksLikeHumanName(trimmedName)) {
+      await recordRegistrationAttempt(ip);
+      return NextResponse.json(
+        { error: "Please enter your real name (letters only, no numbers)." },
+        { status: 400 }
+      );
     }
 
     if (looksLikeBotRegistration(trimmedName, email)) {

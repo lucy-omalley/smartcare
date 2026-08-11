@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trackEvent } from '@/lib/analytics';
@@ -16,7 +16,12 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const formLoadedAtRef = useRef(Date.now());
   const turnstileRequired = isTurnstileEnabledClient();
+
+  useEffect(() => {
+    formLoadedAtRef.current = Date.now();
+  }, []);
 
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token);
@@ -43,6 +48,7 @@ export default function Register() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
+    const honeypot = (formData.get('website') as string) ?? '';
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -54,6 +60,8 @@ export default function Register() {
           name,
           referralSource: getStoredReferralSource(),
           turnstileToken,
+          honeypot,
+          formLoadedAt: formLoadedAtRef.current,
         }),
       });
 
@@ -83,6 +91,15 @@ export default function Register() {
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
+            {/* Honeypot — hidden from humans, bots often fill this */}
+            <div
+              className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <Label htmlFor="website">Website</Label>
+              <Input id="website" name="website" type="text" autoComplete="off" tabIndex={-1} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -93,6 +110,7 @@ export default function Register() {
                 minLength={2}
                 maxLength={80}
                 disabled={isLoading}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -104,6 +122,7 @@ export default function Register() {
                 placeholder="john@example.com"
                 required
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -115,13 +134,16 @@ export default function Register() {
                 minLength={8}
                 required
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
-            <TurnstileWidget
-              onVerify={handleTurnstileVerify}
-              onExpire={handleTurnstileExpire}
-              onError={handleTurnstileExpire}
-            />
+            {turnstileRequired ? (
+              <TurnstileWidget
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileExpire}
+              />
+            ) : null}
             {error && (
               <div className="text-sm text-red-500">
                 {error}
