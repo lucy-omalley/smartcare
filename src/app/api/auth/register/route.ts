@@ -9,9 +9,9 @@ import {
   checkRegistrationRateLimit,
   recordRegistrationAttempt,
 } from "@/lib/rate-limit-registration";
-import { verifyTurnstileToken, isTurnstileConfigured } from "@/lib/turnstile";
+import { verifyRegistrationCaptcha } from "@/lib/captcha";
 import { clientIpFromRequest } from "@/lib/upstash";
-import { looksLikeHumanName, verifyRegistrationGuard } from "@/lib/registration-guard";
+import { looksLikeHumanName } from "@/lib/registration-guard";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -22,22 +22,22 @@ export async function POST(req: Request) {
       password?: string;
       name?: string;
       referralSource?: string;
+      recaptchaToken?: string;
       turnstileToken?: string;
       honeypot?: string;
       formLoadedAt?: number;
     };
 
-    if (isTurnstileConfigured()) {
-      const captcha = await verifyTurnstileToken(body.turnstileToken, ip);
-      if (!captcha.ok) {
-        return NextResponse.json({ error: captcha.error ?? "CAPTCHA failed" }, { status: 400 });
-      }
-    } else {
-      const guard = verifyRegistrationGuard(body);
-      if (!guard.ok) {
-        await recordRegistrationAttempt(ip);
-        return NextResponse.json({ error: guard.error ?? "Registration blocked" }, { status: 400 });
-      }
+    const captcha = await verifyRegistrationCaptcha(body, ip);
+    if (!captcha.ok) {
+      await recordRegistrationAttempt(ip);
+      return NextResponse.json({ error: captcha.error ?? "CAPTCHA failed" }, { status: 400 });
+    }
+
+    // Honeypot always checked (even when CAPTCHA passes)
+    if (body.honeypot?.trim()) {
+      await recordRegistrationAttempt(ip);
+      return NextResponse.json({ error: "Registration could not be completed." }, { status: 400 });
     }
 
     const rateLimit = await checkRegistrationRateLimit(ip);

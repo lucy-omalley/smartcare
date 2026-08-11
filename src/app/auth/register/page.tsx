@@ -9,26 +9,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  RecaptchaWidget,
+  isRecaptchaEnabledClient,
+  isCaptchaEnabledClient,
+} from '@/components/auth/recaptcha-widget';
 import { TurnstileWidget, isTurnstileEnabledClient } from '@/components/auth/turnstile-widget';
 
 export default function Register() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const formLoadedAtRef = useRef(Date.now());
-  const turnstileRequired = isTurnstileEnabledClient();
+  const useRecaptcha = isRecaptchaEnabledClient();
+  const useTurnstile = !useRecaptcha && isTurnstileEnabledClient();
+  const captchaRequired = isCaptchaEnabledClient();
 
   useEffect(() => {
     formLoadedAtRef.current = Date.now();
   }, []);
 
-  const handleTurnstileVerify = useCallback((token: string) => {
-    setTurnstileToken(token);
+  const handleCaptchaVerify = useCallback((token: string) => {
+    setCaptchaToken(token);
   }, []);
 
-  const handleTurnstileExpire = useCallback(() => {
-    setTurnstileToken(null);
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -36,7 +43,7 @@ export default function Register() {
     setIsLoading(true);
     setError('');
 
-    if (turnstileRequired && !turnstileToken) {
+    if (captchaRequired && !captchaToken) {
       setError('Please complete the CAPTCHA verification.');
       setIsLoading(false);
       return;
@@ -59,7 +66,8 @@ export default function Register() {
           password,
           name,
           referralSource: getStoredReferralSource(),
-          turnstileToken,
+          recaptchaToken: useRecaptcha ? captchaToken : undefined,
+          turnstileToken: useTurnstile ? captchaToken : undefined,
           honeypot,
           formLoadedAt: formLoadedAtRef.current,
         }),
@@ -74,7 +82,7 @@ export default function Register() {
       router.push('/auth/signin?registered=true');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
-      setTurnstileToken(null);
+      setCaptchaToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +99,6 @@ export default function Register() {
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
-            {/* Honeypot — hidden from humans, bots often fill this */}
             <div
               className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
               aria-hidden="true"
@@ -137,11 +144,17 @@ export default function Register() {
                 autoComplete="new-password"
               />
             </div>
-            {turnstileRequired ? (
+            {useRecaptcha ? (
+              <RecaptchaWidget
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
+                onError={handleCaptchaExpire}
+              />
+            ) : useTurnstile ? (
               <TurnstileWidget
-                onVerify={handleTurnstileVerify}
-                onExpire={handleTurnstileExpire}
-                onError={handleTurnstileExpire}
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
+                onError={handleCaptchaExpire}
               />
             ) : null}
             {error && (
@@ -154,7 +167,7 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || (turnstileRequired && !turnstileToken)}
+              disabled={isLoading || (captchaRequired && !captchaToken)}
             >
               {isLoading ? 'Creating account...' : 'Join the Public Beta'}
             </Button>
