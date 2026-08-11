@@ -1,23 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trackEvent } from '@/lib/analytics';
+import { getStoredReferralSource } from '@/lib/analytics/referral-capture';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TurnstileWidget, isTurnstileEnabledClient } from '@/components/auth/turnstile-widget';
 
 export default function Register() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileEnabledClient();
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken(null);
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
     setError('');
+
+    if (turnstileRequired && !turnstileToken) {
+      setError('Please complete the CAPTCHA verification.');
+      setIsLoading(false);
+      return;
+    }
+
     trackEvent('signup_started');
 
     const formData = new FormData(event.currentTarget);
@@ -29,7 +48,13 @@ export default function Register() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          referralSource: getStoredReferralSource(),
+          turnstileToken,
+        }),
       });
 
       if (!response.ok) {
@@ -41,6 +66,7 @@ export default function Register() {
       router.push('/auth/signin?registered=true');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
+      setTurnstileToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +90,8 @@ export default function Register() {
                 name="name"
                 placeholder="John Doe"
                 required
+                minLength={2}
+                maxLength={80}
                 disabled={isLoading}
               />
             </div>
@@ -89,6 +117,11 @@ export default function Register() {
                 disabled={isLoading}
               />
             </div>
+            <TurnstileWidget
+              onVerify={handleTurnstileVerify}
+              onExpire={handleTurnstileExpire}
+              onError={handleTurnstileExpire}
+            />
             {error && (
               <div className="text-sm text-red-500">
                 {error}
@@ -99,7 +132,7 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || (turnstileRequired && !turnstileToken)}
             >
               {isLoading ? 'Creating account...' : 'Join the Public Beta'}
             </Button>
@@ -119,4 +152,4 @@ export default function Register() {
       </Card>
     </div>
   );
-} 
+}
