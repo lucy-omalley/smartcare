@@ -12,6 +12,7 @@ import {
 import { verifyRegistrationCaptcha } from "@/lib/captcha";
 import { clientIpFromRequest } from "@/lib/upstash";
 import { looksLikeHumanName } from "@/lib/registration-guard";
+import { createAndSendVerificationEmail } from "@/lib/auth/email-verification";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -144,10 +145,21 @@ export async function POST(req: Request) {
       captureServerEvent(user.id, "signup_completed", { method: "email" }),
     ]);
 
+    const verification = await createAndSendVerificationEmail(user.id, user.email);
+
     const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(
-      { message: "User created successfully", user: userWithoutPassword },
+      {
+        message: verification.sent
+          ? "Account created. Check your email to verify before using the app."
+          : "Account created. Please verify your email after signing in.",
+        user: userWithoutPassword,
+        verificationEmailSent: verification.sent,
+        ...(process.env.NODE_ENV === "development" && verification.devVerifyUrl
+          ? { devVerifyUrl: verification.devVerifyUrl }
+          : {}),
+      },
       { status: 201 }
     );
   } catch (error) {

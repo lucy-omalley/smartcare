@@ -1,9 +1,15 @@
 import { withAuth } from 'next-auth/middleware';
+import type { NextRequestWithAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 export default withAuth(
-  function middleware(request: NextRequest) {
+  function middleware(request: NextRequestWithAuth) {
+    const token = request.nextauth.token;
+
+    if (token && token.emailVerified === false) {
+      return NextResponse.redirect(new URL('/auth/verify-email', request.url));
+    }
+
     const response = NextResponse.next();
     const headers = response.headers;
 
@@ -15,7 +21,7 @@ export default withAuth(
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https: blob:",
         "font-src 'self'",
-        "connect-src 'self' https://*.vercel-insights.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com https://www.google.com",
+        "connect-src 'self' https://*.vercel-insights.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com https://www.google.com https://*.ingest.sentry.io",
         "frame-src 'self' https://www.google.com https://challenges.cloudflare.com",
         "frame-ancestors 'none'",
         "form-action 'self'",

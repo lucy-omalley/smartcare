@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, image: true, password: true },
+      select: { id: true, email: true, name: true, image: true, password: true, emailVerified: true, isAdmin: true },
     });
 
     if (!user?.password) {
@@ -68,7 +68,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const sessionToken = await createSessionToken(user);
+    const sessionToken = await createSessionToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      emailVerified: user.emailVerified != null || user.isAdmin,
+    });
     if (!sessionToken) {
       return NextResponse.json(
         { error: "Could not create session. Check NEXTAUTH_SECRET in Vercel." },
@@ -81,7 +87,9 @@ export async function POST(req: Request) {
       captureServerEvent(user.id, "login", { method: "email" }),
     ]);
 
-    const redirect = resolveSafePostAuthUrl(callbackUrl);
+    const redirect = resolveSafePostAuthUrl(
+      user.emailVerified != null || user.isAdmin ? callbackUrl : "/auth/verify-email"
+    );
     const response = NextResponse.json({ ok: true, redirect });
     return attachSessionCookie(response, sessionToken);
   } catch (error) {

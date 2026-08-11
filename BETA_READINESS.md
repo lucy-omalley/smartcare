@@ -20,13 +20,13 @@
 
 | Area | Score | Notes |
 |------|-------|-------|
-| Auth & session hardening | **Partial** | Middleware on app routes; login lacks rate limit; OAuth account linking risk |
+| Auth & session hardening | **Ready** | OAuth takeover blocked; email verification; login rate limits |
 | RLS / data isolation | **Partial** | No Supabase RLS; most user APIs scoped by `userId`; some public GET leaks fixed in this PR |
 | Server-only secrets | **Ready** | OpenAI/Stripe/DB secrets server-only; no client exposure found |
 | AI cost controls | **Partial** | Chat + today plan quotas; journal/fridge tightened in this PR |
 | Input validation & size limits | **Partial** | Registration validated; chat history capped; not all AI routes validate input size |
 | Error & empty states in /app | **Partial** | Today has retry; chat has safe errors; empty states inconsistent across tabs |
-| Observability | **Partial** | PostHog + `AnalyticsError` + founder dashboards; no Sentry/APM |
+| Observability | **Ready** | PostHog + Sentry + founder dashboards; health redaction |
 | Analytics (signup + first generation) | **Partial** | Signup tracked; `first_plan_generated` added in this PR |
 | Legal basics | **Ready** | `/privacy`, `/terms`, `/contact`; AI usage described; register consent links |
 | Support & beta expectations | **Ready** | Beta banner + feedback modal + `hello@parenfy.com` |
@@ -35,7 +35,7 @@
 
 ---
 
-## 1. Auth & session hardening — **Partial**
+## 1. Auth & session hardening — **Ready**
 
 **Ready**
 - JWT sessions (30-day max), httpOnly cookies on custom login path
@@ -43,15 +43,15 @@
 - Safe post-auth redirects (`resolveSafePostAuthUrl`) block open redirects
 - Logout via NextAuth `signOut` + server analytics event
 - Registration: reCAPTCHA/Turnstile + honeypot + IP rate limits + bot heuristics
+- **Email verification** for email/password signups (24h token, Resend); OAuth emails auto-verified
+- **Secure OAuth:** no `allowDangerousEmailAccountLinking`; blocks OAuth takeover of password accounts
+- Login IP rate limiting
 
 **Partial / gaps**
-- `/admin/*` was not in middleware matcher → **fixed:** added in this PR
-- `/api/auth/login` has no rate limiting → **fixed:** IP rate limit added
-- `allowDangerousEmailAccountLinking: true` on Google/GitHub OAuth — account takeover risk if email collision
 - Per-route API auth (no global API middleware) — each route must enforce session
 
 **Missing**
-- MFA / email verification before full access
+- MFA
 - Centralized API auth wrapper (reduces risk of new unprotected routes)
 
 ---
@@ -141,17 +141,18 @@
 
 ---
 
-## 7. Observability — **Partial**
+## 7. Observability — **Ready**
 
 **Ready**
-- `trackServerError` → Postgres `AnalyticsError` + PostHog
+- `trackServerError` → Postgres `AnalyticsError` + PostHog + **Sentry** (when `SENTRY_DSN` set)
 - Founder error dashboard (`/admin/founder/errors`)
 - Structured console logs on API failures
 - Vercel captures serverless function logs
+- Client crash boundary reports to Sentry + PostHog
+- Health check exposed DB details → **fixed:** production health is minimal
 
 **Partial**
-- No Sentry/Datadog
-- Health check exposed DB details → **fixed:** production health is minimal
+- Sentry source maps require `SENTRY_AUTH_TOKEN` in CI (optional)
 
 **Missing**
 - External uptime monitoring
@@ -216,7 +217,17 @@
 
 ---
 
-## Changes in this PR (Pass B)
+## Changes in security PR (OAuth + Sentry + email verification)
+
+1. Removed dangerous OAuth email account linking; custom `authorizeOAuthSignIn` blocks password-account takeover
+2. `User.emailVerified` + verification emails (Resend) + `/auth/verify-email` gate on app routes
+3. Sentry (`@sentry/nextjs`) — server, edge, client; hooked into `trackServerError` and `error.tsx`
+4. Grandfather script: `npx ts-node scripts/grant-existing-email-verified.ts --execute`
+5. Sign-in UX for post-registration verification flow
+
+---
+
+## Changes in Pass B (prior PR)
 
 1. `.env.example` — complete variable list for Vercel deploy
 2. `/api/health` — minimal liveness; `/api/health/db` redacted in production
@@ -238,7 +249,9 @@
 | Set `RECAPTCHA_*` or `TURNSTILE_*` in Vercel production | Founder |
 | Set `UPSTASH_REDIS_*` for registration/login rate limits | Founder |
 | Set `OPENAI_API_KEY`, `DATABASE_URL`, `NEXTAUTH_SECRET` | Founder |
-| Review OAuth `allowDangerousEmailAccountLinking` | Engineering follow-up |
+| Set `RESEND_API_KEY` + `EMAIL_FROM` for verification emails | Founder |
+| Set `SENTRY_DSN` (and optionally `NEXT_PUBLIC_SENTRY_DSN`) | Founder |
+| Run `npx prisma db push` + grandfather existing users (`scripts/grant-existing-email-verified.ts --execute`) | Engineering |
 | Configure Neon backup retention | Founder (Neon console) |
 | Optional: PostHog production project + alerts | Founder |
 
@@ -246,8 +259,8 @@
 
 ## Verdict: **Ship with blockers**
 
-**Justification:** Core parent flows (auth, today plan, chat) are protected with session auth, AI quotas on primary routes, legal pages, beta feedback, and founder observability. This is sufficient for a **limited public beta** with real users, provided CAPTCHA keys and Upstash are configured in production and the team monitors the founder dashboard for errors/cost.
+**Justification:** Core parent flows (auth, today plan, chat) are protected with session auth, email verification, secure OAuth, AI quotas on primary routes, legal pages, beta feedback, Sentry + founder observability. This is sufficient for a **limited public beta** with real users, provided CAPTCHA keys, Upstash, Resend, and Sentry are configured in production and the team monitors the founder dashboard for errors/cost.
 
 **Do not** open unrestricted registration without CAPTCHA in production. **Do not** treat community/exchange discovery APIs as private — they expose public-ish metadata by design.
 
-**Not in scope (post-beta):** Billing hardening, teams, self-serve data export, Sentry, email verification, disabling OAuth dangerous linking, RLS migration to Supabase.
+**Not in scope (post-beta):** Billing hardening, teams, self-serve data export, RLS migration to Supabase, MFA.

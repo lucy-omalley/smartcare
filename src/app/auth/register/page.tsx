@@ -79,7 +79,7 @@ export default function Register() {
       }
 
       trackEvent('signup_completed', { method: 'email' });
-      router.push('/auth/signin?registered=true');
+      router.push('/auth/signin?registered=1&verify=1');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
       setCaptchaToken(null);

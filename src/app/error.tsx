@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { trackClientError } from '@/lib/analytics';
+import * as Sentry from '@sentry/nextjs';
 
 export default function Error({
   error,
@@ -12,6 +13,9 @@ export default function Error({
 }) {
   useEffect(() => {
     trackClientError('app_crash', error.message, { digest: error.digest });
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN) {
+      Sentry.captureException(error);
+    }
     console.error(error);
   }, [error]);
 

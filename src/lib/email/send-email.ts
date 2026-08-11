@@ -73,3 +73,24 @@ export async function sendPasswordResetEmail(
 
   return sendEmail({ to, subject, html, text });
 }
+
+export async function sendEmailVerificationEmail(
+  to: string,
+  verifyUrl: string
+): Promise<SendEmailResult> {
+  const subject = "Verify your Parenfy email";
+  const text = `Welcome to Parenfy\n\nPlease verify your email address by opening this link (expires in 24 hours):\n${verifyUrl}\n\nIf you did not create an account, you can ignore this email.\n\n— Parenfy`;
+  const html = `
+    <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h1 style="font-size: 20px; margin-bottom: 16px;">Verify your email</h1>
+      <p style="color: #444; line-height: 1.5;">Thanks for joining the Parenfy public beta. Confirm your email to unlock Today&apos;s Plan, MumBot, and the rest of the app.</p>
+      <p style="margin: 24px 0;">
+        <a href="${verifyUrl}" style="background: #0f766e; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; display: inline-block;">Verify email</a>
+      </p>
+      <p style="color: #666; font-size: 14px; line-height: 1.5;">This link expires in 24 hours. If you did not sign up, you can ignore this email.</p>
+      <p style="color: #999; font-size: 12px; margin-top: 32px;">Parenfy — Your AI Parenting Companion</p>
+    </div>
+  `.trim();
+
+  return sendEmail({ to, subject, html, text });
+}
