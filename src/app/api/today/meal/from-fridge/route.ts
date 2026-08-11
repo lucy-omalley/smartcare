@@ -5,14 +5,21 @@ import { fetchRotateContext, getOrCreateDailyBrief, updateDailyBriefSection } fr
 import { generateRecipeFromFridge } from "@/lib/services/mumbot";
 import { warmTodayRecipeIllustration } from "@/lib/services/today-page";
 import type { DailyBriefRecipe } from "@/types/daily-brief";
+import { assertCanUseAI, recordAiGenerationUsed } from "@/lib/ai/usage";
+import { mapAiRouteError } from "@/lib/ai/route-errors";
+import { trackServerError } from "@/lib/analytics/server-errors";
 
 export const maxDuration = 60;
+
+const MAX_INGREDIENTS = 30;
+const MAX_ITEM_LENGTH = 80;
 
 function parseStringList(raw: unknown): string[] {
   return (Array.isArray(raw) ? raw : [])
     .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
+    .map((item) => item.trim().slice(0, MAX_ITEM_LENGTH))
+    .filter(Boolean)
+    .slice(0, MAX_INGREDIENTS);
 }
 
 /** Generate a personalised recipe from fridge ingredients the parent has on hand. */
@@ -36,6 +43,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Add at least one ingredient" }, { status: 400 });
     }
 
+    await assertCanUseAI(session.user.id);
+
     const { profile, memories } = await fetchRotateContext(session.user.id);
     let avoidRecipe: DailyBriefRecipe | undefined;
     if (body.tryAnother) {
@@ -49,13 +58,17 @@ export async function POST(request: Request) {
     });
     delete recipe.imageData;
 
+    await recordAiGenerationUsed(session.user.id);
+
     const { brief } = await updateDailyBriefSection(session.user.id, "recipe", recipe);
     warmTodayRecipeIllustration(session.user.id);
 
     return NextResponse.json({ brief, recipe });
   } catch (error) {
     console.error("Fridge meal error:", error);
-    const message = error instanceof Error ? error.message : "Meal generation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const userId = session?.user?.id;
+    await trackServerError("fridge_meal_ai", error, userId);
+    const mapped = mapAiRouteError(error);
+    return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: mapped.status });
   }
 }

@@ -102,6 +102,15 @@ export async function recordChatUsed(userId: string): Promise<void> {
   });
 }
 
+/** Increment monthly AI generation counter (journal, fridge meal, etc.). */
+export async function recordAiGenerationUsed(userId: string): Promise<void> {
+  await ensureQuota(userId);
+  await prisma.userUsageQuota.update({
+    where: { userId },
+    data: { generationsThisMonth: { increment: 1 } },
+  });
+}
+
 export function estimateCostUsd(
   tier: AIModelTier,
   promptTokens: number,

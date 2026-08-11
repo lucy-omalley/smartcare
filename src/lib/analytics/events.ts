@@ -19,6 +19,7 @@ export type AnalyticsEvent =
   | "connect_area_selected"
   | "onboarding_completed"
   | "onboarding_skipped"
+  | "first_plan_generated"
   // Today dashboard
   | "today_dashboard_viewed"
   | "meal_card_opened"

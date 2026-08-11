@@ -15,7 +15,7 @@ export function isAnyCaptchaConfigured(): boolean {
   return isRecaptchaConfigured() || isTurnstileConfigured();
 }
 
-/** Prefer Google reCAPTCHA, then Cloudflare Turnstile, then honeypot fallback. */
+/** Prefer Google reCAPTCHA, then Cloudflare Turnstile, then honeypot (dev only). */
 export async function verifyRegistrationCaptcha(
   input: CaptchaVerifyInput,
   remoteIp?: string
@@ -26,6 +26,19 @@ export async function verifyRegistrationCaptcha(
 
   if (isTurnstileConfigured()) {
     return verifyTurnstileToken(input.turnstileToken, remoteIp);
+  }
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_INSECURE_REGISTRATION !== "true"
+  ) {
+    console.error(
+      "Registration blocked: set RECAPTCHA_SECRET_KEY or TURNSTILE_SECRET_KEY in production"
+    );
+    return {
+      ok: false,
+      error: "Registration is temporarily unavailable. Please try again later.",
+    };
   }
 
   return verifyRegistrationGuard(input);
