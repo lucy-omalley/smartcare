@@ -3,11 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { generateStoryIllustration } from "@/lib/services/story-media";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireAiSession();
+  if (!guard.ok) {
+    return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
   const { title, story, savedStoryId, moral } = await request.json();
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: guard.userId },
     select: { childNickname: true },
   });
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
     if (savedStoryId) {
       await prisma.savedStory.updateMany({
-        where: { id: savedStoryId, userId: session.user.id },
+        where: { id: savedStoryId, userId: guard.userId },
         data: { illustrationData },
       });
     }

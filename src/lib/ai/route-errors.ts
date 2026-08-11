@@ -1,6 +1,7 @@
 import "server-only";
 
 import { UsageLimitError } from "@/lib/ai/usage";
+import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
 
 /** User-facing copy for AI failures — never expose raw provider errors. */
 export const AI_UNAVAILABLE_MESSAGE =
@@ -16,6 +17,14 @@ export function mapAiRouteError(error: unknown): {
 } {
   if (error instanceof UsageLimitError) {
     return { message: error.message, code: "USAGE_LIMIT", status: 429 };
+  }
+
+  if (error instanceof AiDisabledError) {
+    return { message: error.message, code: "AI_DISABLED", status: 503 };
+  }
+
+  if (error instanceof EmailNotVerifiedError) {
+    return { message: error.message, code: "EMAIL_NOT_VERIFIED", status: 403 };
   }
 
   const errMsg = error instanceof Error ? error.message : String(error);

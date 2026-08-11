@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { awaitTodayPlanGeneration } from "@/lib/services/daily-brief";
 import { getTodayPageData } from "@/lib/services/today-page";
 import { warmTodayStoryAudio } from "@/lib/services/story-audio-cache";
 import { defaultDailyBrief } from "@/lib/services/mumbot";
 import { normalizeBriefContent } from "@/lib/today-plan-utils";
 import { prisma } from "@/lib/db";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /** Fast Today dashboard payload — brief + profile only. Use ?generate=1 to run plan AI in-request (Vercel-safe). */
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireAiSession();
+  if (!guard.ok) {
+    return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
-  const userId = session.user.id;
+  const userId = guard.userId;
   const { searchParams } = new URL(request.url);
   const shouldGenerate = searchParams.get("generate") === "1";
   const profileRefresh = searchParams.get("profileRefresh") === "1";
