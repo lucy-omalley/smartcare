@@ -21,7 +21,7 @@ export async function verifyRegistrationCaptcha(
   remoteIp?: string
 ): Promise<{ ok: boolean; error?: string }> {
   if (isRecaptchaConfigured()) {
-    return verifyRecaptchaToken(input.recaptchaToken, remoteIp);
+    return verifyRecaptchaToken(input.recaptchaToken);
   }
 
   if (isTurnstileConfigured()) {

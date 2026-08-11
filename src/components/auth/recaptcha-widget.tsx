@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
 
 declare global {
   interface Window {
@@ -24,60 +24,74 @@ declare global {
 const SCRIPT_ID = "google-recaptcha-script";
 const SCRIPT_SRC = "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit";
 
+export type RecaptchaWidgetHandle = {
+  reset: () => void;
+};
+
 type RecaptchaWidgetProps = {
   onVerify: (token: string) => void;
   onExpire?: () => void;
   onError?: () => void;
 };
 
-export function RecaptchaWidget({ onVerify, onExpire, onError }: RecaptchaWidgetProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<number | null>(null);
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY?.trim();
+export const RecaptchaWidget = forwardRef<RecaptchaWidgetHandle, RecaptchaWidgetProps>(
+  function RecaptchaWidget({ onVerify, onExpire, onError }, ref) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const widgetIdRef = useRef<number | null>(null);
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY?.trim();
 
-  const renderWidget = useCallback(() => {
-    if (!siteKey || !containerRef.current || !window.grecaptcha) return;
-    if (widgetIdRef.current != null) {
-      window.grecaptcha.reset(widgetIdRef.current);
-      return;
-    }
-    widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
-      sitekey: siteKey,
-      callback: onVerify,
-      "expired-callback": onExpire,
-      "error-callback": onError,
-      theme: "light",
-    });
-  }, [siteKey, onVerify, onExpire, onError]);
+    const resetWidget = useCallback(() => {
+      if (widgetIdRef.current != null && window.grecaptcha) {
+        window.grecaptcha.reset(widgetIdRef.current);
+      }
+    }, []);
 
-  useEffect(() => {
-    if (!siteKey) return;
+    useImperativeHandle(ref, () => ({ reset: resetWidget }), [resetWidget]);
 
-    window.onRecaptchaLoad = () => renderWidget();
+    const renderWidget = useCallback(() => {
+      if (!siteKey || !containerRef.current || !window.grecaptcha) return;
+      if (widgetIdRef.current != null) {
+        window.grecaptcha.reset(widgetIdRef.current);
+        return;
+      }
+      widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: onVerify,
+        "expired-callback": onExpire,
+        "error-callback": onError,
+        theme: "light",
+      });
+    }, [siteKey, onVerify, onExpire, onError]);
 
-    if (window.grecaptcha) {
-      renderWidget();
-      return;
-    }
+    useEffect(() => {
+      if (!siteKey) return;
 
-    if (!document.getElementById(SCRIPT_ID)) {
-      const script = document.createElement("script");
-      script.id = SCRIPT_ID;
-      script.src = SCRIPT_SRC;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    }
+      window.onRecaptchaLoad = () => renderWidget();
 
-    return () => {
-      widgetIdRef.current = null;
-    };
-  }, [siteKey, renderWidget]);
+      if (window.grecaptcha) {
+        renderWidget();
+        return;
+      }
 
-  if (!siteKey) return null;
+      if (!document.getElementById(SCRIPT_ID)) {
+        const script = document.createElement("script");
+        script.id = SCRIPT_ID;
+        script.src = SCRIPT_SRC;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
 
-  return <div ref={containerRef} className="flex justify-center min-h-[78px]" />;
-}
+      return () => {
+        widgetIdRef.current = null;
+      };
+    }, [siteKey, renderWidget]);
+
+    if (!siteKey) return null;
+
+    return <div ref={containerRef} className="flex justify-center min-h-[78px]" />;
+  }
+);
 
 export function isRecaptchaEnabledClient(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY?.trim());
