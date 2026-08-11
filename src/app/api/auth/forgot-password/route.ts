@@ -6,6 +6,11 @@ import {
   normalizeEmail,
 } from "@/lib/auth/password-reset";
 import { sendPasswordResetEmail } from "@/lib/email/send-email";
+import {
+  checkPasswordResetRateLimit,
+  recordPasswordResetAttempt,
+} from "@/lib/rate-limit-password-reset";
+import { clientIpFromRequest } from "@/lib/upstash";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +18,21 @@ const GENERIC_MESSAGE =
   "If an account exists with that email, we sent a password reset link.";
 
 export async function POST(req: Request) {
+  const ip = clientIpFromRequest(req);
+
+  const rateLimit = await checkPasswordResetRateLimit(ip);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: GENERIC_MESSAGE },
+      {
+        status: 429,
+        headers: rateLimit.retryAfterSeconds
+          ? { "Retry-After": String(rateLimit.retryAfterSeconds) }
+          : undefined,
+      }
+    );
+  }
+
   try {
     const body = await req.json();
     const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
@@ -27,6 +47,7 @@ export async function POST(req: Request) {
     });
 
     if (!user?.password) {
+      await recordPasswordResetAttempt(ip);
       return NextResponse.json({ message: GENERIC_MESSAGE });
     }
 
@@ -44,6 +65,7 @@ export async function POST(req: Request) {
       payload.devResetUrl = resetUrl;
     }
 
+    await recordPasswordResetAttempt(ip);
     return NextResponse.json(payload);
   } catch (error) {
     console.error("[forgot-password] Error:", error);

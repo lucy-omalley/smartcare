@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { assertAiGenerationEnabled } from "@/lib/ai/guards";
 import { storyIllustrationPrompt } from "@/lib/illustration-prompts";
 import { generateCardIllustration } from "@/lib/services/card-illustrations";
 
@@ -21,6 +22,8 @@ export async function generateStoryIllustration(
 }
 
 export async function generateStoryNarration(storyText: string): Promise<Buffer> {
+  await assertAiGenerationEnabled();
+
   const input = storyText.trim().slice(0, TTS_MAX_CHARS);
 
   const speech = await openai.audio.speech.create({

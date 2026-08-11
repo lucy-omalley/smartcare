@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { assertAiGenerationEnabled } from "@/lib/ai/guards";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -31,6 +32,8 @@ export async function generateOpenAIImage(
   prompt: string,
   options?: { fast?: boolean }
 ): Promise<string> {
+  await assertAiGenerationEnabled();
+
   const models = options?.fast
     ? ["gpt-image-1-mini", "gpt-image-1", "dall-e-2", "dall-e-3"]
     : buildModelList();

@@ -10,6 +10,7 @@ import { assertCanChat, assertCanUseAI, recordChatUsed } from "@/lib/ai/usage";
 import { UsageLimitError } from "@/lib/ai/usage";
 import { trackServerError } from "@/lib/analytics/server-errors";
 import { checkMumBotRateLimit } from "@/lib/rate-limit";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -26,9 +27,9 @@ function toChatMessages(messages: IncomingMessage[]) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const guard = await requireAiSession();
+    if (!guard.ok) {
+      return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
     }
 
     if (!process.env.OPENAI_API_KEY?.trim()) {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No user message to respond to" }, { status: 400 });
     }
 
-    const userId = session.user.id;
+    const userId = guard.userId;
 
     const rateLimit = await checkMumBotRateLimit(userId);
     if (!rateLimit.allowed) {

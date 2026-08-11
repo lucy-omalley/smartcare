@@ -4,34 +4,35 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { generateWeeklyReflection } from "@/lib/services/mumbot";
 import { startOfWeek } from "date-fns";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireAiSession();
+  if (!guard.ok) {
+    return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   let reflection = await prisma.weeklyReflection.findUnique({
     where: {
-      userId_weekStart: { userId: session.user.id, weekStart },
+      userId_weekStart: { userId: guard.userId, weekStart },
     },
   });
 
   if (!reflection) {
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: guard.userId },
       select: { name: true, childNickname: true, parentingGoal: true },
     });
 
     const memories = await prisma.familyMemory.findMany({
-      where: { userId: session.user.id },
+      where: { userId: guard.userId },
       select: { content: true, category: true },
     });
 
     const recentMessages = await prisma.message.findMany({
-      where: { conversation: { userId: session.user.id } },
+      where: { conversation: { userId: guard.userId } },
       orderBy: { createdAt: "desc" },
       take: 20,
       select: { content: true },
@@ -45,7 +46,7 @@ export async function GET() {
 
     reflection = await prisma.weeklyReflection.create({
       data: {
-        userId: session.user.id,
+        userId: guard.userId,
         weekStart,
         content,
       },

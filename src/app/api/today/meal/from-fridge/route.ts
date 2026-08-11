@@ -8,6 +8,7 @@ import type { DailyBriefRecipe } from "@/types/daily-brief";
 import { assertCanUseAI, recordAiGenerationUsed } from "@/lib/ai/usage";
 import { mapAiRouteError } from "@/lib/ai/route-errors";
 import { trackServerError } from "@/lib/analytics/server-errors";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 export const maxDuration = 60;
 
@@ -24,9 +25,9 @@ function parseStringList(raw: unknown): string[] {
 
 /** Generate a personalised recipe from fridge ingredients the parent has on hand. */
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireAiSession();
+  if (!guard.ok) {
+    return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
   try {
@@ -43,12 +44,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Add at least one ingredient" }, { status: 400 });
     }
 
-    await assertCanUseAI(session.user.id);
+    await assertCanUseAI(guard.userId);
 
-    const { profile, memories } = await fetchRotateContext(session.user.id);
+    const { profile, memories } = await fetchRotateContext(guard.userId);
     let avoidRecipe: DailyBriefRecipe | undefined;
     if (body.tryAnother) {
-      const brief = await getOrCreateDailyBrief(session.user.id);
+      const brief = await getOrCreateDailyBrief(guard.userId);
       avoidRecipe = brief.recipe;
     }
 
@@ -58,15 +59,15 @@ export async function POST(request: Request) {
     });
     delete recipe.imageData;
 
-    await recordAiGenerationUsed(session.user.id);
+    await recordAiGenerationUsed(guard.userId);
 
-    const { brief } = await updateDailyBriefSection(session.user.id, "recipe", recipe);
-    warmTodayRecipeIllustration(session.user.id);
+    const { brief } = await updateDailyBriefSection(guard.userId, "recipe", recipe);
+    warmTodayRecipeIllustration(guard.userId);
 
     return NextResponse.json({ brief, recipe });
   } catch (error) {
     console.error("Fridge meal error:", error);
-    const userId = session?.user?.id;
+    const userId = guard.userId;
     await trackServerError("fridge_meal_ai", error, userId);
     const mapped = mapAiRouteError(error);
     return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: mapped.status });

@@ -8,13 +8,14 @@ import { MemoryCategory } from "@prisma/client";
 import { assertCanUseAI, recordAiGenerationUsed } from "@/lib/ai/usage";
 import { mapAiRouteError } from "@/lib/ai/route-errors";
 import { trackServerError } from "@/lib/analytics/server-errors";
+import { aiGuardErrorResponse, requireAiSession } from "@/lib/auth/session-guards";
 
 const MAX_CHECKIN_LENGTH = 2000;
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireAiSession();
+  if (!guard.ok) {
+    return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
   try {
@@ -37,10 +38,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Check-in is too long. Please shorten it." }, { status: 400 });
     }
 
-    await assertCanUseAI(session.user.id);
+    await assertCanUseAI(guard.userId);
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: guard.userId },
       select: {
         name: true,
         childNickname: true,
@@ -52,13 +53,13 @@ export async function POST(request: Request) {
     });
 
     const journalEntry = await generateJournalEntry(user ?? {}, checkInSentence);
-    await recordAiGenerationUsed(session.user.id);
+    await recordAiGenerationUsed(guard.userId);
 
     const [, memory] = await prisma.$transaction([
       feeling?.trim()
         ? prisma.parentCheckIn.create({
             data: {
-              userId: session.user.id,
+              userId: guard.userId,
               feeling: feeling.trim(),
               win: win?.trim() || null,
               challenge: challenge?.trim() || null,
@@ -67,14 +68,14 @@ export async function POST(request: Request) {
           })
         : prisma.parentCheckIn.create({
             data: {
-              userId: session.user.id,
+              userId: guard.userId,
               feeling: checkInSentence.slice(0, 200),
               moodBand: moodFromCheckIn(checkInSentence).moodBand,
             },
           }),
       prisma.familyMemory.create({
         data: {
-          userId: session.user.id,
+          userId: guard.userId,
           content: journalEntry,
           category: MemoryCategory.JOURNAL,
         },
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ memory, journalEntry, encouragement });
   } catch (error) {
     console.error("Journal API error:", error);
-    const userId = session?.user?.id;
+    const userId = guard.userId;
     await trackServerError("journal_ai", error, userId);
     const mapped = mapAiRouteError(error);
     return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: mapped.status });

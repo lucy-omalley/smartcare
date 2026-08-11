@@ -5,6 +5,7 @@ import type { AIFeature } from "@prisma/client";
 import { getCachedAIResponse, setCachedAIResponse } from "@/lib/ai/cache";
 import { resolveModelForFeature } from "@/lib/ai/router";
 import { logAIUsage, logAIRequest } from "@/lib/ai/usage";
+import { assertUserCanUseAi, AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
 import type { AICompletionRequest, AICompletionResult } from "@/lib/ai/types";
 
 /**
@@ -55,6 +56,10 @@ export async function completeAI(request: AICompletionRequest): Promise<AIComple
         cacheHit: true,
       };
     }
+  }
+
+  if (request.userId) {
+    await assertUserCanUseAi(request.userId);
   }
 
   const client = createProviderClient();

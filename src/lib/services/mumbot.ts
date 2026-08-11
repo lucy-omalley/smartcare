@@ -109,6 +109,11 @@ export async function getMumBotResponse(
     userId?: string;
   }
 ): Promise<MumBotResponse> {
+  if (context.userId) {
+    const { assertUserCanUseAi } = await import("@/lib/ai/guards");
+    await assertUserCanUseAi(context.userId);
+  }
+
   const memoryContext = buildMemoryContext(context.memories, context.profile);
 
   const systemContent = `${MUMBOT_SYSTEM_PROMPT}
