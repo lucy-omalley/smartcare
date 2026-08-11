@@ -34,6 +34,13 @@ export function PublicBetaBanner() {
           >
             Send Feedback
           </button>
+          {" · "}
+          <a
+            href="mailto:hello@parenfy.com"
+            className="underline underline-offset-2 font-medium hover:text-primary"
+          >
+            hello@parenfy.com
+          </a>
         </p>
         <Button
           variant="ghost"

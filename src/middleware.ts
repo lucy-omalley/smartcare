@@ -11,11 +11,12 @@ export default withAuth(
       'Content-Security-Policy',
       [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.vercel-insights.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.vercel-insights.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https: blob:",
         "font-src 'self'",
-        "connect-src 'self' https://*.vercel-insights.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com",
+        "connect-src 'self' https://*.vercel-insights.com https://*.posthog.com https://us.i.posthog.com https://eu.i.posthog.com https://www.google.com",
+        "frame-src 'self' https://www.google.com https://challenges.cloudflare.com",
         "frame-ancestors 'none'",
         "form-action 'self'",
         "base-uri 'self'",
@@ -62,5 +63,6 @@ export const config = {
     '/onboarding/:path*',
     '/dashboard/:path*',
     '/chat/:path*',
+    '/admin/:path*',
   ],
 };

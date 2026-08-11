@@ -9,10 +9,14 @@ import {
 } from "@/lib/auth/session-cookie";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 import { captureServerEvent } from "@/lib/analytics/posthog-server";
+import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/rate-limit-login";
+import { clientIpFromRequest } from "@/lib/upstash";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const ip = clientIpFromRequest(req);
+
   if (!isNextAuthSecretConfigured()) {
     return NextResponse.json(
       {
@@ -34,12 +38,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
+    const rateLimit = await checkLoginRateLimit(ip);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many sign-in attempts. Please wait a few minutes and try again." },
+        { status: 429 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true, name: true, image: true, password: true },
     });
 
     if (!user?.password) {
+      await recordLoginAttempt(ip);
       return NextResponse.json(
         { error: "Invalid email or password. Please try again." },
         { status: 401 }
@@ -48,6 +61,7 @@ export async function POST(req: Request) {
 
     const valid = await compare(password, user.password);
     if (!valid) {
+      await recordLoginAttempt(ip);
       return NextResponse.json(
         { error: "Invalid email or password. Please try again." },
         { status: 401 }

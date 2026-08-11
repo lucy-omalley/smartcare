@@ -5,6 +5,8 @@ import {
 } from "@/lib/services/mumbot";
 import { buildPersonalizedDailyBrief } from "@/lib/services/today-plan-engine";
 import { assertCanGenerateTodayPlan, recordTodayPlanGenerated, logAIRequest } from "@/lib/ai/usage";
+import { persistAnalyticsEvent } from "@/lib/analytics/persist";
+import { captureServerEvent } from "@/lib/analytics/posthog-server";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 import { toDateKey, yesterdayDateKey } from "@/lib/date-utils";
 import type {
@@ -399,6 +401,9 @@ export async function getOrCreateDailyBrief(
     where: { userId_date: { userId, date: today } },
   });
 
+  const hadAnyPlanBefore =
+    (await prisma.dailyBrief.count({ where: { userId } })) > 0;
+
   if (existing && mode === "default") {
     const normalized = normalizeBriefContent(existing.content as unknown as DailyBriefContent);
     if (isValidBriefContent(normalized)) {
@@ -436,6 +441,13 @@ export async function getOrCreateDailyBrief(
       }
     } else {
       await recordTodayPlanGenerated(userId);
+    }
+
+    if (!hadAnyPlanBefore) {
+      await Promise.allSettled([
+        persistAnalyticsEvent("first_plan_generated", userId, { mode }),
+        captureServerEvent(userId, "first_plan_generated", { mode }),
+      ]);
     }
   } catch (error) {
     usedFallback = true;

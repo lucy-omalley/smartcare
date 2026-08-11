@@ -3,9 +3,11 @@ import { checkDatabaseConnection, prisma, withDbRetry } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 /**
- * Public health check for database connectivity (no secrets exposed).
- * Use after deploy to verify DATABASE_URL on Vercel runtime.
+ * Database connectivity check.
+ * Production responses omit user counts and internal error strings.
  */
 export async function GET() {
   const connected = await checkDatabaseConnection();
@@ -14,12 +16,19 @@ export async function GET() {
       {
         ok: false,
         database: "unreachable",
-        error: connected.error,
-        hint:
-          "In Vercel → Production env, set DATABASE_URL to Neon pooled connection string with ?sslmode=require&connect_timeout=15. Wake project at console.neon.tech if suspended.",
+        ...(isProduction
+          ? {}
+          : {
+              error: connected.error,
+              hint: "Check DATABASE_URL (Neon pooled URL with ?sslmode=require).",
+            }),
       },
       { status: 503 }
     );
+  }
+
+  if (isProduction) {
+    return NextResponse.json({ ok: true, database: "connected" });
   }
 
   try {

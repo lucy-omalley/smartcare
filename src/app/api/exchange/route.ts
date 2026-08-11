@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db";
 import { ExchangeCategory } from "@prisma/client";
 
 export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category") as ExchangeCategory | null;
 
@@ -12,7 +17,7 @@ export async function GET(request: Request) {
     where: category ? { category } : undefined,
     orderBy: { createdAt: "desc" },
     take: 50,
-    include: { user: { select: { name: true, email: true } } },
+    include: { user: { select: { name: true } } },
   });
 
   return NextResponse.json({ listings });
