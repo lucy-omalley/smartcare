@@ -108,6 +108,17 @@ enum AIRequestResolution {
   DB_ONLY
 }
 
+enum ReferralSource {
+  XIAOHONGSHU
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  DIRECT
+  GOOGLE
+  REFERRAL
+  UNKNOWN
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -151,9 +162,14 @@ model User {
   stripeSubscriptionId   String?  @unique
   subscriptionStatus     SubscriptionStatus?
   subscriptionPeriodEnd  DateTime?
+  referralSource         ReferralSource @default(UNKNOWN)
+  lastLoginAt            DateTime?
+  lastActiveAt           DateTime?
+  signupPlatform         String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
+  analyticsSessions      AnalyticsSession[]
   accounts            Account[]
   sessions            Session[]
   memories            FamilyMemory[]
@@ -536,13 +552,45 @@ model ParentMessage {
 model AnalyticsEvent {
   id         String   @id @default(cuid())
   userId     String?
+  sessionId  String?
   event      String
+  feature    String?
   properties Json     @default("{}")
+  source     String?
+  device     String?
+  browser    String?
+  platform   String?
+  country    String?
   createdAt  DateTime @default(now())
 
   @@index([event])
   @@index([userId])
   @@index([createdAt])
+  @@index([sessionId])
+  @@index([feature])
+  @@index([source])
+}
+
+model AnalyticsSession {
+  id             String    @id @default(cuid())
+  sessionId      String    @unique
+  userId         String?
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  durationSec    Int?
+  pageViews      Int       @default(0)
+  platform       String?
+  device         String?
+  browser        String?
+  country        String?
+  referrerSource String?
+  exitPath       String?
+  bounced        Boolean   @default(false)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([startedAt])
+  @@index([sessionId])
 }
 
 model AnalyticsError {

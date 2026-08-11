@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { isFounderAdmin } from "@/lib/admin";
+import { requireFounderAccess } from "@/lib/founder-auth";
 import { getFounderMetrics } from "@/lib/services/founder-metrics";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email || !isFounderAdmin(session.user.email)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requireFounderAccess();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   try {
