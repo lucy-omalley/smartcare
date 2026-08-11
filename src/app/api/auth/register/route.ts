@@ -3,10 +3,11 @@ import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { captureServerEvent } from '@/lib/analytics/posthog-server';
 import { persistAnalyticsEvent } from '@/lib/analytics/persist';
+import { normalizeReferralSource } from '@/lib/analytics-platform/referral';
 
 export async function POST(req: Request) {
   try {
-    const { email: rawEmail, password, name } = await req.json();
+    const { email: rawEmail, password, name, referralSource: rawReferral } = await req.json();
     const email = rawEmail?.trim().toLowerCase();
     const trimmedName = name?.trim();
 
@@ -52,6 +53,8 @@ export async function POST(req: Request) {
         email,
         name: trimmedName,
         password: hashedPassword,
+        referralSource: normalizeReferralSource(rawReferral),
+        signupPlatform: 'web',
       },
     });
 

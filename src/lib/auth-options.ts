@@ -49,6 +49,10 @@ export const authOptions: NextAuthOptions = {
       const tasks: Promise<unknown>[] = [
         persistAnalyticsEvent("login", userId, { method }),
         captureServerEvent(userId, "login", { method }),
+        prisma.user.update({
+          where: { id: userId },
+          data: { lastLoginAt: new Date(), lastActiveAt: new Date() },
+        }),
       ];
 
       if (isNewUser && method !== "credentials") {

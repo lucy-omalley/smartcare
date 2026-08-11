@@ -1,6 +1,7 @@
 import type { AnalyticsEvent, FeatureName } from "@/lib/analytics/events";
 import { getPostHogClient } from "@/lib/analytics/posthog-client";
 import { sanitizeProperties } from "@/lib/analytics/sanitize";
+import { getAnalyticsSessionId, getStoredReferralSource } from "@/lib/analytics/referral-capture";
 
 const PENDING_KEY = "parenfy_analytics_pending";
 const MAX_PENDING = 50;
@@ -38,7 +39,12 @@ function flushPending() {
 
 function sendToPersistApi(event: string, properties?: Record<string, unknown>, attempt = 0) {
   if (typeof window === "undefined") return;
-  const body = JSON.stringify({ event, properties: sanitizeProperties(properties) });
+  const body = JSON.stringify({
+    event,
+    properties: sanitizeProperties(properties),
+    sessionId: getAnalyticsSessionId(),
+    source: getStoredReferralSource(),
+  });
   try {
     if (navigator.sendBeacon && attempt === 0) {
       const ok = navigator.sendBeacon("/api/analytics/track", new Blob([body], { type: "application/json" }));
