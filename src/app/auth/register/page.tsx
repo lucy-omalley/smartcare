@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trackEvent } from '@/lib/analytics';
@@ -9,21 +9,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  RecaptchaWidget,
+  isRecaptchaEnabledClient,
+  isCaptchaEnabledClient,
+} from '@/components/auth/recaptcha-widget';
 import { TurnstileWidget, isTurnstileEnabledClient } from '@/components/auth/turnstile-widget';
 
 export default function Register() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileEnabledClient();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const formLoadedAtRef = useRef(Date.now());
+  const useRecaptcha = isRecaptchaEnabledClient();
+  const useTurnstile = !useRecaptcha && isTurnstileEnabledClient();
+  const captchaRequired = isCaptchaEnabledClient();
 
-  const handleTurnstileVerify = useCallback((token: string) => {
-    setTurnstileToken(token);
+  useEffect(() => {
+    formLoadedAtRef.current = Date.now();
   }, []);
 
-  const handleTurnstileExpire = useCallback(() => {
-    setTurnstileToken(null);
+  const handleCaptchaVerify = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,7 +43,7 @@ export default function Register() {
     setIsLoading(true);
     setError('');
 
-    if (turnstileRequired && !turnstileToken) {
+    if (captchaRequired && !captchaToken) {
       setError('Please complete the CAPTCHA verification.');
       setIsLoading(false);
       return;
@@ -43,6 +55,7 @@ export default function Register() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
+    const honeypot = (formData.get('website') as string) ?? '';
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -53,7 +66,10 @@ export default function Register() {
           password,
           name,
           referralSource: getStoredReferralSource(),
-          turnstileToken,
+          recaptchaToken: useRecaptcha ? captchaToken : undefined,
+          turnstileToken: useTurnstile ? captchaToken : undefined,
+          honeypot,
+          formLoadedAt: formLoadedAtRef.current,
         }),
       });
 
@@ -66,7 +82,7 @@ export default function Register() {
       router.push('/auth/signin?registered=true');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
-      setTurnstileToken(null);
+      setCaptchaToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -83,6 +99,14 @@ export default function Register() {
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
+            <div
+              className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <Label htmlFor="website">Website</Label>
+              <Input id="website" name="website" type="text" autoComplete="off" tabIndex={-1} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -93,6 +117,7 @@ export default function Register() {
                 minLength={2}
                 maxLength={80}
                 disabled={isLoading}
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -104,6 +129,7 @@ export default function Register() {
                 placeholder="john@example.com"
                 required
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -115,13 +141,22 @@ export default function Register() {
                 minLength={8}
                 required
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
-            <TurnstileWidget
-              onVerify={handleTurnstileVerify}
-              onExpire={handleTurnstileExpire}
-              onError={handleTurnstileExpire}
-            />
+            {useRecaptcha ? (
+              <RecaptchaWidget
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
+                onError={handleCaptchaExpire}
+              />
+            ) : useTurnstile ? (
+              <TurnstileWidget
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
+                onError={handleCaptchaExpire}
+              />
+            ) : null}
             {error && (
               <div className="text-sm text-red-500">
                 {error}
@@ -132,7 +167,7 @@ export default function Register() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || (turnstileRequired && !turnstileToken)}
+              disabled={isLoading || (captchaRequired && !captchaToken)}
             >
               {isLoading ? 'Creating account...' : 'Join the Public Beta'}
             </Button>

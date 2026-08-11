@@ -78,11 +78,7 @@ export function TurnstileWidget({ onVerify, onExpire, onError }: TurnstileWidget
   }, [siteKey, renderWidget]);
 
   if (!siteKey) {
-    return (
-      <p className="text-xs text-muted-foreground text-center">
-        CAPTCHA not configured (set NEXT_PUBLIC_TURNSTILE_SITE_KEY in production).
-      </p>
-    );
+    return null;
   }
 
   return <div ref={containerRef} className="flex justify-center min-h-[65px]" />;

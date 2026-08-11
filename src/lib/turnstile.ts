@@ -16,9 +16,6 @@ export async function verifyTurnstileToken(
 ): Promise<{ ok: boolean; error?: string }> {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      console.warn("TURNSTILE_SECRET_KEY not set — CAPTCHA skipped in production");
-    }
     return { ok: true };
   }
 
