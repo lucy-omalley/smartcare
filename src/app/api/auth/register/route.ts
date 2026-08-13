@@ -13,6 +13,7 @@ import { verifyRegistrationCaptcha } from "@/lib/captcha";
 import { clientIpFromRequest } from "@/lib/upstash";
 import { looksLikeHumanName } from "@/lib/registration-guard";
 import { createAndSendVerificationEmail } from "@/lib/auth/email-verification";
+import { grantBetaTrial } from "@/lib/beta-trial";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -139,6 +140,8 @@ export async function POST(req: Request) {
     });
 
     await recordRegistrationAttempt(ip);
+
+    await grantBetaTrial(user.id);
 
     await Promise.allSettled([
       persistAnalyticsEvent("signup_completed", user.id, { method: "email" }),

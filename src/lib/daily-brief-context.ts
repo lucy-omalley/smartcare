@@ -26,6 +26,11 @@ export interface BriefProfile {
   location?: string | null;
   broadArea?: string | null;
   weeklyFocusTitle?: string | null;
+  favouriteAnimal?: string | null;
+  favouriteVehicle?: string | null;
+  favouriteCharacter?: string | null;
+  storyLearningTheme?: string | null;
+  storyMoralPreference?: string | null;
 }
 
 export interface BriefMemory {

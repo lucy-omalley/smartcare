@@ -8,6 +8,7 @@ import { buildAuthProviders } from "@/lib/auth-providers";
 import { resolveSafePostAuthUrl } from "@/lib/auth/callback-url";
 import { authorizeOAuthSignIn, markEmailVerifiedForOAuth } from "@/lib/auth/oauth-signin";
 import { isEmailVerified } from "@/lib/auth/email-verification";
+import { grantBetaTrial } from "@/lib/beta-trial";
 
 async function resolveUserIdFromToken(token: {
   id?: string;
@@ -72,11 +73,14 @@ export const authOptions: NextAuthOptions = {
         tasks.push(markEmailVerifiedForOAuth(userId));
       }
 
-      if (isNewUser && method !== "credentials") {
-        tasks.push(
-          persistAnalyticsEvent("signup_completed", userId, { method }),
-          captureServerEvent(userId, "signup_completed", { method })
-        );
+      if (isNewUser) {
+        tasks.push(grantBetaTrial(userId));
+        if (method !== "credentials") {
+          tasks.push(
+            persistAnalyticsEvent("signup_completed", userId, { method }),
+            captureServerEvent(userId, "signup_completed", { method })
+          );
+        }
       }
 
       await Promise.allSettled(tasks);

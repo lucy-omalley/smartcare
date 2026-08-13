@@ -9,6 +9,7 @@ import {
 } from "@/lib/child-age";
 import { invalidateTodayPlan, warmTodayPlanInBackground } from "@/lib/services/daily-brief";
 import { bodyAffectsTodayPlan } from "@/lib/today-plan-stale";
+import { grantBetaTrial } from "@/lib/beta-trial";
 
 const profileSelect = {
   name: true,
@@ -30,6 +31,13 @@ const profileSelect = {
   visibilityPreference: true,
   openToConnect: true,
   onboardingComplete: true,
+  betaTrialEndsAt: true,
+  favouriteAnimal: true,
+  favouriteVehicle: true,
+  favouriteCharacter: true,
+  storyLearningTheme: true,
+  storyMoralPreference: true,
+  favouriteToys: true,
 } as const;
 
 export async function GET() {
@@ -73,6 +81,12 @@ export async function POST(request: Request) {
     visibilityPreference,
     openToConnect,
     onboardingComplete,
+    favouriteAnimal,
+    favouriteVehicle,
+    favouriteCharacter,
+    storyLearningTheme,
+    storyMoralPreference,
+    favouriteToys,
   } = body;
 
   const goals = parentingGoals ?? (parentingGoal ? [parentingGoal] : undefined);
@@ -114,10 +128,20 @@ export async function POST(request: Request) {
       ...(interests !== undefined && { interests: interests ?? [] }),
       ...(visibilityPreference !== undefined && { visibilityPreference }),
       ...(openToConnect !== undefined && { openToConnect }),
+      ...(favouriteAnimal !== undefined && { favouriteAnimal: favouriteAnimal?.trim() || null }),
+      ...(favouriteVehicle !== undefined && { favouriteVehicle: favouriteVehicle?.trim() || null }),
+      ...(favouriteCharacter !== undefined && { favouriteCharacter: favouriteCharacter?.trim() || null }),
+      ...(storyLearningTheme !== undefined && { storyLearningTheme: storyLearningTheme?.trim() || null }),
+      ...(storyMoralPreference !== undefined && { storyMoralPreference: storyMoralPreference?.trim() || null }),
+      ...(favouriteToys !== undefined && { favouriteToys: favouriteToys ?? [] }),
       onboardingComplete: onboardingComplete ?? true,
     },
     select: profileSelect,
   });
+
+  if (onboardingComplete) {
+    await grantBetaTrial(session.user.id);
+  }
 
   const planAffectingUpdate = bodyAffectsTodayPlan(body as Record<string, unknown>);
   let todayPlanRegenerated = false;

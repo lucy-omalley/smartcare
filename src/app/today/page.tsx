@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Sun, UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
@@ -43,6 +43,11 @@ import {
   invalidateTodayRecipeIllustrationCache,
 } from '@/lib/recipe-illustration-prefetch';
 import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
+import { BetaPremiumWelcomeBanner } from '@/components/beta/beta-premium-welcome-banner';
+import { TodayWowDashboard } from '@/components/today/today-wow-dashboard';
+import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
+
+const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -83,6 +88,8 @@ interface TodayData {
 export default function TodayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [showWow, setShowWow] = useState(false);
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -94,6 +101,19 @@ export default function TodayPage() {
   const lastRotateAtRef = useRef(0);
   const lastBriefUpdatedAtRef = useRef<string | null>(null);
   const profileRefreshPollRef = useRef(false);
+
+  useEffect(() => {
+    const welcome = searchParams.get('welcome') === '1';
+    setShowWow(welcome);
+    if (welcome) {
+      trackEvent('first_session_dashboard_viewed');
+    }
+  }, [searchParams]);
+
+  const dismissWow = useCallback(() => {
+    localStorage.setItem(WOW_DISMISS_KEY, '1');
+    setShowWow(false);
+  }, []);
 
   const submitCheckIn = useCallback(
     async (payload: { feeling: string; win: string; challenge: string }) => {
@@ -621,6 +641,12 @@ export default function TodayPage() {
           )}
         </header>
 
+        <BetaPremiumWelcomeBanner />
+
+        {brief && isValidBriefContent(brief) && showWow && (
+          <TodayWowDashboard brief={brief} childName={childName} onDismiss={dismissWow} />
+        )}
+
         {!hasChildProfile && (
           <div className="visual-card p-3.5 flex items-center gap-3">
             <UserPlus className="h-5 w-5 text-primary shrink-0" />
@@ -754,6 +780,8 @@ export default function TodayPage() {
                 )}
               </div>
             </section>
+
+            <TodayPlanFeedbackWidget />
 
             <section className="space-y-2.5">
               <ParentCheckInCard onSubmit={submitCheckIn} />

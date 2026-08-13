@@ -167,6 +167,12 @@ model User {
   lastActiveAt           DateTime?
   signupPlatform         String?
   emailVerified          DateTime?
+  betaTrialEndsAt        DateTime?
+  favouriteAnimal        String?
+  favouriteVehicle       String?
+  favouriteCharacter     String?
+  storyLearningTheme     String?
+  storyMoralPreference   String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -197,6 +203,10 @@ model User {
   eventParticipations EventParticipant[]
   sentConnectRequests ConnectRequest[] @relation("SentConnectRequests")
   receivedConnectRequests ConnectRequest[] @relation("ReceivedConnectRequests")
+  todayPlanFeedback   TodayPlanFeedback[]
+  learningPlans       LearningPlan[]
+  featureRequests     FeatureRequest[] @relation("SubmittedFeatures")
+  featureVotes        FeatureRequestVote[]
 
   @@index([email])
   @@index([location])
@@ -623,6 +633,66 @@ model BetaFeedback {
 
   @@index([createdAt])
   @@index([userId])
+}
+
+enum FeatureRequestStatus {
+  OPEN
+  PLANNED
+  IN_PROGRESS
+  RELEASED
+}
+
+model TodayPlanFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model LearningPlan {
+  id              String   @id @default(cuid())
+  userId          String
+  durationMinutes Int?
+  content         Json
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model FeatureRequest {
+  id           String               @id @default(cuid())
+  title        String
+  description  String               @db.Text
+  status       FeatureRequestStatus @default(OPEN)
+  submitterId  String?
+  voteCount    Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  submitter    User?                @relation("SubmittedFeatures", fields: [submitterId], references: [id], onDelete: SetNull)
+  votes        FeatureRequestVote[]
+
+  @@index([status])
+  @@index([voteCount])
+  @@index([createdAt])
+}
+
+model FeatureRequestVote {
+  id               String         @id @default(cuid())
+  userId           String
+  featureRequestId String
+  createdAt        DateTime       @default(now())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureRequest   FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureRequestId])
+  @@index([featureRequestId])
 }
 
 // --- Structured knowledge base (DB-first content; AI only personalizes selection) ---
