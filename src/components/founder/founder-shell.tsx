@@ -12,12 +12,14 @@ import {
   AlertTriangle,
   FlaskConical,
   DollarSign,
+  MessageSquare,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin/founder", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/founder/users", label: "Users", icon: Users },
   { href: "/admin/founder/funnel", label: "Funnel", icon: Filter },
+  { href: "/admin/founder/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/founder/retention", label: "Retention", icon: TrendingUp },
   { href: "/admin/founder/ai", label: "AI", icon: Sparkles },
   { href: "/admin/founder/errors", label: "Errors", icon: AlertTriangle },

@@ -33,6 +33,10 @@ export default function OnboardingPage() {
   const [childNickname, setChildNickname] = useState('');
   const [childBirthday, setChildBirthday] = useState<string | null>(null);
   const [childInterests, setChildInterests] = useState('');
+  const [favouriteAnimal, setFavouriteAnimal] = useState('');
+  const [favouriteVehicle, setFavouriteVehicle] = useState('');
+  const [favouriteCharacter, setFavouriteCharacter] = useState('');
+  const [storyLearningTheme, setStoryLearningTheme] = useState('');
   const [foodPreferences, setFoodPreferences] = useState('');
   const [routineNotes, setRoutineNotes] = useState('');
   const [parentingGoals, setParentingGoals] = useState<string[]>([]);
@@ -94,6 +98,10 @@ export default function OnboardingPage() {
           childNickname,
           childBirthday,
           childInterests: childInterests.split(',').map((s) => s.trim()).filter(Boolean),
+          favouriteAnimal: favouriteAnimal.trim() || undefined,
+          favouriteVehicle: favouriteVehicle.trim() || undefined,
+          favouriteCharacter: favouriteCharacter.trim() || undefined,
+          storyLearningTheme: storyLearningTheme.trim() || undefined,
           foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
           routineNotes,
           parentingGoals,
@@ -120,7 +128,7 @@ export default function OnboardingPage() {
     if (parentingGoals.length) trackEvent('parenting_goals_selected', { count: parentingGoals.length });
     if (currentChallenges.length) trackEvent('current_challenges_selected', { count: currentChallenges.length });
     if (broadArea || location) trackEvent('connect_area_selected');
-    router.push('/today');
+    router.push('/today?welcome=1');
   };
 
   const stepIndex = STEPS.indexOf(step);
@@ -188,6 +196,17 @@ export default function OnboardingPage() {
                   onChange={setChildBirthday}
                   idPrefix="onboarding-child-dob"
                 />
+              </div>
+              <div>
+                <Label htmlFor="interests">Interests (comma-separated)</Label>
+                <Input id="interests" value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="dinosaurs, puzzles, music" className="mt-1" />
+              </div>
+              <p className="text-xs text-muted-foreground">Story personalization (optional)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Input value={favouriteAnimal} onChange={(e) => setFavouriteAnimal(e.target.value)} placeholder="Favourite animal" />
+                <Input value={favouriteVehicle} onChange={(e) => setFavouriteVehicle(e.target.value)} placeholder="Favourite vehicle" />
+                <Input value={favouriteCharacter} onChange={(e) => setFavouriteCharacter(e.target.value)} placeholder="Favourite character" className="col-span-2" />
+                <Input value={storyLearningTheme} onChange={(e) => setStoryLearningTheme(e.target.value)} placeholder="Learning theme (e.g. sharing)" className="col-span-2" />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('welcome')}><ArrowLeft className="h-4 w-4" /></Button>
@@ -299,7 +318,7 @@ export default function OnboardingPage() {
               </div>
               <CardTitle className="text-xl">You&apos;re all set!</CardTitle>
               <CardDescription>
-                Your personalised Today dashboard is ready. Ask MumBot anything — we&apos;ll learn more as you go.
+                Your 30-day Premium beta trial starts now. Your personalised Today dashboard is ready.
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -20,6 +20,10 @@ import {
 } from 'lucide-react';
 
 const MORE_ITEMS = [
+  { href: '/learning-plan', label: 'Learning Plan', desc: 'Structured activities for your child', icon: Brain },
+  { href: '/weekly-report', label: 'Weekly Growth Report', desc: 'Wins, progress, and next steps', icon: Trophy },
+  { href: '/why-parenfy', label: 'Why Parenfy?', desc: 'How we differ from ChatGPT', icon: BookOpen },
+  { href: '/feature-requests', label: 'Suggest a Feature', desc: 'Vote on ideas for Parenfy', icon: Puzzle },
   { href: '/saved', label: 'Recipes & Meal Ideas', desc: 'Saved favourites and meal inspiration', icon: UtensilsCrossed },
   { href: '/saved?tab=stories', label: 'Stories', desc: 'Bedtime stories and saved tales', icon: BookOpen },
   { href: '/activities', label: 'Activities', desc: 'Local events and play ideas', icon: Puzzle },

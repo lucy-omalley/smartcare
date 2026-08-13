@@ -255,9 +255,16 @@ export function personalizePlay(
 
 export function personalizeStory(
   story: Omit<DailyBriefStory, "illustrationData">,
-  profile: EnrichedRotateProfile
+  profile: EnrichedRotateProfile & {
+    favouriteAnimal?: string | null;
+    favouriteVehicle?: string | null;
+    favouriteCharacter?: string | null;
+    storyLearningTheme?: string | null;
+    storyMoralPreference?: string | null;
+  }
 ): Omit<DailyBriefStory, "illustrationData"> {
   const stage = profile.developmentStage;
+  const child = profile.childNickname?.trim() || "your child";
   let reason = story.reason ?? "";
   if (reason && !reason.includes(stage)) {
     reason = reason.replace(
@@ -265,8 +272,24 @@ export function personalizeStory(
       `Recommended for ${profile.developmentStage} because`
     );
   }
+
+  let personalizedStory = story.story.replace(/\{child\}/gi, child);
+  const extras = [profile.favouriteAnimal, profile.favouriteVehicle, profile.favouriteCharacter]
+    .filter(Boolean)
+    .join(", ");
+  if (extras && !personalizedStory.toLowerCase().includes(extras.split(",")[0]!.toLowerCase())) {
+    personalizedStory = personalizedStory.replace(
+      new RegExp(`\\b${child}\\b`, "i"),
+      `${child} (who loves ${extras})`
+    );
+  }
+
   return {
     ...story,
+    story: personalizedStory,
+    title: story.title.replace(/\{child\}/gi, child),
+    theme: profile.storyLearningTheme ?? story.theme,
+    moral: profile.storyMoralPreference ?? story.moral,
     reason,
     ageSuitability: profile.childAgeDisplay ?? story.ageSuitability,
   };
