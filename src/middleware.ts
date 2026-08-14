@@ -40,7 +40,12 @@ export default withAuth(
     headers.set('X-Frame-Options', 'SAMEORIGIN');
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Referrer-Policy', 'origin-when-cross-origin');
-    headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    const pathname = request.nextUrl.pathname;
+    const allowMicrophone = pathname.startsWith('/stories/voice/record');
+    headers.set(
+      'Permissions-Policy',
+      allowMicrophone ? 'camera=(), microphone=(self), geolocation=()' : 'camera=(), microphone=(), geolocation=()'
+    );
 
     return response;
   },
@@ -66,6 +71,8 @@ export const config = {
     '/exchange/:path*',
     '/saved/:path*',
     '/library/:path*',
+    '/stories/:path*',
+    '/learning-plan/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',
     '/chat/:path*',

@@ -35,18 +35,21 @@ export const PLAN_LIMITS = {
     chatsPerDay: 3,
     generationsPerMonth: 20,
     childProfiles: 1,
+    familyStoriesPerMonth: 3,
   },
   PREMIUM: {
     dailyPlansPerDay: Infinity,
     chatsPerDay: Infinity,
     generationsPerMonth: Infinity,
     childProfiles: 1,
+    familyStoriesPerMonth: Infinity,
   },
   FAMILY: {
     dailyPlansPerDay: Infinity,
     chatsPerDay: Infinity,
     generationsPerMonth: Infinity,
     childProfiles: 4,
+    familyStoriesPerMonth: Infinity,
   },
 } as const;
 

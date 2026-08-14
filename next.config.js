@@ -5,6 +5,12 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/stories/voice/record/:path*',
+        headers: [
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {

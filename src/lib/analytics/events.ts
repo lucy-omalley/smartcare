@@ -56,6 +56,17 @@ export type AnalyticsEvent =
   | "story_completed"
   | "story_saved"
   | "story_rotated"
+  // Family Voice Storytime
+  | "family_story_generated"
+  | "family_story_played"
+  | "family_story_completed"
+  | "family_story_narrated"
+  | "family_story_favorited"
+  | "voice_profile_created"
+  | "voice_profile_ready"
+  | "voice_recording_started"
+  | "narrator_selected"
+  | "bedtime_mode_opened"
   // Meals
   | "meal_viewed"
   | "meal_saved"
@@ -113,7 +124,8 @@ export type FeatureName =
   | "Profile"
   | "Settings"
   | "Saved"
-  | "More";
+  | "More"
+  | "Stories";
 
 export const PATH_FEATURE_MAP: Record<string, FeatureName> = {
   "/today": "Today",
@@ -122,6 +134,7 @@ export const PATH_FEATURE_MAP: Record<string, FeatureName> = {
   "/saved": "Saved",
   "/profile": "Profile",
   "/more": "More",
+  "/stories": "Stories",
   "/onboarding": "Settings",
   "/home": "Today",
   "/memory": "Milestones",
