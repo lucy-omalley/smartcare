@@ -17,6 +17,7 @@ import {
 } from "@/lib/knowledge/repository";
 import { recommendTodayPlanPicks } from "@/lib/intelligence/recommend-today-plan";
 import { defaultDailyBrief } from "@/lib/services/mumbot";
+import { enrichRotateProfile, personalizeStory } from "@/lib/services/today-rotate-profile";
 import type { AIMemorySignals } from "@/lib/services/today-recommendation-engine";
 import type { DailyBriefContent, WeatherInfo, WeeklyFocus } from "@/types/daily-brief";
 
@@ -90,14 +91,17 @@ export async function buildPersonalizedDailyBrief(params: {
 
   const child = profile.childNickname ?? "your little one";
   const parent = profile.name?.split(" ")[0] ?? "there";
+  const enrichedProfile = enrichRotateProfile(profile);
 
-  const [recipe, play, story, languageDev, milestoneRow] = await Promise.all([
+  const [recipe, play, storyRaw, languageDev, milestoneRow] = await Promise.all([
     recipeSlug ? loadRecipeBySlug(recipeSlug) : null,
     activitySlug ? loadActivityBySlug(activitySlug) : null,
     storySlug ? loadStoryBySlug(storySlug, child) : null,
     tipSlug ? loadTipAsDevelopment(tipSlug) : null,
     milestoneSlug ? loadMilestone(milestoneSlug) : null,
   ]);
+
+  const story = storyRaw ? personalizeStory(storyRaw, enrichedProfile) : null;
 
   const base = defaultDailyBrief(profile, weeklyFocus);
 

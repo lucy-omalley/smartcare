@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { User, LogOut, Target, Baby, Star, MapPin, Settings } from 'lucide-react';
+import { User, LogOut, Target, Baby, Star, MapPin, Settings, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import {
   PARENTING_GOAL_CATEGORIES,
@@ -25,6 +25,7 @@ import { bodyAffectsTodayPlan, markTodayPlanStale } from '@/lib/today-plan-stale
 import { toast } from 'sonner';
 import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
 import { formatBirthdayDisplay, resolveChildAgeDisplay } from '@/lib/child-age';
+import { hasStoryPreferences, storyPreferenceLabels } from '@/lib/story-preferences';
 
 interface Profile {
   name: string;
@@ -43,6 +44,11 @@ interface Profile {
   broadArea?: string | null;
   bio?: string | null;
   interests?: string[];
+  favouriteAnimal?: string | null;
+  favouriteVehicle?: string | null;
+  favouriteCharacter?: string | null;
+  storyLearningTheme?: string | null;
+  storyMoralPreference?: string | null;
 }
 
 interface ReflectionContent {
@@ -77,7 +83,11 @@ function ProfileContent() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [reflection, setReflection] = useState<ReflectionContent | null>(null);
   const [loadingReflection, setLoadingReflection] = useState(false);
-  const [editing, setEditing] = useState(searchParams.get('edit') === 'child' || searchParams.get('settings') === '1');
+  const [editing, setEditing] = useState(
+    searchParams.get('edit') === 'child' ||
+      searchParams.get('edit') === 'story' ||
+      searchParams.get('settings') === '1'
+  );
   const [saving, setSaving] = useState(false);
 
   const [childNickname, setChildNickname] = useState('');
@@ -91,6 +101,11 @@ function ProfileContent() {
   const [currentChallenges, setCurrentChallenges] = useState<string[]>([]);
   const [broadArea, setBroadArea] = useState('');
   const [bio, setBio] = useState('');
+  const [favouriteAnimal, setFavouriteAnimal] = useState('');
+  const [favouriteVehicle, setFavouriteVehicle] = useState('');
+  const [favouriteCharacter, setFavouriteCharacter] = useState('');
+  const [storyLearningTheme, setStoryLearningTheme] = useState('');
+  const [storyMoralPreference, setStoryMoralPreference] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -116,6 +131,11 @@ function ProfileContent() {
             setCurrentChallenges(p.currentChallenges || []);
             setBroadArea(p.broadArea || '');
             setBio(p.bio || '');
+            setFavouriteAnimal(p.favouriteAnimal || '');
+            setFavouriteVehicle(p.favouriteVehicle || '');
+            setFavouriteCharacter(p.favouriteCharacter || '');
+            setStoryLearningTheme(p.storyLearningTheme || '');
+            setStoryMoralPreference(p.storyMoralPreference || '');
           }
         })
         .finally(() => setProfileLoading(false));
@@ -174,6 +194,11 @@ function ProfileContent() {
       currentChallenges,
       broadArea,
       bio,
+      favouriteAnimal: favouriteAnimal.trim() || null,
+      favouriteVehicle: favouriteVehicle.trim() || null,
+      favouriteCharacter: favouriteCharacter.trim() || null,
+      storyLearningTheme: storyLearningTheme.trim() || null,
+      storyMoralPreference: storyMoralPreference.trim() || null,
       onboardingComplete: true,
     };
     const affectsTodayPlan = bodyAffectsTodayPlan(payload);
@@ -243,6 +268,45 @@ function ProfileContent() {
                   <Input value={foodPreferences} onChange={(e) => setFoodPreferences(e.target.value)} placeholder="Food preferences" />
                   <Textarea value={routineNotes} onChange={(e) => setRoutineNotes(e.target.value)} placeholder="Routine notes" rows={2} />
                   <Textarea value={developmentNotes} onChange={(e) => setDevelopmentNotes(e.target.value)} placeholder="Development notes" rows={2} />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-medium flex items-center gap-1">
+                  <BookOpen className="h-3 w-3" /> Bedtime story preferences
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5 mb-2">
+                  Tonight&apos;s story and future tales will weave in these details for {childNickname || 'your child'}.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={favouriteAnimal}
+                    onChange={(e) => setFavouriteAnimal(e.target.value)}
+                    placeholder="Favourite animal (e.g. fox)"
+                  />
+                  <Input
+                    value={favouriteVehicle}
+                    onChange={(e) => setFavouriteVehicle(e.target.value)}
+                    placeholder="Favourite vehicle (e.g. train)"
+                  />
+                  <Input
+                    value={favouriteCharacter}
+                    onChange={(e) => setFavouriteCharacter(e.target.value)}
+                    placeholder="Favourite character"
+                    className="col-span-2"
+                  />
+                  <Input
+                    value={storyLearningTheme}
+                    onChange={(e) => setStoryLearningTheme(e.target.value)}
+                    placeholder="Learning theme (e.g. sharing)"
+                    className="col-span-2"
+                  />
+                  <Input
+                    value={storyMoralPreference}
+                    onChange={(e) => setStoryMoralPreference(e.target.value)}
+                    placeholder="Moral or lesson (e.g. kindness)"
+                    className="col-span-2"
+                  />
                 </div>
               </div>
 
@@ -351,6 +415,37 @@ function ProfileContent() {
                 )}
                 <Button variant="link" className="p-0 h-auto text-primary" onClick={() => setEditing(true)}>
                   {profile?.childNickname ? 'Edit profile' : 'Create profile'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" /> Bedtime Story Preferences
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {hasStoryPreferences(profile) ? (
+                  <>
+                    <p className="text-muted-foreground text-xs">
+                      Stories are personalized for {profile?.childNickname || 'your child'} using:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {storyPreferenceLabels(profile!).map((label) => (
+                        <Badge key={label} variant="secondary" className="rounded-full text-xs">
+                          {label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Add favourite animals, characters, and themes so bedtime stories feel made for your child.
+                  </p>
+                )}
+                <Button variant="link" className="p-0 h-auto text-primary" onClick={() => setEditing(true)}>
+                  {hasStoryPreferences(profile) ? 'Edit story preferences' : 'Set up story preferences'}
                 </Button>
               </CardContent>
             </Card>

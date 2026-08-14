@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Bookmark, Loader2, ImageIcon, ChefHat, ExternalLink, Youtube, FileText, RefreshCw } from 'lucide-react';
+import { Bookmark, Loader2, ImageIcon, ChefHat, ExternalLink, Youtube, FileText, RefreshCw, BookOpen, Sparkles } from 'lucide-react';
 import type {
   DailyBriefRecipe,
   DailyBriefPlay,
@@ -20,6 +20,8 @@ import { fetchTodayRecipeIllustration, prefetchTodayRecipeIllustration, warmToda
 import { isGenericRecipeLink } from '@/lib/recipe-link-utils';
 import { StoryListenButton } from '@/components/story/story-listen-button';
 import { ExpandableStepList } from '@/components/today/expandable-step-list';
+import Link from 'next/link';
+import { hasStoryPreferences, storyPreferenceLabels, type StoryPreferences } from '@/lib/story-preferences';
 
 const MEAL_STYLE_OPTIONS = ['Soup', 'Pasta', 'Rice bowl', 'Salad', 'Stir-fry', 'Sandwich', 'Casserole', 'Smoothie'] as const;
 
@@ -665,11 +667,50 @@ function useStoryDetailMedia(story: DailyBriefStory) {
   };
 }
 
-export function StoryDetailContent({ childAgeDisplay }: { childAgeDisplay?: string }) {
+export function StoryDetailContent({
+  childAgeDisplay,
+  storyPreferences,
+}: {
+  childAgeDisplay?: string;
+  storyPreferences?: StoryPreferences | null;
+}) {
   const { story } = useStoryDetailContext();
+  const personalized = hasStoryPreferences(storyPreferences);
+  const prefLabels = storyPreferences ? storyPreferenceLabels(storyPreferences) : [];
+  const childName = storyPreferences?.childNickname?.trim();
 
   return (
     <div className="space-y-4 text-sm pb-2">
+      {personalized && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2.5 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-primary">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            Personalized for {childName || 'your child'}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {prefLabels.map((label) => (
+              <Badge key={label} variant="secondary" className="rounded-full text-[10px]">
+                {label}
+              </Badge>
+            ))}
+          </div>
+          <Link href="/profile?edit=story" className="text-[10px] text-primary underline-offset-2 hover:underline">
+            Edit story preferences
+          </Link>
+        </div>
+      )}
+      {!personalized && (
+        <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 font-medium text-foreground mb-1">
+            <BookOpen className="h-3.5 w-3.5" />
+            Make stories feel personal
+          </div>
+          Add favourite animals, characters, and themes in your profile — tonight&apos;s tale will weave them in.
+          <Link href="/profile?edit=story" className="block mt-1.5 text-primary underline-offset-2 hover:underline">
+            Set up story preferences
+          </Link>
+        </div>
+      )}
       <div>
         <h3 className="text-lg font-bold">{story.title}</h3>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -677,11 +718,14 @@ export function StoryDetailContent({ childAgeDisplay }: { childAgeDisplay?: stri
           {childAgeDisplay && (
             <Badge variant="outline" className="rounded-full">{childAgeDisplay}</Badge>
           )}
+          {story.theme && (
+            <Badge variant="outline" className="rounded-full">Theme: {story.theme}</Badge>
+          )}
         </div>
       </div>
       {story.moral && (
         <p className="text-xs text-primary/80 bg-primary/5 rounded-xl px-3 py-2">
-          Theme: {story.moral}
+          Lesson: {story.moral}
         </p>
       )}
       <p className="text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2">

@@ -245,6 +245,11 @@ const PROFILE_SELECT = {
   location: true,
   broadArea: true,
   weeklyFocusTitle: true,
+  favouriteAnimal: true,
+  favouriteVehicle: true,
+  favouriteCharacter: true,
+  storyLearningTheme: true,
+  storyMoralPreference: true,
 } as const;
 
 export async function generateAndSaveBriefIllustrations(
@@ -610,6 +615,11 @@ const ROTATE_PROFILE_SELECT = {
   priorityGoal: true,
   currentChallenges: true,
   weeklyFocusTitle: true,
+  favouriteAnimal: true,
+  favouriteVehicle: true,
+  favouriteCharacter: true,
+  storyLearningTheme: true,
+  storyMoralPreference: true,
 } as const;
 
 async function fetchRotateProfile(userId: string): Promise<BriefProfile> {

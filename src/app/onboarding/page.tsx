@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Bot, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Bot, ArrowRight, ArrowLeft, Check, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,7 @@ export default function OnboardingPage() {
   const [favouriteVehicle, setFavouriteVehicle] = useState('');
   const [favouriteCharacter, setFavouriteCharacter] = useState('');
   const [storyLearningTheme, setStoryLearningTheme] = useState('');
+  const [storyMoralPreference, setStoryMoralPreference] = useState('');
   const [foodPreferences, setFoodPreferences] = useState('');
   const [routineNotes, setRoutineNotes] = useState('');
   const [parentingGoals, setParentingGoals] = useState<string[]>([]);
@@ -67,6 +68,11 @@ export default function OnboardingPage() {
           if (profile.currentChallenges?.length) setCurrentChallenges(profile.currentChallenges);
           if (profile.broadArea) setBroadArea(profile.broadArea);
           if (profile.location) setLocation(profile.location);
+          if (profile.favouriteAnimal) setFavouriteAnimal(profile.favouriteAnimal);
+          if (profile.favouriteVehicle) setFavouriteVehicle(profile.favouriteVehicle);
+          if (profile.favouriteCharacter) setFavouriteCharacter(profile.favouriteCharacter);
+          if (profile.storyLearningTheme) setStoryLearningTheme(profile.storyLearningTheme);
+          if (profile.storyMoralPreference) setStoryMoralPreference(profile.storyMoralPreference);
         });
     }
   }, [status]);
@@ -102,6 +108,7 @@ export default function OnboardingPage() {
           favouriteVehicle: favouriteVehicle.trim() || undefined,
           favouriteCharacter: favouriteCharacter.trim() || undefined,
           storyLearningTheme: storyLearningTheme.trim() || undefined,
+          storyMoralPreference: storyMoralPreference.trim() || undefined,
           foodPreferences: foodPreferences.split(',').map((s) => s.trim()).filter(Boolean),
           routineNotes,
           parentingGoals,
@@ -201,12 +208,28 @@ export default function OnboardingPage() {
                 <Label htmlFor="interests">Interests (comma-separated)</Label>
                 <Input id="interests" value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="dinosaurs, puzzles, music" className="mt-1" />
               </div>
-              <p className="text-xs text-muted-foreground">Story personalization (optional)</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Input value={favouriteAnimal} onChange={(e) => setFavouriteAnimal(e.target.value)} placeholder="Favourite animal" />
-                <Input value={favouriteVehicle} onChange={(e) => setFavouriteVehicle(e.target.value)} placeholder="Favourite vehicle" />
-                <Input value={favouriteCharacter} onChange={(e) => setFavouriteCharacter(e.target.value)} placeholder="Favourite character" className="col-span-2" />
-                <Input value={storyLearningTheme} onChange={(e) => setStoryLearningTheme(e.target.value)} placeholder="Learning theme (e.g. sharing)" className="col-span-2" />
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <div className="rounded-full bg-primary/10 p-1.5 mt-0.5">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      Bedtime story personalization
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Optional — we weave these into tonight&apos;s story and future tales.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={favouriteAnimal} onChange={(e) => setFavouriteAnimal(e.target.value)} placeholder="Favourite animal" />
+                  <Input value={favouriteVehicle} onChange={(e) => setFavouriteVehicle(e.target.value)} placeholder="Favourite vehicle" />
+                  <Input value={favouriteCharacter} onChange={(e) => setFavouriteCharacter(e.target.value)} placeholder="Favourite character" className="col-span-2" />
+                  <Input value={storyLearningTheme} onChange={(e) => setStoryLearningTheme(e.target.value)} placeholder="Learning theme (e.g. sharing)" className="col-span-2" />
+                  <Input value={storyMoralPreference} onChange={(e) => setStoryMoralPreference(e.target.value)} placeholder="Moral or lesson (e.g. kindness)" className="col-span-2" />
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('welcome')}><ArrowLeft className="h-4 w-4" /></Button>

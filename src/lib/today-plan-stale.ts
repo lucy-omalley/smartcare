@@ -22,6 +22,11 @@ export const PLAN_AFFECTING_PROFILE_KEYS = [
   "priorityGoal",
   "currentChallenges",
   "location",
+  "favouriteAnimal",
+  "favouriteVehicle",
+  "favouriteCharacter",
+  "storyLearningTheme",
+  "storyMoralPreference",
 ] as const;
 
 export function bodyAffectsTodayPlan(body: Record<string, unknown>): boolean {
