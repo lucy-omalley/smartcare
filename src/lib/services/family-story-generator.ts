@@ -7,8 +7,10 @@ import { logAIRequest } from "@/lib/ai/usage";
 import { prisma } from "@/lib/db";
 import { recordFamilyStoryGenerated } from "@/lib/storytime/gating";
 import { ensureWeeklyStoryCollection } from "@/lib/services/weekly-story-collection";
+import { parseStoryPayload, storyGenerationSystemPrompt } from "@/lib/services/family-story-json";
+import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
 
-const STORY_SYSTEM = `You write original bedtime stories for young children. Each story must feel unique — never reuse the same plot structure twice in a row.
+const STORY_SYSTEM = storyGenerationSystemPrompt(`You write original bedtime stories for young children. Each story must feel unique — never reuse the same plot structure twice in a row.
 
 Structure every story with these sections (use natural prose, not headings):
 1. A gentle beginning that sets the scene
@@ -21,8 +23,7 @@ Rules:
 - Age-appropriate, warm, and calming for bedtime
 - Weave in the child's favourites naturally (never forced lists)
 - Avoid scary content, violence, or harsh language
-- Use varied sentence lengths and vocabulary
-- Return JSON only`;
+- Use varied sentence lengths and vocabulary`);
 
 export interface GenerateFamilyStoryInput {
   userId: string;
@@ -45,9 +46,7 @@ interface StoryPayload {
   moral?: string;
 }
 
-export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
-  const wordTarget = input.lengthMinutes * 130;
-
+async function requestStoryJson(input: GenerateFamilyStoryInput, wordTarget: number) {
   const userPrompt = JSON.stringify({
     childName: input.childName,
     childAge: input.childAge ?? "preschool",
@@ -72,18 +71,37 @@ export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
     feature: "FAMILY_STORY",
     systemPrompt: STORY_SYSTEM,
     userPrompt,
-    maxTokens: Math.min(2800, 180 + wordTarget * 2),
+    maxTokens: Math.min(4096, Math.max(600, 180 + wordTarget * 2)),
     temperature: 0.88,
     jsonMode: true,
     userId: input.userId,
   });
 
-  await logAIRequest({ userId: input.userId, feature: "FAMILY_STORY", resolution: "LLM" });
+  return parseStoryPayload(result.content);
+}
 
-  const parsed = JSON.parse(result.content) as StoryPayload;
-  if (!parsed.title?.trim() || !parsed.story?.trim()) {
-    throw new Error("Story generation failed — please try again.");
+export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
+  const wordTarget = input.lengthMinutes * 130;
+
+  let parsed: StoryPayload;
+  try {
+    parsed = await requestStoryJson(input, wordTarget);
+  } catch (firstError) {
+    if (
+      firstError instanceof AiDisabledError ||
+      firstError instanceof EmailNotVerifiedError
+    ) {
+      throw firstError;
+    }
+    // One retry — models occasionally return malformed JSON on first attempt.
+    try {
+      parsed = await requestStoryJson(input, wordTarget);
+    } catch {
+      throw firstError;
+    }
   }
+
+  await logAIRequest({ userId: input.userId, feature: "FAMILY_STORY", resolution: "LLM" });
 
   const story = await prisma.familyStory.create({
     data: {

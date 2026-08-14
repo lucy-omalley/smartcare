@@ -731,6 +731,16 @@ export function StoryDetailContent({
       <p className="text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2">
         Parent tip: Use a calm voice and pause for your child to react — stories build language and connection.
       </p>
+      <Link
+        href="/stories"
+        className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50/80 dark:bg-violet-950/20 px-3 py-2.5 text-xs text-violet-900 dark:text-violet-100 hover:border-violet-300 transition-colors"
+      >
+        <span aria-hidden>🎙️</span>
+        <span>
+          <span className="font-medium block">Family Voice Storytime</span>
+          <span className="text-muted-foreground">Create new stories & hear them in your voice</span>
+        </span>
+      </Link>
       <div className="text-base leading-relaxed text-foreground whitespace-pre-line bg-muted/30 rounded-2xl p-4">
         {story.story}
       </div>

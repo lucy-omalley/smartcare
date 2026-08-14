@@ -11,6 +11,8 @@ import {
 import type { BedtimeMood, StoryCategory } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
+import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -108,6 +110,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ story });
   } catch (error) {
+    if (error instanceof EmailNotVerifiedError) {
+      return NextResponse.json({ error: error.message, code: "EMAIL_NOT_VERIFIED" }, { status: 403 });
+    }
+    if (error instanceof AiDisabledError) {
+      return NextResponse.json({ error: error.message, code: "AI_DISABLED" }, { status: 503 });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      return NextResponse.json(
+        {
+          error: "Story storage is not ready yet. Please try again in a few minutes or contact support.",
+          code: "DB_NOT_READY",
+        },
+        { status: 503 }
+      );
+    }
+    console.error("Family story generation error:", error);
     const message = error instanceof Error ? error.message : "Generation failed";
     return NextResponse.json({ error: message }, { status: 400 });
   }

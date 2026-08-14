@@ -27,11 +27,17 @@ export default function VoiceLibraryPage() {
   const router = useRouter();
   const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
 
   const load = () => {
-    fetch('/api/voice/profiles')
-      .then((r) => r.json())
-      .then((d) => setProfiles(d.profiles ?? []))
+    Promise.all([
+      fetch('/api/voice/profiles').then((r) => r.json()),
+      fetch('/api/storytime/features').then((r) => r.json()),
+    ])
+      .then(([voiceData, featData]) => {
+        setProfiles(voiceData.profiles ?? []);
+        setIsPremium(featData.features?.familyVoiceEnabled ?? false);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -66,9 +72,20 @@ export default function VoiceLibraryPage() {
           </div>
         </div>
 
-        <Button asChild className="w-full rounded-xl">
-          <Link href="/stories/voice/record"><Plus className="h-4 w-4 mr-2" /> Record a new voice</Link>
+        <Button asChild className="w-full rounded-xl" disabled={!isPremium}>
+          <Link href={isPremium ? '/stories/voice/record' : '/billing'}>
+            <Plus className="h-4 w-4 mr-2" />
+            {isPremium ? 'Record a new voice' : 'Upgrade to record your voice'}
+          </Link>
         </Button>
+
+        {!isPremium && (
+          <Card className="rounded-2xl border-primary/20 bg-primary/5">
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              Family voice narration is included with Premium. You can still create AI bedtime stories on the free plan.
+            </CardContent>
+          </Card>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-8">Loading voices…</p>

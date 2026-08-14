@@ -49,14 +49,26 @@ export function StoryGeneratorForm({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Generation failed");
+      if (!res.ok) {
+        if (data.code === "EMAIL_NOT_VERIFIED") {
+          toast.error(data.error ?? "Verify your email to create stories.", {
+            action: {
+              label: "Verify email",
+              onClick: () => router.push("/auth/verify-email"),
+            },
+          });
+          return;
+        }
+        throw new Error(data.error ?? "Story creation failed");
+      }
 
       trackEvent("family_story_generated", { category, lengthMinutes });
       if (isPremium) trackEvent("premium_feature_used", { feature: "family_voice_storytime" });
 
       router.push(`/stories/${data.story.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not generate story");
+      const message = err instanceof Error ? err.message : "Story creation failed";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

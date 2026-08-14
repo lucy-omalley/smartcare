@@ -23,6 +23,7 @@ import {
   prefetchSavedStoryAudio,
   prefetchSavedStoriesAudio,
 } from '@/lib/saved-story-prefetch';
+import { StorytimePromoCard } from '@/components/storytime/storytime-promo-card';
 
 interface SavedRecipe {
   id: string;
@@ -280,10 +281,13 @@ function SavedPageContent() {
         )}
 
         {tab === 'stories' && (
-          stories.length === 0 ? (
+          <div className="space-y-3">
+            <StorytimePromoCard compact />
+            {stories.length === 0 ? (
             <Card className="rounded-2xl">
               <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                No saved stories yet. Save tonight&apos;s bedtime story from Home.
+                No saved stories yet. Save tonight&apos;s bedtime story from Home, or try{' '}
+                <Link href="/stories/create" className="text-primary underline">Family Voice Storytime</Link>.
               </CardContent>
             </Card>
           ) : (
@@ -365,7 +369,8 @@ function SavedPageContent() {
                 </Card>
               );
             })
-          )
+          )}
+          </div>
         )}
       </div>
     </AppShell>
