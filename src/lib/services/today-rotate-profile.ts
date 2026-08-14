@@ -174,11 +174,25 @@ export function rankStoriesForProfile(
     ...(profile.favouriteThemes ?? []),
     ...(profile.childInterests ?? []),
     ...(profile.favouriteBooks ?? []),
+    ...(profile.storyLearningTheme ? [profile.storyLearningTheme] : []),
+    ...(profile.storyMoralPreference ? [profile.storyMoralPreference] : []),
+  ]);
+  const storyExtras = normalizeTokens([
+    ...(profile.favouriteAnimal ? [profile.favouriteAnimal] : []),
+    ...(profile.favouriteVehicle ? [profile.favouriteVehicle] : []),
+    ...(profile.favouriteCharacter ? [profile.favouriteCharacter] : []),
   ]);
 
   return rankByScore(stories, (story) => {
     let score = 0;
     score += interestScore(haystack(story.theme, story.title, story.story), themes);
+    score += interestScore(haystack(story.title, story.story, story.moral), storyExtras);
+    if (profile.storyLearningTheme && story.theme?.toLowerCase().includes(profile.storyLearningTheme.toLowerCase())) {
+      score += 8;
+    }
+    if (profile.storyMoralPreference && story.moral?.toLowerCase().includes(profile.storyMoralPreference.toLowerCase())) {
+      score += 8;
+    }
     if (profile.sleepRoutine && /bedtime|calm|sleep|quiet/i.test(profile.sleepRoutine)) {
       if (/routine|wonder|friendship|nature|emotions/i.test(story.theme ?? "")) score += 3;
     }

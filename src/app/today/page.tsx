@@ -28,6 +28,7 @@ import { truncateWords } from '@/lib/today-focus';
 import { languageFromDevelopment, isValidBriefContent, normalizeBriefContent } from '@/lib/today-plan-utils';
 import { sectionSnapshot, applyRotatedSection } from '@/lib/services/today-rotate';
 import { consumeTodayPlanStale } from '@/lib/today-plan-stale';
+import { hasStoryPreferences } from '@/lib/story-preferences';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -80,6 +81,11 @@ interface TodayData {
     parentingGoals?: string[];
     priorityGoal?: string | null;
     currentChallenges?: string[];
+    favouriteAnimal?: string | null;
+    favouriteVehicle?: string | null;
+    favouriteCharacter?: string | null;
+    storyLearningTheme?: string | null;
+    storyMoralPreference?: string | null;
   };
   connectAvailableCount: number;
   upcomingEvent: ConnectEventPreview | null;
@@ -708,7 +714,12 @@ export default function TodayPage() {
                 emoji="📖"
                 label="Story"
                 title={brief.bedtimeStory.title}
-                preview={truncateWords(brief.bedtimeStory.reason || brief.bedtimeStory.moral || 'A bedtime tale for tonight.', 15)}
+                preview={truncateWords(
+                  hasStoryPreferences(data?.profile)
+                    ? `Personalized for ${childName || 'your child'}. ${brief.bedtimeStory.reason || brief.bedtimeStory.theme || brief.bedtimeStory.moral || 'A bedtime tale woven with their favourites.'}`
+                    : brief.bedtimeStory.reason || brief.bedtimeStory.moral || 'A bedtime tale for tonight.',
+                  15
+                )}
                 ctaLabel="Read Story"
                 onOpen={() => {
                   trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
@@ -820,7 +831,10 @@ export default function TodayPage() {
             onClose={closeDetail}
             footer={<StoryDetailFooter />}
           >
-            <StoryDetailContent childAgeDisplay={brief.childAgeDisplay} />
+            <StoryDetailContent
+              childAgeDisplay={brief.childAgeDisplay}
+              storyPreferences={data?.profile ?? null}
+            />
           </TodayBottomSheet>
         </StoryDetailProvider>
       ) : activeDetail === 'meal' && brief ? (
