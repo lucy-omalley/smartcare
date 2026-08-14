@@ -29,6 +29,7 @@ const MORE_ITEMS = [
   { href: '/activities', label: 'Activities', desc: 'Local events and play ideas', icon: Puzzle },
   { href: '/memory?filter=milestone', label: 'Milestones', desc: 'Track development milestones', icon: Trophy },
   { href: '/memory', label: 'Memories', desc: 'Family memory timeline', icon: Brain },
+  { href: '/stories', label: 'Family Voice Storytime', desc: 'Stories in your voice for bedtime', icon: BookOpen },
   { href: '/profile?edit=story', label: 'Story Preferences', desc: 'Personalize bedtime stories for your child', icon: BookOpen },
   { href: '/profile?checkin=1', label: 'Parent Check-in', desc: 'Reflect on your parenting week', icon: HeartHandshake },
   { href: '/library', label: 'Parenting Library', desc: 'AI topic recommendations', icon: Library },

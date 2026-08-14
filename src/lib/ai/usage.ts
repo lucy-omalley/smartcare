@@ -45,6 +45,7 @@ async function ensureQuota(userId: string) {
   }
   if (existing.lastMonthlyReset.getTime() !== monthStart.getTime()) {
     updates.generationsThisMonth = 0;
+    updates.familyStoriesThisMonth = 0;
     updates.lastMonthlyReset = monthStart;
   }
   if (Object.keys(updates).length === 0) return existing;

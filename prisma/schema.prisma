@@ -100,6 +100,57 @@ enum AIFeature {
   REFLECTION
   PERSONALIZE
   ROTATE
+  FAMILY_STORY
+  VOICE_NARRATION
+}
+
+enum VoiceProfileStatus {
+  DRAFT
+  RECORDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum VoiceRelationship {
+  MUM
+  DAD
+  GRANDMA
+  GRANDAD
+  GUARDIAN
+  OTHER
+}
+
+enum StoryCategory {
+  ADVENTURE
+  FRIENDSHIP
+  KINDNESS
+  SHARING
+  CONFIDENCE
+  EMOTIONS
+  NATURE
+  ANIMALS
+  DINOSAURS
+  VEHICLES
+  SPACE
+  FANTASY
+  FAMILY
+  SCHOOL
+  HOLIDAY
+  BIRTHDAY
+  CUSTOM
+}
+
+enum BedtimeMood {
+  CALM
+  PLAYFUL
+  ADVENTUROUS
+  COSY
+}
+
+enum NarratorType {
+  STANDARD
+  FAMILY_VOICE
 }
 
 enum AIRequestResolution {
@@ -207,6 +258,11 @@ model User {
   learningPlans       LearningPlan[]
   featureRequests     FeatureRequest[] @relation("SubmittedFeatures")
   featureVotes        FeatureRequestVote[]
+  voiceProfiles       VoiceProfile[]
+  familyStories       FamilyStory[]
+  storyPlaySessions   StoryPlaySession[]
+  weeklyStoryCollections WeeklyStoryCollection[]
+  storySettings       UserStorySettings?
 
   @@index([email])
   @@index([location])
@@ -943,13 +999,135 @@ model AIRequestLog {
 }
 
 model UserUsageQuota {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
-  dailyPlansToday      Int      @default(0)
-  chatsToday           Int      @default(0)
-  generationsThisMonth Int      @default(0)
-  lastDailyReset       DateTime @db.Date
-  lastMonthlyReset     DateTime @db.Date
-  updatedAt            DateTime @updatedAt
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  dailyPlansToday        Int      @default(0)
+  chatsToday             Int      @default(0)
+  generationsThisMonth   Int      @default(0)
+  familyStoriesThisMonth Int      @default(0)
+  lastDailyReset         DateTime @db.Date
+  lastMonthlyReset       DateTime @db.Date
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VoiceProfile {
+  id              String             @id @default(cuid())
+  userId          String
+  name            String
+  relationship    VoiceRelationship
+  avatarEmoji     String             @default("🎙️")
+  status          VoiceProfileStatus @default(DRAFT)
+  provider        String             @default("openai")
+  providerVoiceId String?
+  consentGivenAt  DateTime?
+  consentVersion  String?
+  recordingCount  Int                @default(0)
+  processingError String?
+  deletedAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  samples         VoiceRecordingSample[]
+  narrations      StoryNarration[]
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model VoiceRecordingSample {
+  id             String       @id @default(cuid())
+  voiceProfileId String
+  paragraphIndex Int
+  mimeType       String       @default("audio/webm")
+  encryptedData  Bytes
+  durationMs     Int?
+  createdAt      DateTime     @default(now())
+  voiceProfile   VoiceProfile @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([voiceProfileId, paragraphIndex])
+  @@index([voiceProfileId])
+}
+
+model FamilyStory {
+  id               String         @id @default(cuid())
+  userId           String
+  title            String
+  story            String         @db.Text
+  category         StoryCategory
+  lengthMinutes    Int
+  bedtimeMood      BedtimeMood?
+  moralTheme       String?
+  learningGoal     String?
+  childName        String?
+  childAge         String?
+  isFavorite       Boolean        @default(false)
+  playCount        Int            @default(0)
+  lastPlayedAt     DateTime?
+  weekCollectionId String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  narrations       StoryNarration[]
+  playSessions     StoryPlaySession[]
+  weekCollection   WeeklyStoryCollection? @relation(fields: [weekCollectionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, isFavorite])
+}
+
+model StoryNarration {
+  id             String        @id @default(cuid())
+  storyId        String
+  voiceProfileId String?
+  narratorType   NarratorType
+  narratorKey    String
+  audioData      Bytes?
+  audioHash      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  story          FamilyStory   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  voiceProfile   VoiceProfile? @relation(fields: [voiceProfileId], references: [id], onDelete: SetNull)
+
+  @@unique([storyId, narratorKey])
+  @@index([storyId])
+}
+
+model StoryPlaySession {
+  id              String        @id @default(cuid())
+  storyId         String
+  userId          String
+  voiceProfileId  String?
+  narratorType    NarratorType
+  completed       Boolean       @default(false)
+  listenedSeconds Int           @default(0)
+  createdAt       DateTime      @default(now())
+  story           FamilyStory   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([storyId])
+}
+
+model WeeklyStoryCollection {
+  id        String        @id @default(cuid())
+  userId    String
+  weekStart DateTime      @db.Date
+  title     String
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories   FamilyStory[]
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+model UserStorySettings {
+  userId              String       @id
+  lastNarratorVoiceId String?
+  lastNarratorType    NarratorType @default(STANDARD)
+  bedtimeMusicEnabled Boolean      @default(false)
+  updatedAt           DateTime     @updatedAt
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
