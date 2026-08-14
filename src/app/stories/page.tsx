@@ -38,20 +38,21 @@ export default function StoriesHubPage() {
 
   const cards = [
     {
+      href: '/stories/voice',
+      emoji: '🎙️',
+      title: 'Record your voice',
+      desc: 'Mum, Dad, Grandma — stories in your voice',
+      icon: Mic,
+      premium: true,
+      highlight: true,
+    },
+    {
       href: '/stories/create',
       emoji: '✨',
       title: 'Create a story',
       desc: 'Personalized bedtime tale for your child',
       icon: Sparkles,
       premium: false,
-    },
-    {
-      href: '/stories/voice',
-      emoji: '🎙️',
-      title: 'Voice library',
-      desc: 'Record Mum, Dad, or Grandparent voices',
-      icon: Mic,
-      premium: true,
     },
     {
       href: '/stories/history',
@@ -89,12 +90,15 @@ export default function StoriesHubPage() {
         <div className="space-y-3">
           {cards.map((card) => (
             <Link key={card.href} href={card.href}>
-              <Card className="rounded-2xl hover:border-primary/40 transition-colors">
+              <Card className={`rounded-2xl hover:border-primary/40 transition-colors ${card.highlight ? 'border-violet-200 bg-gradient-to-br from-violet-50/80 to-background dark:from-violet-950/20' : ''}`}>
                 <CardContent className="p-4 flex items-center gap-3">
                   <span className="text-2xl" aria-hidden>{card.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm flex items-center gap-2">
                       {card.title}
+                      {card.highlight && (
+                        <Badge className="text-[9px] rounded-full">Signature</Badge>
+                      )}
                       {card.premium && !features?.familyVoiceEnabled && (
                         <Badge variant="outline" className="text-[9px] rounded-full">Premium</Badge>
                       )}

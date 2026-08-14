@@ -47,6 +47,7 @@ import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 import { BetaPremiumWelcomeBanner } from '@/components/beta/beta-premium-welcome-banner';
 import { TodayWowDashboard } from '@/components/today/today-wow-dashboard';
 import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
+import { StorytimePromoCard } from '@/components/storytime/storytime-promo-card';
 
 const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
 
@@ -729,6 +730,7 @@ export default function TodayPage() {
                 onRefresh={() => rotate('story')}
                 refreshing={rotating === 'story'}
               />
+              <StorytimePromoCard childName={childName} compact />
               {languageSection && (
                 <TodayPlanCard
                   emoji="💬"
