@@ -5,12 +5,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/stories/voice/record/:path*',
-        headers: [
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
-        ],
-      },
-      {
         source: '/:path*',
         headers: [
           {
@@ -36,13 +30,9 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
           }
         ]
-      }
+      },
     ];
   },
   // Configure webpack for proper JavaScript handling

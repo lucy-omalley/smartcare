@@ -11,6 +11,11 @@ import { trackEvent } from "@/lib/analytics";
 import type { VoiceRelationship } from "@prisma/client";
 import { CONSENT_TEXT } from "@/lib/voice/types";
 import { RELATIONSHIP_OPTIONS, VOICE_RECORDING_PARAGRAPHS } from "@/lib/voice/recording-script";
+import {
+  checkMicrophoneSupport,
+  microphoneErrorMessage,
+  pickRecordingMimeType,
+} from "@/lib/voice/microphone";
 
 type Step = "intro" | "consent" | "record" | "processing" | "ready";
 
@@ -30,6 +35,7 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
   const [uploading, setUploading] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [micHint, setMicHint] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef(0);
@@ -65,11 +71,30 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
   };
 
   const startRecording = async () => {
+    const support = checkMicrophoneSupport();
+    if (!support.ok) {
+      toast.error(support.reason, { description: support.hint });
+      setMicHint(support.hint ?? support.reason);
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      const mimeType = pickRecordingMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       chunksRef.current = [];
       startTimeRef.current = Date.now();
+      setMicHint(null);
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -77,8 +102,13 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blobType = mimeType?.split(";")[0] ?? "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
         const durationMs = Date.now() - startTimeRef.current;
+        if (blob.size < 500 || durationMs < 400) {
+          toast.error("Recording was too short. Hold the button and read the full paragraph.");
+          return;
+        }
         let pid = profileId;
         if (!pid) {
           setUploading(true);
@@ -108,8 +138,10 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
       mediaRecorderRef.current = recorder;
       recorder.start();
       setRecording(true);
-    } catch {
-      toast.error("Microphone access is required. Please allow access in your browser settings.");
+    } catch (error) {
+      const { title, hint } = microphoneErrorMessage(error);
+      toast.error(title, { description: hint });
+      setMicHint(hint ?? title);
     }
   };
 
@@ -137,6 +169,14 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
       setProcessing(false);
     }
   };
+
+  useEffect(() => {
+    if (step !== "record") return;
+    const support = checkMicrophoneSupport();
+    if (!support.ok) {
+      setMicHint(support.hint ?? support.reason);
+    }
+  }, [step]);
 
   useEffect(() => {
     return () => {
@@ -198,7 +238,10 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
         </label>
         <div className="flex gap-2">
           <Button variant="outline" className="rounded-xl flex-1" onClick={() => setStep("intro")}>Back</Button>
-          <Button className="rounded-xl flex-1" disabled={!consent} onClick={() => setStep("record")}>
+          <Button className="rounded-xl flex-1" disabled={!consent} onClick={() => {
+            setMicHint(null);
+            setStep("record");
+          }}>
             Start recording
           </Button>
         </div>
@@ -244,6 +287,10 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
         {paragraph}
       </div>
 
+      <div className="rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+        When you tap the button below, your browser will ask to use the microphone. Choose <strong className="text-foreground">Allow</strong> for parenfy.com.
+      </div>
+
       <div className="flex justify-center">
         {recording ? (
           <Button size="lg" variant="destructive" className="rounded-full h-16 w-16" onClick={stopRecording}>
@@ -263,6 +310,12 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
       <p className="text-center text-xs text-muted-foreground">
         {recording ? "Tap to stop" : "Tap to record this paragraph"}
       </p>
+
+      {micHint && (
+        <p className="text-center text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 rounded-xl px-3 py-2 leading-relaxed">
+          {micHint}
+        </p>
+      )}
 
       {savedCount >= requiredSamples && (
         <Button className="w-full rounded-xl" onClick={processVoice} disabled={processing}>

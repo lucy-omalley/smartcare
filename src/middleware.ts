@@ -41,10 +41,13 @@ export default withAuth(
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Referrer-Policy', 'origin-when-cross-origin');
     const pathname = request.nextUrl.pathname;
-    const allowMicrophone = pathname.startsWith('/stories/voice/record');
+    // Single Permissions-Policy source — next.config must NOT set microphone (duplicate headers block mic).
+    const allowMicrophone = pathname.startsWith('/stories/voice');
     headers.set(
       'Permissions-Policy',
-      allowMicrophone ? 'camera=(), microphone=(self), geolocation=()' : 'camera=(), microphone=(), geolocation=()'
+      allowMicrophone
+        ? 'camera=(), microphone=(self), geolocation=()'
+        : 'camera=(), microphone=(), geolocation=()'
     );
 
     return response;
