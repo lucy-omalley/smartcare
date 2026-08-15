@@ -12,6 +12,7 @@ import type { BedtimeMood, StoryCategory } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
 import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
+import { mapAiRouteError } from "@/lib/ai/route-errors";
 import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -126,7 +127,10 @@ export async function POST(request: Request) {
       );
     }
     console.error("Family story generation error:", error);
-    const message = error instanceof Error ? error.message : "Generation failed";
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (error instanceof Error && /Story generation failed|invalid format|missing title/.test(error.message)) {
+      return NextResponse.json({ error: error.message, code: "STORY_PARSE" }, { status: 400 });
+    }
+    const mapped = mapAiRouteError(error);
+    return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: mapped.status });
   }
 }
