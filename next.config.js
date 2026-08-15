@@ -5,12 +5,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/stories/voice/record/:path*',
-        headers: [
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
-        ],
-      },
-      {
         source: '/:path*',
         headers: [
           {
@@ -42,7 +36,14 @@ const nextConfig = {
             value: 'camera=(), microphone=(), geolocation=()'
           }
         ]
-      }
+      },
+      // Must come AFTER catch-all so microphone=(self) wins for voice recording routes.
+      {
+        source: '/stories/voice/:path*',
+        headers: [
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
+        ],
+      },
     ];
   },
   // Configure webpack for proper JavaScript handling
