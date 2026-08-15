@@ -65,6 +65,12 @@ export function StoryGeneratorForm({
       trackEvent("family_story_generated", { category, lengthMinutes });
       if (isPremium) trackEvent("premium_feature_used", { feature: "family_voice_storytime" });
 
+      if (data.usedFallback) {
+        toast.message("Your story is ready!", {
+          description: "We used a personalized template tonight — AI will craft unique tales again soon.",
+        });
+      }
+
       router.push(`/stories/${data.story.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Story creation failed";

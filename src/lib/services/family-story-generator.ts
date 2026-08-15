@@ -146,8 +146,17 @@ export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
     },
   });
 
-  await recordFamilyStoryGenerated(input.userId);
-  await ensureWeeklyStoryCollection(input.userId, story.id);
+  try {
+    await recordFamilyStoryGenerated(input.userId);
+  } catch (err) {
+    console.warn("[family-story] quota update failed:", err);
+  }
 
-  return story;
+  try {
+    await ensureWeeklyStoryCollection(input.userId, story.id);
+  } catch (err) {
+    console.warn("[family-story] weekly collection failed:", err);
+  }
+
+  return { ...story, usedFallback };
 }

@@ -107,9 +107,11 @@ export async function POST(request: Request) {
       category,
       lengthMinutes,
       storyId: story.id,
+      usedFallback: Boolean((story as { usedFallback?: boolean }).usedFallback),
     });
 
-    return NextResponse.json({ story });
+    const { usedFallback, ...saved } = story as typeof story & { usedFallback?: boolean };
+    return NextResponse.json({ story: saved, usedFallback: usedFallback ?? false });
   } catch (error) {
     if (error instanceof EmailNotVerifiedError) {
       return NextResponse.json({ error: error.message, code: "EMAIL_NOT_VERIFIED" }, { status: 403 });
