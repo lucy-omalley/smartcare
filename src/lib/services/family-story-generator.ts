@@ -7,22 +7,28 @@ import { logAIRequest } from "@/lib/ai/usage";
 import { prisma } from "@/lib/db";
 import { recordFamilyStoryGenerated } from "@/lib/storytime/gating";
 import { ensureWeeklyStoryCollection } from "@/lib/services/weekly-story-collection";
+import {
+  buildFallbackFamilyStory,
+  parseStoryPayload,
+  storyGenerationSystemPrompt,
+} from "@/lib/services/family-story-json";
+import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
 
-const STORY_SYSTEM = `You write original bedtime stories for young children. Each story must feel unique — never reuse the same plot structure twice in a row.
+const STORY_SYSTEM = storyGenerationSystemPrompt(`You write original bedtime stories for young children. Each story must feel unique.
 
-Structure every story with these sections (use natural prose, not headings):
-1. A gentle beginning that sets the scene
-2. A small adventure or discovery
-3. A learning moment tied to the moral/theme
-4. A positive, reassuring ending
-5. A warm goodnight message addressing the child by name
+Structure (natural prose, no headings):
+1. Gentle beginning
+2. Small adventure
+3. Learning moment tied to the moral
+4. Positive ending
+5. Goodnight message using the child's name
 
 Rules:
-- Age-appropriate, warm, and calming for bedtime
-- Weave in the child's favourites naturally (never forced lists)
-- Avoid scary content, violence, or harsh language
-- Use varied sentence lengths and vocabulary
-- Return JSON only`;
+- Age-appropriate, warm, calming
+- Weave favourites in naturally
+- No scary content
+- Keep the story within the target word count — do not exceed it
+- The "story" field must be plain text (use \\n for paragraph breaks, escape quotes)`);
 
 export interface GenerateFamilyStoryInput {
   userId: string;
@@ -45,9 +51,16 @@ interface StoryPayload {
   moral?: string;
 }
 
-export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
-  const wordTarget = input.lengthMinutes * 130;
+function storyMaxTokens(wordTarget: number): number {
+  // ~1.3 tokens per word + JSON overhead; cap to avoid truncated JSON on long stories.
+  return Math.min(3500, Math.max(900, Math.round(wordTarget * 1.6) + 120));
+}
 
+async function requestStoryJson(
+  input: GenerateFamilyStoryInput,
+  wordTarget: number,
+  attempt: number
+): Promise<StoryPayload> {
   const userPrompt = JSON.stringify({
     childName: input.childName,
     childAge: input.childAge ?? "preschool",
@@ -63,7 +76,7 @@ export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
     },
     interests: input.interests ?? [],
     seed: createHash("sha256")
-      .update(`${input.userId}:${Date.now()}:${Math.random()}`)
+      .update(`${input.userId}:${Date.now()}:${attempt}:${Math.random()}`)
       .digest("hex")
       .slice(0, 12),
   });
@@ -72,36 +85,78 @@ export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
     feature: "FAMILY_STORY",
     systemPrompt: STORY_SYSTEM,
     userPrompt,
-    maxTokens: Math.min(2800, 180 + wordTarget * 2),
-    temperature: 0.88,
+    maxTokens: storyMaxTokens(wordTarget),
+    temperature: attempt === 0 ? 0.85 : 0.65,
     jsonMode: true,
     userId: input.userId,
   });
 
-  await logAIRequest({ userId: input.userId, feature: "FAMILY_STORY", resolution: "LLM" });
+  if (!result.content?.trim()) {
+    throw new Error("Story generation returned empty content.");
+  }
 
-  const parsed = JSON.parse(result.content) as StoryPayload;
-  if (!parsed.title?.trim() || !parsed.story?.trim()) {
-    throw new Error("Story generation failed — please try again.");
+  return parseStoryPayload(result.content);
+}
+
+async function generateStoryPayload(
+  input: GenerateFamilyStoryInput,
+  wordTarget: number
+): Promise<{ payload: StoryPayload; usedFallback: boolean }> {
+  const attempts = 2;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const payload = await requestStoryJson(input, wordTarget, attempt);
+      return { payload, usedFallback: false };
+    } catch (error) {
+      lastError = error;
+      if (error instanceof AiDisabledError || error instanceof EmailNotVerifiedError) {
+        throw error;
+      }
+    }
+  }
+
+  console.warn("Family story AI failed, using personalized fallback:", lastError);
+  return { payload: buildFallbackFamilyStory(input), usedFallback: true };
+}
+
+export async function generateFamilyStory(input: GenerateFamilyStoryInput) {
+  const wordTarget = input.lengthMinutes * 130;
+  const { payload, usedFallback } = await generateStoryPayload(input, wordTarget);
+
+  if (!usedFallback) {
+    await logAIRequest({ userId: input.userId, feature: "FAMILY_STORY", resolution: "LLM" });
+  } else {
+    await logAIRequest({ userId: input.userId, feature: "FAMILY_STORY", resolution: "DB_ONLY" });
   }
 
   const story = await prisma.familyStory.create({
     data: {
       userId: input.userId,
-      title: parsed.title.trim(),
-      story: parsed.story.trim(),
+      title: payload.title.trim(),
+      story: payload.story.trim(),
       category: input.category,
       lengthMinutes: input.lengthMinutes,
       bedtimeMood: input.bedtimeMood ?? undefined,
-      moralTheme: input.moralTheme?.trim() || parsed.moral?.trim() || null,
+      moralTheme: input.moralTheme?.trim() || payload.moral?.trim() || null,
       learningGoal: input.learningGoal?.trim() || null,
       childName: input.childName,
       childAge: input.childAge ?? null,
     },
   });
 
-  await recordFamilyStoryGenerated(input.userId);
-  await ensureWeeklyStoryCollection(input.userId, story.id);
+  try {
+    await recordFamilyStoryGenerated(input.userId);
+  } catch (err) {
+    console.warn("[family-story] quota update failed:", err);
+  }
 
-  return story;
+  try {
+    await ensureWeeklyStoryCollection(input.userId, story.id);
+  } catch (err) {
+    console.warn("[family-story] weekly collection failed:", err);
+  }
+
+  return { ...story, usedFallback };
 }

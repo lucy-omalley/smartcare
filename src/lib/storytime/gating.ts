@@ -77,10 +77,17 @@ export async function assertCanUseFamilyVoice(userId: string): Promise<void> {
 }
 
 export async function recordFamilyStoryGenerated(userId: string): Promise<void> {
-  await ensureQuota(userId);
-  await prisma.userUsageQuota.update({
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  await prisma.userUsageQuota.upsert({
     where: { userId },
-    data: {
+    create: {
+      userId,
+      lastDailyReset: new Date(),
+      lastMonthlyReset: monthStart,
+      familyStoriesThisMonth: 1,
+      generationsThisMonth: 1,
+    },
+    update: {
       familyStoriesThisMonth: { increment: 1 },
       generationsThisMonth: { increment: 1 },
     },

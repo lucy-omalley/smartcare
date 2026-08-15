@@ -11,6 +11,9 @@ import {
 import type { BedtimeMood, StoryCategory } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
+import { AiDisabledError, EmailNotVerifiedError } from "@/lib/ai/guards";
+import { mapAiRouteError } from "@/lib/ai/route-errors";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -104,11 +107,32 @@ export async function POST(request: Request) {
       category,
       lengthMinutes,
       storyId: story.id,
+      usedFallback: Boolean((story as { usedFallback?: boolean }).usedFallback),
     });
 
-    return NextResponse.json({ story });
+    const { usedFallback, ...saved } = story as typeof story & { usedFallback?: boolean };
+    return NextResponse.json({ story: saved, usedFallback: usedFallback ?? false });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Generation failed";
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (error instanceof EmailNotVerifiedError) {
+      return NextResponse.json({ error: error.message, code: "EMAIL_NOT_VERIFIED" }, { status: 403 });
+    }
+    if (error instanceof AiDisabledError) {
+      return NextResponse.json({ error: error.message, code: "AI_DISABLED" }, { status: 503 });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      return NextResponse.json(
+        {
+          error: "Story storage is not ready yet. Please try again in a few minutes or contact support.",
+          code: "DB_NOT_READY",
+        },
+        { status: 503 }
+      );
+    }
+    console.error("Family story generation error:", error);
+    if (error instanceof Error && /Story generation failed|invalid format|missing title/.test(error.message)) {
+      return NextResponse.json({ error: error.message, code: "STORY_PARSE" }, { status: 400 });
+    }
+    const mapped = mapAiRouteError(error);
+    return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: mapped.status });
   }
 }

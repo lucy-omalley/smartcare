@@ -152,18 +152,22 @@ export async function logAIUsage(params: {
   cacheHit?: boolean;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
-  await prisma.aIUsageLog.create({
-    data: {
-      userId: params.userId,
-      feature: params.feature,
-      model: params.model,
-      promptTokens: params.promptTokens,
-      completionTokens: params.completionTokens,
-      estimatedCostUsd: estimateCostUsd(params.tier, params.promptTokens, params.completionTokens),
-      cacheHit: params.cacheHit ?? false,
-      metadata: params.metadata as object | undefined,
-    },
-  });
+  await prisma.aIUsageLog
+    .create({
+      data: {
+        userId: params.userId,
+        feature: params.feature,
+        model: params.model,
+        promptTokens: params.promptTokens,
+        completionTokens: params.completionTokens,
+        estimatedCostUsd: estimateCostUsd(params.tier, params.promptTokens, params.completionTokens),
+        cacheHit: params.cacheHit ?? false,
+        metadata: params.metadata as object | undefined,
+      },
+    })
+    .catch((err) => {
+      console.warn("[ai] usage log failed:", err);
+    });
 }
 
 export async function logCachedFeatureUsage(params: {
