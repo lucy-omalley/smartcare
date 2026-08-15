@@ -238,7 +238,10 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
         </label>
         <div className="flex gap-2">
           <Button variant="outline" className="rounded-xl flex-1" onClick={() => setStep("intro")}>Back</Button>
-          <Button className="rounded-xl flex-1" disabled={!consent} onClick={() => setStep("record")}>
+          <Button className="rounded-xl flex-1" disabled={!consent} onClick={() => {
+            setMicHint(null);
+            setStep("record");
+          }}>
             Start recording
           </Button>
         </div>
@@ -282,6 +285,10 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
 
       <div className="rounded-2xl bg-muted/40 p-4 text-sm leading-relaxed min-h-[120px]">
         {paragraph}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+        When you tap the button below, your browser will ask to use the microphone. Choose <strong className="text-foreground">Allow</strong> for parenfy.com.
       </div>
 
       <div className="flex justify-center">

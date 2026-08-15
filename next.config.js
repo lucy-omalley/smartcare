@@ -30,19 +30,8 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
           }
         ]
-      },
-      // Must come AFTER catch-all so microphone=(self) wins for voice recording routes.
-      {
-        source: '/stories/voice/:path*',
-        headers: [
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
-        ],
       },
     ];
   },
