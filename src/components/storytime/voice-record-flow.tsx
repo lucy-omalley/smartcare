@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mic, Square, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Mic, Square, Loader2, CheckCircle2, Sparkles, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import type { VoiceRelationship } from "@prisma/client";
@@ -20,7 +21,7 @@ import {
 type Step = "intro" | "consent" | "record" | "processing" | "ready";
 
 interface VoiceRecordFlowProps {
-  onComplete: (profileId: string) => void;
+  onComplete?: (profileId: string) => void;
   onCancel?: () => void;
 }
 
@@ -161,7 +162,6 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
       trackEvent("voice_profile_ready");
       trackEvent("premium_feature_used", { feature: "family_voice_storytime" });
       setStep("ready");
-      onComplete(profileId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Processing failed");
       setStep("record");
@@ -261,10 +261,24 @@ export function VoiceRecordFlow({ onComplete, onCancel }: VoiceRecordFlowProps) 
 
   if (step === "ready") {
     return (
-      <div className="text-center space-y-4 py-6">
+      <div className="text-center space-y-4 py-4">
         <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
         <p className="text-lg font-semibold">Voice ready!</p>
-        <p className="text-sm text-muted-foreground">Stories can now be read in {name}&apos;s voice.</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Next, create a bedtime story — then choose <strong className="text-foreground">{name}</strong> as the narrator to hear it in your voice.
+        </p>
+        <div className="rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2 text-[11px] text-muted-foreground text-left leading-relaxed">
+          <strong className="text-foreground">How it works:</strong> Parenfy writes the story with AI. Your recorded voice reads it aloud when you tap Listen.
+        </div>
+        <Button asChild className="w-full rounded-xl">
+          <Link href="/stories/create">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Create a bedtime story
+          </Link>
+        </Button>
+        <Button variant="outline" className="w-full rounded-xl" asChild>
+          <Link href="/stories/voice">Back to voice library</Link>
+        </Button>
       </div>
     );
   }

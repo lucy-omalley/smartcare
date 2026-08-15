@@ -8,7 +8,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mic, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mic, Plus, Trash2, Sparkles } from 'lucide-react';
 import { RELATIONSHIP_OPTIONS } from '@/lib/voice/recording-script';
 import { toast } from 'sonner';
 
@@ -108,6 +108,14 @@ export default function VoiceLibraryPage() {
                   </Badge>
                 </div>
                 <div className="flex flex-col gap-1">
+                  {p.status === 'READY' && (
+                    <Button size="sm" className="rounded-full text-xs" asChild>
+                      <Link href="/stories/create">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Create story
+                      </Link>
+                    </Button>
+                  )}
                   {p.status !== 'READY' && (
                     <Button size="sm" variant="outline" className="rounded-full text-xs" asChild>
                       <Link href={`/stories/voice/record?profileId=${p.id}`}>Continue</Link>

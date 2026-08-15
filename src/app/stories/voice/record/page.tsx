@@ -33,10 +33,7 @@ export default function VoiceRecordPage() {
             <CardTitle className="text-base">Voice calibration</CardTitle>
           </CardHeader>
           <CardContent>
-            <VoiceRecordFlow
-              onComplete={() => router.push('/stories/voice')}
-              onCancel={() => router.push('/stories/voice')}
-            />
+            <VoiceRecordFlow onCancel={() => router.push('/stories/voice')} />
           </CardContent>
         </Card>
       </div>
