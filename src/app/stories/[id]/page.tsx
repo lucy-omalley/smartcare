@@ -42,11 +42,15 @@ export default function StoryPlayerPage() {
       fetch('/api/storytime/narrator').then((r) => r.json()),
     ]).then(([storyRes, voiceRes, featRes, narrRes]) => {
       if (storyRes.story) setStory(storyRes.story);
-      setVoices(voiceRes.profiles ?? []);
+      const profileList: VoiceProfileOption[] = voiceRes.profiles ?? [];
+      setVoices(profileList);
       setIsPremium(featRes.features?.isPremium ?? false);
       const settings = narrRes.settings;
+      const readyVoices = profileList.filter((v) => v.status === 'READY');
       if (settings?.lastNarratorType === 'FAMILY_VOICE' && settings.lastNarratorVoiceId) {
         setInitialNarrator({ type: 'family', voiceProfileId: settings.lastNarratorVoiceId });
+      } else if (readyVoices.length === 1 && featRes.features?.familyVoiceEnabled) {
+        setInitialNarrator({ type: 'family', voiceProfileId: readyVoices[0].id });
       }
     });
   }, [status, router, storyId]);

@@ -49,7 +49,10 @@ export default function CreateStoryPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Personalized bedtime story</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed rounded-xl bg-muted/40 px-3 py-2">
+              Parenfy writes a unique story for your child. After it&apos;s created, open the story and choose your family voice under <strong>Choose narrator</strong> — then tap Listen.
+            </p>
             {features ? (
               <StoryGeneratorForm
                 defaultChildName={childName}
