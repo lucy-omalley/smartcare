@@ -7,7 +7,7 @@ import {
   updateRoutinePoster,
 } from "@/lib/services/poster-generator";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
-import type { PosterCategory, PosterLayout, PosterQrTarget } from "@prisma/client";
+import type { PosterCategory, PosterLayout, PosterQrTarget, PosterTheme } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const body = await request.json();
     const poster = await updateRoutinePoster(guard.userId, params.id, {
       title: body.title,
+      routineGoal: body.routineGoal,
+      theme: body.theme,
+      favouriteColours: body.favouriteColours,
+      numberOfChildren: body.numberOfChildren,
       layout: body.layout as PosterLayout | undefined,
       category: body.category as PosterCategory | undefined,
       celebrationText: body.celebrationText,

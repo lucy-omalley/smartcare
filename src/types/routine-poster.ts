@@ -19,6 +19,7 @@ export interface PosterStepPayload {
 
 export interface GeneratedPosterPayload {
   title: string;
+  routineGoal: string;
   celebrationText: string;
   steps: PosterStepPayload[];
 }
@@ -36,9 +37,11 @@ export interface PosterStepView {
 export interface RoutinePosterView {
   id: string;
   title: string;
+  routineGoal: string | null;
   childName: string | null;
   childAge: string | null;
   childGender: string | null;
+  numberOfChildren: number;
   theme: PosterTheme;
   favouriteColours: string[];
   templateType: RoutineTemplateType;
@@ -67,6 +70,7 @@ export interface GeneratePosterInput {
   childName: string;
   childAge?: string | null;
   childGender?: string | null;
+  numberOfChildren?: number;
   theme: PosterTheme;
   favouriteColours: string[];
   challenge: RoutineChallenge;

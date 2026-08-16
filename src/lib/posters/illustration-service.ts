@@ -139,6 +139,28 @@ const THEME_ILLUSTRATIONS: Record<PosterTheme, Record<string, IllustrationKey>> 
     story: "safari-story",
     default: "safari-elephant",
   },
+  FARM: {
+    toilet: "farm-toilet",
+    teeth: "farm-teeth",
+    dress: "farm-overalls",
+    breakfast: "farm-meal",
+    school: "farm-tractor",
+    sleep: "farm-sleep",
+    clean: "farm-tidy",
+    story: "farm-story",
+    default: "farm-star",
+  },
+  JUNGLE: {
+    toilet: "jungle-toilet",
+    teeth: "jungle-teeth",
+    dress: "jungle-outfit",
+    breakfast: "jungle-meal",
+    school: "jungle-vine",
+    sleep: "jungle-sleep",
+    clean: "jungle-tidy",
+    story: "jungle-story",
+    default: "jungle-monkey",
+  },
 };
 
 function inferStepCategory(title: string): string {

@@ -1170,6 +1170,11 @@ enum RoutineChallenge {
   EMOTIONAL_REGULATION
   MORNING_CHAOS
   SCHOOL_PREP
+  TANTRUMS
+  BEDTIME_RESISTANCE
+  POTTY_TRAINING
+  SPEECH_DEVELOPMENT
+  FOLLOWING_INSTRUCTIONS
 }
 
 enum ScheduleTimeOfDay {
@@ -1290,6 +1295,8 @@ enum PosterTheme {
   FAIRY
   PIRATE
   SAFARI
+  FARM
+  JUNGLE
 }
 
 enum PosterLayout {
@@ -1317,6 +1324,7 @@ enum PosterParentGoal {
   EMOTIONAL_REGULATION
   HEALTHY_HABITS
   RESPONSIBILITY
+  SOCIAL_SKILLS
 }
 
 enum PosterQrTarget {
@@ -1330,9 +1338,11 @@ model RoutinePoster {
   id                  String              @id @default(cuid())
   userId              String
   title               String
+  routineGoal         String?
   childName           String?
   childAge            String?
   childGender         String?
+  numberOfChildren    Int                 @default(1)
   theme               PosterTheme         @default(DINOSAUR)
   favouriteColours    String[]            @default([])
   templateType        RoutineTemplateType @default(MORNING)

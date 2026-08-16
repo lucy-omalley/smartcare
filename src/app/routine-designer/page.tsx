@@ -14,7 +14,7 @@ import { POSTER_CATEGORY_OPTIONS } from '@/lib/posters/constants';
 import { POSTER_THEMES } from '@/lib/posters/themes';
 import { trackEvent } from '@/lib/analytics';
 
-export default function PostersHubPage() {
+export default function RoutineDesignerHubPage() {
   const { status } = useSession();
   const router = useRouter();
   const [posters, setPosters] = useState<RoutinePosterView[]>([]);
@@ -32,7 +32,7 @@ export default function PostersHubPage() {
       setPosters(listRes.posters ?? []);
       setFeatures(featRes.features);
     });
-    trackEvent('feature_used', { feature: 'Routine Poster Designer' });
+    trackEvent('feature_used', { feature: 'AI Routine Designer' });
   }, [status, router]);
 
   const filtered = useMemo(() => {
@@ -46,10 +46,10 @@ export default function PostersHubPage() {
         <header className="pt-2 space-y-2">
           <div className="flex items-center gap-2">
             <Printer className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Routine Poster Designer</h1>
+            <h1 className="text-2xl font-bold">AI Routine Designer</h1>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Beautiful printable visual routines — so your child knows what comes next.
+            Create beautiful printable routine posters. Print, laminate, and display — so your child knows what comes next.
           </p>
           {features && !features.isPremium && features.postersRemaining !== null && (
             <Badge variant="secondary" className="rounded-full">
@@ -59,8 +59,8 @@ export default function PostersHubPage() {
         </header>
 
         <Button asChild className="rounded-xl h-12 w-full">
-          <Link href="/posters/create">
-            <Plus className="h-4 w-4 mr-2" /> Design new poster
+          <Link href="/routine-designer/create">
+            <Plus className="h-4 w-4 mr-2" /> Design new routine
           </Link>
         </Button>
 
@@ -85,14 +85,14 @@ export default function PostersHubPage() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold">Saved posters</h2>
+          <h2 className="text-sm font-semibold">Saved routines</h2>
           {filtered.length === 0 ? (
             <Card className="rounded-2xl">
               <CardContent className="p-6 text-center text-sm text-muted-foreground space-y-3">
                 <Sparkles className="h-8 w-8 mx-auto text-primary/60" />
-                <p>No posters yet. Create a magical morning or bedtime chart in under a minute.</p>
+                <p>No routines yet. Design a morning or bedtime poster in under a minute.</p>
                 <Button asChild className="rounded-xl">
-                  <Link href="/posters/create">Create first poster</Link>
+                  <Link href="/routine-designer/create">Create first poster</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -100,7 +100,7 @@ export default function PostersHubPage() {
             filtered.map((p) => {
               const theme = POSTER_THEMES[p.theme];
               return (
-                <Link key={p.id} href={`/posters/${p.id}`}>
+                <Link key={p.id} href={`/routine-designer/${p.id}`}>
                   <Card className="rounded-2xl hover:border-primary/40 transition-colors">
                     <CardContent className="p-4 flex items-center gap-3">
                       <span className="text-2xl">{theme?.emoji ?? '✨'}</span>
@@ -118,13 +118,6 @@ export default function PostersHubPage() {
             })
           )}
         </div>
-
-        <Card className="rounded-2xl border-dashed">
-          <CardContent className="p-4 text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Premium unlocks</p>
-            <p>Unlimited posters · All themes · A3 &amp; weekly planner · Family Voice QR links</p>
-          </CardContent>
-        </Card>
       </div>
     </AppShell>
   );

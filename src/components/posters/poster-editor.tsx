@@ -4,17 +4,20 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GripVertical, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
-import type { RoutinePosterView, PosterStepView } from "@/types/routine-poster";
-import { STEP_ICON_OPTIONS } from "@/lib/posters/constants";
+import { GripVertical, Plus, Trash2, ChevronUp, ChevronDown, Lock } from "lucide-react";
+import type { RoutinePosterView, PosterStepView, PosterFeatures } from "@/types/routine-poster";
+import { STEP_ICON_OPTIONS, POSTER_COLOUR_OPTIONS, FREE_POSTER_THEMES } from "@/lib/posters/constants";
+import { POSTER_THEMES } from "@/lib/posters/themes";
+import type { PosterTheme } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
 interface PosterEditorProps {
   poster: RoutinePosterView;
+  features: PosterFeatures;
   onChange: (steps: PosterStepView[], meta?: Partial<RoutinePosterView>) => void;
 }
 
-export function PosterEditor({ poster, onChange }: PosterEditorProps) {
+export function PosterEditor({ poster, features, onChange }: PosterEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [editingIcon, setEditingIcon] = useState<string | null>(null);
 
@@ -22,6 +25,9 @@ export function PosterEditor({ poster, onChange }: PosterEditorProps) {
     (steps: PosterStepView[]) => onChange(steps),
     [onChange]
   );
+
+  const isThemeLocked = (t: PosterTheme) =>
+    !features.unlimitedThemes && !FREE_POSTER_THEMES.includes(t);
 
   const moveStep = (index: number, direction: -1 | 1) => {
     const next = [...poster.steps];
@@ -66,14 +72,36 @@ export function PosterEditor({ poster, onChange }: PosterEditorProps) {
     setDragIndex(null);
   };
 
+  const setTheme = (t: PosterTheme) => {
+    if (isThemeLocked(t)) return;
+    onChange(poster.steps, { theme: t });
+  };
+
+  const setColour = (value: string) => {
+    const current = poster.favouriteColours[0];
+    onChange(poster.steps, {
+      favouriteColours: current === value ? [] : [value],
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Poster title</Label>
+        <Label>Routine title</Label>
         <Input
           value={poster.title}
           onChange={(e) => onChange(poster.steps, { title: e.target.value })}
           className="rounded-xl"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Routine goal</Label>
+        <Input
+          value={poster.routineGoal ?? ""}
+          onChange={(e) => onChange(poster.steps, { routineGoal: e.target.value })}
+          className="rounded-xl"
+          placeholder="What this routine helps your child achieve"
         />
       </div>
 
@@ -85,6 +113,52 @@ export function PosterEditor({ poster, onChange }: PosterEditorProps) {
           className="rounded-xl"
           placeholder="Fantastic job!"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Theme</Label>
+        <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto">
+          {(Object.keys(POSTER_THEMES) as PosterTheme[]).map((key) => {
+            const meta = POSTER_THEMES[key];
+            const locked = isThemeLocked(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTheme(key)}
+                className={cn(
+                  "rounded-lg border p-1.5 text-center text-[10px] relative",
+                  poster.theme === key ? "border-primary bg-primary/10" : "hover:bg-muted/50",
+                  locked && "opacity-60"
+                )}
+              >
+                {locked && <Lock className="h-2.5 w-2.5 absolute top-1 right-1" />}
+                <span className="text-lg block">{meta.emoji}</span>
+                {meta.label.split(" ")[0]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Accent colour</Label>
+        <div className="flex flex-wrap gap-2">
+          {POSTER_COLOUR_OPTIONS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setColour(c.value)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs border",
+                poster.favouriteColours[0] === c.value && "ring-2 ring-primary"
+              )}
+              style={{ backgroundColor: `${c.hex}22`, borderColor: c.hex }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2">

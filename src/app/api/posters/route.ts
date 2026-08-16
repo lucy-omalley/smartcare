@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       childName: String(body.childName ?? "").trim(),
       childAge: body.childAge ?? null,
       childGender: body.childGender ?? null,
+      numberOfChildren: typeof body.numberOfChildren === "number" ? body.numberOfChildren : 1,
       theme: (body.theme as PosterTheme) ?? "DINOSAUR",
       favouriteColours: Array.isArray(body.favouriteColours) ? body.favouriteColours.map(String) : [],
       challenge: body.challenge as RoutineChallenge,
