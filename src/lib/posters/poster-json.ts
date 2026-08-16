@@ -15,6 +15,7 @@ export function parsePosterPayload(raw: string): GeneratedPosterPayload {
 
   const obj = parsed as Record<string, unknown>;
   const title = typeof obj.title === "string" ? obj.title.trim() : "";
+  const routineGoal = typeof obj.routineGoal === "string" ? obj.routineGoal.trim() : "";
   const celebrationText =
     typeof obj.celebrationText === "string" ? obj.celebrationText.trim() : "Fantastic job!";
   const stepsRaw = Array.isArray(obj.steps) ? obj.steps : [];
@@ -37,21 +38,22 @@ export function parsePosterPayload(raw: string): GeneratedPosterPayload {
     throw new Error("Poster generation missing title or steps.");
   }
 
-  return { title, celebrationText, steps };
+  return { title, routineGoal, celebrationText, steps };
 }
 
 export function posterGenerationSystemPrompt(extra: string): string {
-  return `You are Parenfy's AI Family Routine Designer. Create printable visual routine posters for children aged 2–6.
+  return `You are Parenfy's AI Routine Designer. Create unique printable visual routine posters for children aged 2–6.
 
 ${extra}
 
 Return ONLY valid JSON:
 {
-  "title": "short fun poster title with theme",
-  "celebrationText": "encouraging celebration at the end",
+  "title": "personalised title e.g. Jack's Dinosaur Bedtime Adventure",
+  "routineGoal": "one sentence — what this routine helps the child achieve",
+  "celebrationText": "themed encouragement e.g. Roarsome job!",
   "steps": [
     {
-      "title": "2-4 words max — child reads by icon",
+      "title": "2-4 words max",
       "iconEmoji": "single large clear emoji",
       "isStoryTimeStep": false,
       "isSongStep": false
@@ -60,11 +62,9 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- Minimal words — child should understand by looking at icons
-- Use the child's name in title if natural
-- Match the visual theme throughout (dinosaurs, space, etc.)
-- End with a celebration step feel in celebrationText
-- For bedtime, set isStoryTimeStep on story step
-- For clean-up routines, set isSongStep on song step if included
-- Large clear emojis only — no scary content`;
+- NEVER generic — weave in child name, theme, age, challenge and parent goals
+- Minimal words — child understands by icons
+- Theme every step (e.g. "Dino Brush Time" not "Brush Teeth")
+- Bedtime: isStoryTimeStep on story step; clean-up: isSongStep on song step if included
+- No scary content`;
 }

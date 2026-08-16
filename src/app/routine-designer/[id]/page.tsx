@@ -56,6 +56,9 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: draft.title,
+          routineGoal: draft.routineGoal,
+          theme: draft.theme,
+          favouriteColours: draft.favouriteColours,
           celebrationText: draft.celebrationText,
           layout: draft.layout,
           steps: draft.steps.map((s) => ({
@@ -113,9 +116,9 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
       <div className="container max-w-lg mx-auto p-4 space-y-4 pb-24 print:p-0">
         <div className="flex items-center gap-2 pt-2 print:hidden">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href="/posters"><ArrowLeft className="h-4 w-4" /></Link>
+            <Link href="/routine-designer"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
-          <h1 className="text-xl font-bold flex-1 truncate">Edit poster</h1>
+          <h1 className="text-xl font-bold flex-1 truncate">Your routine poster</h1>
           <Button size="sm" className="rounded-full" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             Save
@@ -146,10 +149,12 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
         {tab === 'edit' ? (
           <Card className="rounded-2xl print:hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Customise your poster</CardTitle>
+              <CardTitle className="text-base">Edit your routine</CardTitle>
             </CardHeader>
             <CardContent>
-              <PosterEditor poster={draft} onChange={handleEditorChange} />
+              {features && (
+                <PosterEditor poster={draft} features={features} onChange={handleEditorChange} />
+              )}
             </CardContent>
           </Card>
         ) : (

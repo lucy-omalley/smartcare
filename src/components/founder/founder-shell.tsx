@@ -24,7 +24,7 @@ const NAV = [
   { href: "/admin/founder/funnel", label: "Funnel", icon: Filter },
   { href: "/admin/founder/storytime", label: "Storytime", icon: BookOpen },
   { href: "/admin/founder/routines", label: "Routines", icon: LayoutGrid },
-  { href: "/admin/founder/posters", label: "Posters", icon: Printer },
+  { href: "/admin/founder/posters", label: "Routine Designer", icon: Printer },
   { href: "/admin/founder/retention", label: "Retention", icon: TrendingUp },
   { href: "/admin/founder/ai", label: "AI", icon: Sparkles },
   { href: "/admin/founder/errors", label: "Errors", icon: AlertTriangle },

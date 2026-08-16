@@ -45,6 +45,11 @@ export function PosterFlowChart({ poster, className, printMode, qrDataUrl }: Pos
           {poster.childName && (
             <p className="text-sm opacity-80">For {poster.childName}</p>
           )}
+          {poster.routineGoal && (
+            <p className={cn("text-xs opacity-75 max-w-sm mx-auto leading-snug", isCompact ? "px-2" : "px-4")}>
+              {poster.routineGoal}
+            </p>
+          )}
         </header>
 
         <div className="flex-1 flex flex-col items-center gap-1 min-h-0 overflow-y-auto">
@@ -149,7 +154,7 @@ export function PosterQr({ posterId, size = 120 }: PosterQrProps) {
     (async () => {
       const QRCode = (await import("qrcode")).default;
       const base = window.location.origin;
-      const url = `${base}/posters/scan/${posterId}`;
+      const url = `${base}/routine-designer/scan/${posterId}`;
       const canvas = canvasRef.current;
       if (!canvas || cancelled) return;
       await QRCode.toCanvas(canvas, url, { width: size, margin: 1 });
@@ -169,7 +174,7 @@ export function PosterPreviewWithQr({ poster, printMode }: { poster: RoutinePost
     let cancelled = false;
     (async () => {
       const QRCode = (await import("qrcode")).default;
-      const url = `${window.location.origin}/posters/scan/${poster.id}`;
+      const url = `${window.location.origin}/routine-designer/scan/${poster.id}`;
       const dataUrl = await QRCode.toDataURL(url, { width: 120, margin: 1 });
       if (!cancelled) setQrDataUrl(dataUrl);
     })();

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function PostersRootRedirect() {
+export default function RoutinesLegacyRedirect() {
   redirect("/routine-designer");
 }

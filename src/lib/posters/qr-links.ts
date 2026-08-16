@@ -7,7 +7,7 @@ export function getPosterScanUrl(posterId: string, baseUrl?: string): string {
     baseUrl?.replace(/\/$/, "") ??
     process.env.NEXTAUTH_URL?.replace(/\/$/, "") ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  return `${base}/posters/scan/${posterId}`;
+  return `${base}/routine-designer/scan/${posterId}`;
 }
 
 export function getQrRedirectPath(qrTarget: PosterQrTarget, posterId: string): string {

@@ -10,17 +10,13 @@ import { toast } from "sonner";
 import type { PosterFeatures } from "@/types/routine-poster";
 import { POSTER_THEMES } from "@/lib/posters/themes";
 import {
-  POSTER_CATEGORY_OPTIONS,
+  DESIGNER_CHALLENGE_OPTIONS,
   POSTER_COLOUR_OPTIONS,
   POSTER_GOAL_OPTIONS,
-  POSTER_LAYOUT_META,
   FREE_POSTER_THEMES,
+  NUMBER_OF_CHILDREN_OPTIONS,
 } from "@/lib/posters/constants";
-import {
-  ROUTINE_CHALLENGE_OPTIONS,
-  ROUTINE_LENGTH_OPTIONS,
-  ROUTINE_TEMPLATE_META,
-} from "@/lib/routines/constants";
+import { ROUTINE_LENGTH_OPTIONS, ROUTINE_TEMPLATE_META } from "@/lib/routines/constants";
 import type { PosterTheme, RoutineChallenge, RoutineLength, RoutineTemplateType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -41,34 +37,22 @@ export function PosterGeneratorForm({
   const [templateType, setTemplateType] = useState<RoutineTemplateType>(initialTemplate);
   const [childName, setChildName] = useState(defaultChildName);
   const [childAge, setChildAge] = useState(defaultChildAge);
-  const [childGender, setChildGender] = useState("");
+  const [numberOfChildren, setNumberOfChildren] = useState(1);
   const [theme, setTheme] = useState<PosterTheme>("DINOSAUR");
-  const [colours, setColours] = useState<string[]>([]);
-  const [challenge, setChallenge] = useState<RoutineChallenge>("MORNING_CHAOS");
+  const [favouriteColour, setFavouriteColour] = useState<string>("");
+  const [challenge, setChallenge] = useState<RoutineChallenge>("TRANSITIONS");
   const [length, setLength] = useState<RoutineLength>("MEDIUM");
   const [parentGoals, setParentGoals] = useState<string[]>(["INDEPENDENCE"]);
-  const [layout, setLayout] = useState<keyof typeof POSTER_LAYOUT_META>("A4_PORTRAIT");
   const [loading, setLoading] = useState(false);
 
   const toggleGoal = (value: string) => {
     setParentGoals((prev) =>
-      prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value].slice(0, 3)
-    );
-  };
-
-  const toggleColour = (value: string) => {
-    setColours((prev) =>
       prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value].slice(0, 2)
     );
   };
 
   const isThemeLocked = (t: PosterTheme) =>
     !features.unlimitedThemes && !FREE_POSTER_THEMES.includes(t);
-
-  const isLayoutLocked = (key: keyof typeof POSTER_LAYOUT_META) => {
-    const meta = POSTER_LAYOUT_META[key];
-    return !features.isPremium && meta.premium;
-  };
 
   const submit = async (useAi: boolean) => {
     if (!childName.trim()) {
@@ -88,22 +72,21 @@ export function PosterGeneratorForm({
           templateType,
           childName: childName.trim(),
           childAge: childAge.trim() || null,
-          childGender: childGender.trim() || null,
+          numberOfChildren,
           theme,
-          favouriteColours: colours,
+          favouriteColours: favouriteColour ? [favouriteColour] : [],
           challenge,
           length,
           parentGoals,
-          layout,
           useAi: useAi && features.aiPersonalization,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not create poster");
-      toast.success("Poster ready!");
-      router.push(`/posters/${data.poster.id}`);
+      if (!res.ok) throw new Error(data.error ?? "Could not create routine");
+      toast.success("Your routine poster is ready!");
+      router.push(`/routine-designer/${data.poster.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not create poster");
+      toast.error(err instanceof Error ? err.message : "Could not create routine");
     } finally {
       setLoading(false);
     }
@@ -112,8 +95,8 @@ export function PosterGeneratorForm({
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label>Routine template</Label>
-        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+        <Label>Routine type</Label>
+        <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto">
           {(Object.keys(ROUTINE_TEMPLATE_META) as RoutineTemplateType[]).map((key) => {
             const meta = ROUTINE_TEMPLATE_META[key];
             return (
@@ -137,7 +120,7 @@ export function PosterGeneratorForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>Child name</Label>
-          <Input value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="e.g. Lily" className="rounded-xl" />
+          <Input value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="e.g. Jack" className="rounded-xl" />
         </div>
         <div className="space-y-2">
           <Label>Age</Label>
@@ -146,8 +129,22 @@ export function PosterGeneratorForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Gender (optional)</Label>
-        <Input value={childGender} onChange={(e) => setChildGender(e.target.value)} placeholder="e.g. girl" className="rounded-xl" />
+        <Label>Number of children</Label>
+        <div className="flex gap-2">
+          {NUMBER_OF_CHILDREN_OPTIONS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setNumberOfChildren(n)}
+              className={cn(
+                "rounded-xl border px-4 py-2 text-sm font-medium",
+                numberOfChildren === n ? "border-primary bg-primary/10" : "hover:bg-muted/50"
+              )}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -177,16 +174,16 @@ export function PosterGeneratorForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Favourite colours</Label>
+        <Label>Favourite colour</Label>
         <div className="flex flex-wrap gap-2">
           {POSTER_COLOUR_OPTIONS.map((c) => (
             <button
               key={c.value}
               type="button"
-              onClick={() => toggleColour(c.value)}
+              onClick={() => setFavouriteColour(favouriteColour === c.value ? "" : c.value)}
               className={cn(
                 "rounded-full px-3 py-1 text-xs border",
-                colours.includes(c.value) && "ring-2 ring-primary"
+                favouriteColour === c.value && "ring-2 ring-primary"
               )}
               style={{ backgroundColor: `${c.hex}22`, borderColor: c.hex }}
             >
@@ -199,7 +196,7 @@ export function PosterGeneratorForm({
       <div className="space-y-2">
         <Label>Current challenge</Label>
         <div className="flex flex-wrap gap-2">
-          {ROUTINE_CHALLENGE_OPTIONS.map((opt) => (
+          {DESIGNER_CHALLENGE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
@@ -216,7 +213,7 @@ export function PosterGeneratorForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Parent goals</Label>
+        <Label>Parent goal</Label>
         <div className="flex flex-wrap gap-2">
           {POSTER_GOAL_OPTIONS.map((opt) => (
             <button
@@ -254,47 +251,15 @@ export function PosterGeneratorForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Poster layout</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {(Object.keys(POSTER_LAYOUT_META) as Array<keyof typeof POSTER_LAYOUT_META>).map((key) => {
-            const meta = POSTER_LAYOUT_META[key];
-            const locked = isLayoutLocked(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => !locked && setLayout(key)}
-                className={cn(
-                  "rounded-xl border p-2 text-left text-xs relative",
-                  layout === key ? "border-primary bg-primary/10" : "hover:bg-muted/50",
-                  locked && "opacity-60"
-                )}
-              >
-                {locked && <Lock className="h-3 w-3 absolute top-2 right-2" />}
-                <p className="font-medium">{meta.label}</p>
-                <p className="text-muted-foreground">{meta.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 pt-2">
-        <Button
-          className="rounded-xl h-12"
-          disabled={loading}
-          onClick={() => submit(true)}
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-          {features.aiPersonalization ? "Generate AI Poster" : "Generate Poster (Template)"}
-        </Button>
-        {!features.aiPersonalization && (
-          <p className="text-xs text-center text-muted-foreground">
-            AI personalisation is Premium — using themed template
-          </p>
-        )}
-      </div>
+      <Button className="rounded-xl h-12 w-full" disabled={loading} onClick={() => submit(true)}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+        Generate my routine poster
+      </Button>
+      {!features.aiPersonalization && (
+        <p className="text-xs text-center text-muted-foreground">
+          AI personalisation is Premium — we&apos;ll use a themed template tailored to your answers.
+        </p>
+      )}
     </div>
   );
 }

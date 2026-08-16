@@ -40,9 +40,11 @@ function toView(
   return {
     id: poster.id,
     title: poster.title,
+    routineGoal: poster.routineGoal,
     childName: poster.childName,
     childAge: poster.childAge,
     childGender: poster.childGender,
+    numberOfChildren: poster.numberOfChildren,
     theme: poster.theme,
     favouriteColours: poster.favouriteColours,
     templateType: poster.templateType,
@@ -81,8 +83,10 @@ function templateToPosterPayload(
   templateSteps: ReturnType<typeof buildTemplateRoutine>
 ): GeneratedPosterPayload {
   const themeStyle = getThemeStyle(input.theme);
+  const goalLabel = input.parentGoals[0]?.replace(/_/g, " ").toLowerCase() ?? "independence";
   return {
-    title: `${themeStyle.emoji} ${templateSteps.title}`,
+    title: `${input.childName}'s ${themeStyle.label}`,
+    routineGoal: `Help ${input.childName} build ${goalLabel} — one fun step at a time.`,
     celebrationText: themeStyle.celebration,
     steps: templateSteps.steps.map((s) => ({
       title: s.title.slice(0, 40),
@@ -107,9 +111,11 @@ async function persistPoster(
     data: {
       userId: input.userId,
       title: payload.title.slice(0, 120),
+      routineGoal: (payload.routineGoal ?? "").slice(0, 200) || null,
       childName: input.childName,
       childAge: input.childAge,
       childGender: input.childGender,
+      numberOfChildren: input.numberOfChildren ?? 1,
       theme: input.theme,
       favouriteColours: input.favouriteColours,
       templateType: input.templateType,
@@ -159,6 +165,7 @@ export async function generateRoutinePoster(input: GeneratePosterInput): Promise
       childName: input.childName,
       childAge: input.childAge ?? "preschool",
       childGender: input.childGender,
+      numberOfChildren: input.numberOfChildren ?? 1,
       theme: themeStyle.label,
       themeEmoji: themeStyle.emoji,
       favouriteColours: input.favouriteColours,
@@ -224,6 +231,10 @@ export async function updateRoutinePoster(
   posterId: string,
   data: {
     title?: string;
+    routineGoal?: string | null;
+    theme?: RoutinePoster["theme"];
+    favouriteColours?: string[];
+    numberOfChildren?: number;
     layout?: RoutinePoster["layout"];
     category?: RoutinePoster["category"];
     celebrationText?: string;
@@ -250,6 +261,13 @@ export async function updateRoutinePoster(
     assertLayoutAllowed(data.layout, features.isPremium);
   }
 
+  if (data.theme) {
+    const features = await getPosterFeatures(userId);
+    assertThemeAllowed(data.theme, features.isPremium);
+  }
+
+  const themeForSteps = data.theme ?? existing.theme;
+
   if (data.steps) {
     await prisma.routinePosterStep.deleteMany({ where: { posterId } });
     await prisma.routinePosterStep.createMany({
@@ -258,7 +276,7 @@ export async function updateRoutinePoster(
         orderIndex: i,
         title: s.title.slice(0, 60),
         iconEmoji: s.iconEmoji.slice(0, 8) || "⭐",
-        illustrationKey: resolveIllustrationKey(existing.theme, s.title),
+        illustrationKey: resolveIllustrationKey(themeForSteps, s.title),
         isStoryTimeStep: Boolean(s.isStoryTimeStep),
         isSongStep: Boolean(s.isSongStep),
       })),
@@ -269,6 +287,10 @@ export async function updateRoutinePoster(
     where: { id: posterId },
     data: {
       title: data.title?.slice(0, 120),
+      routineGoal: data.routineGoal?.slice(0, 200),
+      theme: data.theme,
+      favouriteColours: data.favouriteColours,
+      numberOfChildren: data.numberOfChildren,
       layout: data.layout,
       category: data.category,
       celebrationText: data.celebrationText?.slice(0, 80),
