@@ -9,14 +9,23 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /** OpenAI TTS preset voice names */
 type OpenAIVoice = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
 
+/** Warm default narrator — intentionally distinct from relationship family presets. */
+export const STANDARD_NARRATOR_VOICE: OpenAIVoice = "fable";
+
 const RELATIONSHIP_VOICES: Record<VoiceRelationship, OpenAIVoice> = {
   MUM: "nova",
   DAD: "onyx",
   GRANDMA: "shimmer",
   GRANDAD: "echo",
-  GUARDIAN: "fable",
+  GUARDIAN: "alloy",
   OTHER: "alloy",
 };
+
+export function parseOpenAIVoice(providerVoiceId: string, fallback: OpenAIVoice = "nova"): OpenAIVoice {
+  const voicePart = providerVoiceId.split(":")[1];
+  const allowed: OpenAIVoice[] = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+  return allowed.includes(voicePart as OpenAIVoice) ? (voicePart as OpenAIVoice) : fallback;
+}
 
 export class OpenAIPresetVoiceProvider implements VoiceProvider {
   id = "openai" as const;
@@ -31,8 +40,7 @@ export class OpenAIPresetVoiceProvider implements VoiceProvider {
   }
 
   async synthesizeSpeech(input: VoiceSynthesisInput): Promise<Buffer> {
-    const voicePart = input.providerVoiceId.split(":")[1] ?? "nova";
-    const voice = voicePart as OpenAIVoice;
+    const voice = parseOpenAIVoice(input.providerVoiceId, "nova");
 
     const speech = await openai.audio.speech.create({
       model: "tts-1",

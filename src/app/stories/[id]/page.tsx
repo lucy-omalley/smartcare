@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { BedtimePlayer } from '@/components/storytime/bedtime-player';
 import type { VoiceProfileOption } from '@/components/storytime/narrator-picker';
+import type { VoiceUsageSnapshot } from '@/types/voice-usage';
 import { toast } from 'sonner';
 
 interface Story {
@@ -19,6 +20,32 @@ interface Story {
   isFavorite: boolean;
 }
 
+type NarratorSelection =
+  | { type: 'standard' }
+  | { type: 'family'; voiceProfileId: string };
+
+function resolveInitialNarrator(
+  profileList: VoiceProfileOption[],
+  familyVoiceEnabled: boolean,
+  settings: { lastNarratorType?: string; lastNarratorVoiceId?: string | null } | null | undefined
+): NarratorSelection {
+  const readyVoices = profileList.filter((v) => v.status === 'READY');
+
+  if (
+    settings?.lastNarratorType === 'FAMILY_VOICE' &&
+    settings.lastNarratorVoiceId &&
+    readyVoices.some((v) => v.id === settings.lastNarratorVoiceId)
+  ) {
+    return { type: 'family', voiceProfileId: settings.lastNarratorVoiceId };
+  }
+
+  if (readyVoices.length === 1 && familyVoiceEnabled) {
+    return { type: 'family', voiceProfileId: readyVoices[0].id };
+  }
+
+  return { type: 'standard' };
+}
+
 export default function StoryPlayerPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -27,32 +54,46 @@ export default function StoryPlayerPage() {
   const [story, setStory] = useState<Story | null>(null);
   const [voices, setVoices] = useState<VoiceProfileOption[]>([]);
   const [isPremium, setIsPremium] = useState(false);
-  const [initialNarrator, setInitialNarrator] = useState<
-    { type: 'standard' } | { type: 'family'; voiceProfileId: string }
-  >({ type: 'standard' });
+  const [familyVoiceEnabled, setFamilyVoiceEnabled] = useState(false);
+  const [voiceUsage, setVoiceUsage] = useState<VoiceUsageSnapshot | null>(null);
+  const [initialNarrator, setInitialNarrator] = useState<NarratorSelection>({ type: 'standard' });
+  const [playerReady, setPlayerReady] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/signin');
     if (status !== 'authenticated') return;
+
+    setPlayerReady(false);
+    setStory(null);
 
     Promise.all([
       fetch(`/api/storytime/stories/${storyId}`).then((r) => r.json()),
       fetch('/api/voice/profiles').then((r) => r.json()),
       fetch('/api/storytime/features').then((r) => r.json()),
       fetch('/api/storytime/narrator').then((r) => r.json()),
-    ]).then(([storyRes, voiceRes, featRes, narrRes]) => {
-      if (storyRes.story) setStory(storyRes.story);
-      const profileList: VoiceProfileOption[] = voiceRes.profiles ?? [];
-      setVoices(profileList);
-      setIsPremium(featRes.features?.isPremium ?? false);
-      const settings = narrRes.settings;
-      const readyVoices = profileList.filter((v) => v.status === 'READY');
-      if (settings?.lastNarratorType === 'FAMILY_VOICE' && settings.lastNarratorVoiceId) {
-        setInitialNarrator({ type: 'family', voiceProfileId: settings.lastNarratorVoiceId });
-      } else if (readyVoices.length === 1 && featRes.features?.familyVoiceEnabled) {
-        setInitialNarrator({ type: 'family', voiceProfileId: readyVoices[0].id });
-      }
-    });
+    ])
+      .then(([storyRes, voiceRes, featRes, narrRes]) => {
+        if (!storyRes.story) {
+          toast.error(storyRes.error ?? 'Story not found');
+          router.push('/stories/history');
+          return;
+        }
+
+        const profileList: VoiceProfileOption[] = voiceRes.profiles ?? [];
+        const voiceEnabled = featRes.features?.familyVoiceEnabled ?? featRes.features?.isPremium ?? false;
+
+        setStory(storyRes.story);
+        setVoices(profileList);
+        setIsPremium(featRes.features?.isPremium ?? false);
+        setFamilyVoiceEnabled(voiceEnabled);
+        setVoiceUsage(featRes.features?.voiceUsage ?? null);
+        setInitialNarrator(resolveInitialNarrator(profileList, voiceEnabled, narrRes.settings));
+        setPlayerReady(true);
+      })
+      .catch(() => {
+        toast.error('Could not load story');
+        router.push('/stories/history');
+      });
   }, [status, router, storyId]);
 
   const toggleFavorite = useCallback(async (next: boolean) => {
@@ -68,7 +109,7 @@ export default function StoryPlayerPage() {
     }
   }, [storyId]);
 
-  if (!story) {
+  if (!story || !playerReady) {
     return (
       <AppShell>
         <div className="p-8 text-center text-muted-foreground text-sm">Loading story…</div>
@@ -84,12 +125,15 @@ export default function StoryPlayerPage() {
         </Button>
 
         <BedtimePlayer
+          key={storyId}
           storyId={story.id}
           title={story.title}
           storyText={story.story}
           moralTheme={story.moralTheme}
           voices={voices}
           isPremium={isPremium}
+          familyVoiceEnabled={familyVoiceEnabled}
+          voiceUsage={voiceUsage}
           isFavorite={story.isFavorite}
           initialNarrator={initialNarrator}
           onToggleFavorite={toggleFavorite}

@@ -10,11 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Mic, Sparkles, Library, Crown, ArrowRight } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
+import { VoiceUsageSummary } from '@/components/storytime/voice-usage-summary';
+import type { VoiceUsageSnapshot } from '@/types/voice-usage';
 
 interface StorytimeFeatures {
   isPremium: boolean;
   familyVoiceEnabled: boolean;
   storiesRemainingThisMonth: number | null;
+  voiceUsage?: VoiceUsageSnapshot | null;
 }
 
 export default function StoriesHubPage() {
@@ -86,6 +89,8 @@ export default function StoriesHubPage() {
             </Badge>
           )}
         </header>
+
+        {features?.voiceUsage && <VoiceUsageSummary usage={features.voiceUsage} />}
 
         <div className="space-y-3">
           {cards.map((card) => (

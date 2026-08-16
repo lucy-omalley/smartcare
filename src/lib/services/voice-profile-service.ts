@@ -5,26 +5,43 @@ import type { NarratorType, VoiceRelationship } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { decryptVoiceBuffer, encryptVoiceBuffer } from "@/lib/voice/encryption";
 import { getConfiguredVoiceProviderId, getVoiceProvider } from "@/lib/voice/voice-service";
+import { STANDARD_NARRATOR_VOICE } from "@/lib/voice/providers/openai-preset-provider";
 import { CONSENT_VERSION } from "@/lib/voice/types";
 import { assertCanUseFamilyVoice } from "@/lib/storytime/gating";
+import {
+  assertCanCloneVoice,
+  assertCanCreateVoiceProfile,
+  assertCanGenerateFamilyNarration,
+  recordFamilyVoiceGeneration,
+  recordVoiceClone,
+} from "@/lib/storytime/voice-caps";
 import { logAIRequest } from "@/lib/ai/usage";
 import { VOICE_RECORDING_PARAGRAPH_COUNT } from "@/lib/voice/recording-script";
 
 const inflight = new Map<string, Promise<Buffer>>();
 
+const NARRATION_CACHE_VERSION = "v2";
+
 export function buildNarratorKey(voiceProfileId: string | null): string {
   return voiceProfileId ?? "standard";
 }
 
-function audioHash(storyText: string, key: string): string {
-  return createHash("sha256").update(`${key}:${storyText}`).digest("hex");
+function audioHash(storyText: string, key: string, voiceSignature: string): string {
+  return createHash("sha256")
+    .update(`${NARRATION_CACHE_VERSION}:${key}:${voiceSignature}:${storyText}`)
+    .digest("hex");
 }
 
 export async function getOrGenerateFamilyStoryAudio(params: {
   userId: string;
   storyId: string;
   voiceProfileId?: string | null;
-}): Promise<{ buffer: Buffer; narratorType: NarratorType; narratorKey: string }> {
+}): Promise<{
+  buffer: Buffer;
+  narratorType: NarratorType;
+  narratorKey: string;
+  voiceEngine: "elevenlabs" | "openai-preset" | "openai-standard";
+}> {
   const story = await prisma.familyStory.findFirst({
     where: { id: params.storyId, userId: params.userId },
   });
@@ -33,7 +50,18 @@ export async function getOrGenerateFamilyStoryAudio(params: {
   const voiceProfileId = params.voiceProfileId ?? null;
   const narratorType: NarratorType = voiceProfileId ? "FAMILY_VOICE" : "STANDARD";
   const key = buildNarratorKey(voiceProfileId);
-  const hash = audioHash(story.story, key);
+  const voiceSignature = await resolveVoiceSignature({
+    userId: params.userId,
+    voiceProfileId,
+  });
+  const hash = audioHash(story.story, key, voiceSignature);
+  const voiceEngine: "elevenlabs" | "openai-preset" | "openai-standard" = voiceSignature.startsWith(
+    "elevenlabs:"
+  )
+    ? "elevenlabs"
+    : voiceProfileId
+      ? "openai-preset"
+      : "openai-standard";
 
   const existing = await prisma.storyNarration.findUnique({
     where: { storyId_narratorKey: { storyId: story.id, narratorKey: key } },
@@ -41,14 +69,14 @@ export async function getOrGenerateFamilyStoryAudio(params: {
 
   if (existing?.audioData && existing.audioHash === hash) {
     await logAIRequest({ userId: params.userId, feature: "VOICE_NARRATION", resolution: "DB_ONLY" });
-    return { buffer: Buffer.from(existing.audioData), narratorType, narratorKey: key };
+    return { buffer: Buffer.from(existing.audioData), narratorType, narratorKey: key, voiceEngine };
   }
 
-  const inflightKey = `${story.id}:${key}`;
+  const inflightKey = `${story.id}:${key}:${voiceSignature}`;
   const pending = inflight.get(inflightKey);
   if (pending) {
     const buffer = await pending;
-    return { buffer, narratorType, narratorKey: key };
+    return { buffer, narratorType, narratorKey: key, voiceEngine };
   }
 
   const task = synthesizeAndCache({
@@ -59,15 +87,53 @@ export async function getOrGenerateFamilyStoryAudio(params: {
     narratorType,
     narratorKey: key,
     hash,
+    voiceSignature,
   });
 
   inflight.set(inflightKey, task);
   try {
     const buffer = await task;
-    return { buffer, narratorType, narratorKey: key };
+    return { buffer, narratorType, narratorKey: key, voiceEngine };
   } finally {
     inflight.delete(inflightKey);
   }
+}
+
+async function resolveVoiceSignature(params: {
+  userId: string;
+  voiceProfileId: string | null;
+}): Promise<string> {
+  if (!params.voiceProfileId) {
+    return `openai:${STANDARD_NARRATOR_VOICE}:standard`;
+  }
+
+  const profile = await ensureFamilyVoiceProfileReady(params.userId, params.voiceProfileId);
+  return `${profile.provider}:${profile.providerVoiceId ?? "missing"}`;
+}
+
+/** Re-clone with ElevenLabs when configured but profile was created on OpenAI preset fallback. */
+async function ensureFamilyVoiceProfileReady(userId: string, voiceProfileId: string) {
+  let profile = await prisma.voiceProfile.findFirst({
+    where: {
+      id: voiceProfileId,
+      userId,
+      status: "READY",
+      deletedAt: null,
+    },
+  });
+  if (!profile) throw new Error("Voice profile not ready");
+
+  const configured = getConfiguredVoiceProviderId();
+  if (configured === "elevenlabs" && profile.provider === "openai") {
+    try {
+      profile = await processVoiceProfile(userId, voiceProfileId);
+    } catch {
+      // Fall back to preset voice if ElevenLabs re-clone fails.
+    }
+  }
+
+  if (!profile.providerVoiceId) throw new Error("Voice profile not ready");
+  return profile;
 }
 
 async function synthesizeAndCache(args: {
@@ -78,26 +144,20 @@ async function synthesizeAndCache(args: {
   narratorType: NarratorType;
   narratorKey: string;
   hash: string;
+  voiceSignature: string;
 }): Promise<Buffer> {
   let providerId = getConfiguredVoiceProviderId();
-  let providerVoiceId = "openai:nova:standard";
+  let providerVoiceId = `openai:${STANDARD_NARRATOR_VOICE}:standard`;
 
   if (args.voiceProfileId) {
     await assertCanUseFamilyVoice(args.userId);
-    const profile = await prisma.voiceProfile.findFirst({
-      where: {
-        id: args.voiceProfileId,
-        userId: args.userId,
-        status: "READY",
-        deletedAt: null,
-      },
-    });
-    if (!profile?.providerVoiceId) throw new Error("Voice profile not ready");
+    await assertCanGenerateFamilyNarration(args.userId);
+    const profile = await ensureFamilyVoiceProfileReady(args.userId, args.voiceProfileId);
     providerId = profile.provider as "openai" | "elevenlabs";
-    providerVoiceId = profile.providerVoiceId;
+    providerVoiceId = profile.providerVoiceId!;
   } else {
     providerId = "openai";
-    providerVoiceId = "openai:nova:standard";
+    providerVoiceId = `openai:${STANDARD_NARRATOR_VOICE}:standard`;
   }
 
   const provider = getVoiceProvider(providerId);
@@ -108,6 +168,10 @@ async function synthesizeAndCache(args: {
   });
 
   await logAIRequest({ userId: args.userId, feature: "VOICE_NARRATION", resolution: "LLM" });
+
+  if (args.voiceProfileId) {
+    await recordFamilyVoiceGeneration(args.userId);
+  }
 
   await prisma.storyNarration.upsert({
     where: { storyId_narratorKey: { storyId: args.storyId, narratorKey: args.narratorKey } },
@@ -159,6 +223,7 @@ export async function createVoiceProfile(params: {
   if (!params.consentGiven) throw new Error("Consent is required to create a voice profile.");
 
   await assertCanUseFamilyVoice(params.userId);
+  await assertCanCreateVoiceProfile(params.userId);
 
   return prisma.voiceProfile.create({
     data: {
@@ -236,6 +301,11 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
     throw new Error("Please complete at least 6 recording paragraphs before processing.");
   }
 
+  const usesPaidCloning = getConfiguredVoiceProviderId() === "elevenlabs";
+  if (usesPaidCloning) {
+    await assertCanCloneVoice(userId);
+  }
+
   await prisma.voiceProfile.update({
     where: { id: voiceProfileId },
     data: { status: "PROCESSING", processingError: null },
@@ -255,6 +325,10 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
       relationship: profile.relationship,
       samples,
     });
+
+    if (usesPaidCloning) {
+      await recordVoiceClone(userId);
+    }
 
     return prisma.voiceProfile.update({
       where: { id: voiceProfileId },

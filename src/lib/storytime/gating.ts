@@ -2,8 +2,9 @@ import "server-only";
 
 import type { SubscriptionPlan } from "@prisma/client";
 import { getUserPlan } from "@/lib/ai/usage";
-import { PLAN_LIMITS } from "@/lib/ai/types";
 import { prisma } from "@/lib/db";
+import { getVoiceUsageSnapshot } from "@/lib/storytime/voice-caps";
+import type { VoiceUsageSnapshot } from "@/types/voice-usage";
 
 export const FREE_FAMILY_STORIES_PER_MONTH = 3;
 export const PREMIUM_STORY_LENGTHS = [2, 5, 10, 15] as const;
@@ -18,6 +19,7 @@ export type StorytimePlanFeatures = {
   weeklyBookEnabled: boolean;
   allowedLengths: readonly number[];
   storiesRemainingThisMonth: number | null;
+  voiceUsage: VoiceUsageSnapshot | null;
 };
 
 async function ensureQuota(userId: string) {
@@ -35,7 +37,12 @@ async function ensureQuota(userId: string) {
   if (existing.lastMonthlyReset.getTime() !== monthStart.getTime()) {
     return prisma.userUsageQuota.update({
       where: { userId },
-      data: { familyStoriesThisMonth: 0, lastMonthlyReset: monthStart },
+      data: {
+        familyStoriesThisMonth: 0,
+        familyVoiceGenerationsThisMonth: 0,
+        voiceClonesThisMonth: 0,
+        lastMonthlyReset: monthStart,
+      },
     });
   }
   return existing;
@@ -45,6 +52,7 @@ export async function getStorytimeFeatures(userId: string): Promise<StorytimePla
   const plan = await getUserPlan(userId);
   const isPremium = plan === "PREMIUM" || plan === "FAMILY";
   const quota = await ensureQuota(userId);
+  const voiceUsage = isPremium ? await getVoiceUsageSnapshot(userId) : null;
 
   return {
     plan,
@@ -57,6 +65,7 @@ export async function getStorytimeFeatures(userId: string): Promise<StorytimePla
     storiesRemainingThisMonth: isPremium
       ? null
       : Math.max(0, FREE_FAMILY_STORIES_PER_MONTH - quota.familyStoriesThisMonth),
+    voiceUsage,
   };
 }
 
