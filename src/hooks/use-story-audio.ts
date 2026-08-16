@@ -217,7 +217,9 @@ export function useStoryAudio(options: UseStoryAudioOptions = {}) {
           setStatusSafe('idle');
           return;
         }
-        onErrorRef.current?.('Could not play narration.');
+        onErrorRef.current?.(
+          err instanceof Error ? err.message : "Could not play narration."
+        );
         setStatusSafe('idle');
       } finally {
         if (abortRef.current === controller) abortRef.current = null;

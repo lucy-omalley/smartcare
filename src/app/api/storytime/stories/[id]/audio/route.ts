@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   try {
     await assertVoiceRateLimit(guard.userId);
-    const { buffer, narratorType } = await getOrGenerateFamilyStoryAudio({
+    const { buffer, narratorType, voiceEngine } = await getOrGenerateFamilyStoryAudio({
       userId: guard.userId,
       storyId: params.id,
       voiceProfileId,
@@ -39,7 +39,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "audio/mpeg",
-        "Cache-Control": "private, max-age=86400",
+        "Cache-Control": "private, no-store",
+        "X-Parenfy-Narrator-Type": narratorType,
+        "X-Parenfy-Voice-Engine": voiceEngine,
       },
     });
   } catch (error) {
