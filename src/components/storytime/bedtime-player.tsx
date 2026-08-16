@@ -18,6 +18,7 @@ interface BedtimePlayerProps {
   moralTheme?: string | null;
   voices: VoiceProfileOption[];
   isPremium: boolean;
+  familyVoiceEnabled?: boolean;
   isFavorite: boolean;
   initialNarrator?: { type: "standard" } | { type: "family"; voiceProfileId: string };
   onToggleFavorite: (next: boolean) => void;
@@ -30,6 +31,7 @@ export function BedtimePlayer({
   moralTheme,
   voices,
   isPremium,
+  familyVoiceEnabled,
   isFavorite,
   initialNarrator,
   onToggleFavorite,
@@ -39,6 +41,12 @@ export function BedtimePlayer({
   const [showText, setShowText] = useState(false);
   const playStartedRef = useRef(false);
   const storyAudio = useStoryAudio();
+  const canUseFamilyVoice = familyVoiceEnabled ?? isPremium;
+
+  useEffect(() => {
+    if (!initialNarrator) return;
+    setNarrator(initialNarrator);
+  }, [initialNarrator]);
 
   const audioUrl = `/api/storytime/stories/${storyId}/audio${
     narrator.type === "family" ? `?voiceProfileId=${narrator.voiceProfileId}` : ""
@@ -72,6 +80,11 @@ export function BedtimePlayer({
     setNarrator(selection);
     void saveNarrator(selection);
     storyAudio.stop();
+    const label =
+      selection.type === "standard"
+        ? "Original narrator"
+        : voices.find((v) => v.id === selection.voiceProfileId)?.name ?? "Family voice";
+    toast.success(`Narrator: ${label}`);
   };
 
   const handleListen = async () => {
@@ -163,8 +176,8 @@ export function BedtimePlayer({
           value={narrator}
           onChange={handleNarratorChange}
           voices={voices}
-          premiumLocked={!isPremium}
-          className="[&_p]:text-indigo-200/80 [&_button]:border-white/20 [&_button]:text-indigo-50"
+          premiumLocked={!canUseFamilyVoice}
+          variant="bedtime"
         />
 
         <div className="flex flex-col items-center gap-4 py-6">
