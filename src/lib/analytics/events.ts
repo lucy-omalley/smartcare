@@ -67,6 +67,11 @@ export type AnalyticsEvent =
   | "voice_recording_started"
   | "narrator_selected"
   | "bedtime_mode_opened"
+  // Visual Routine Studio
+  | "routine_created"
+  | "routine_started"
+  | "routine_completed"
+  | "routine_step_skipped"
   // Meals
   | "meal_viewed"
   | "meal_saved"

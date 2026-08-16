@@ -102,6 +102,7 @@ enum AIFeature {
   ROTATE
   FAMILY_STORY
   VOICE_NARRATION
+  ROUTINE_GENERATION
 }
 
 enum VoiceProfileStatus {
@@ -263,6 +264,9 @@ model User {
   storyPlaySessions   StoryPlaySession[]
   weeklyStoryCollections WeeklyStoryCollection[]
   storySettings       UserStorySettings?
+  visualRoutines      VisualRoutine[]
+  routineCompletions  RoutineCompletion[]
+  routineSettings     RoutineUserSettings?
 
   @@index([email])
   @@index([location])
@@ -1132,4 +1136,140 @@ model UserStorySettings {
   bedtimeMusicEnabled Boolean      @default(false)
   updatedAt           DateTime     @updatedAt
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum RoutineTemplateType {
+  MORNING
+  BEDTIME
+  AFTER_SCHOOL
+  MEAL_TIME
+  TOILET_TRAINING
+  BRUSHING_TEETH
+  GETTING_DRESSED
+  CLEANING_UP
+  EMOTIONAL_REGULATION
+  HOMEWORK
+  LEAVING_HOUSE
+  SCREEN_TIME
+  CUSTOM
+}
+
+enum RoutineLength {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+enum RoutineChallenge {
+  BEDTIME
+  TRANSITIONS
+  TOOTH_BRUSHING
+  EMOTIONAL_REGULATION
+  MORNING_CHAOS
+  SCHOOL_PREP
+}
+
+enum ScheduleTimeOfDay {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+enum ScheduleDayType {
+  EVERY_DAY
+  WEEKDAY
+  WEEKEND
+  SCHOOL_DAY
+  HOLIDAY
+}
+
+model VisualRoutine {
+  id              String              @id @default(cuid())
+  userId          String
+  title           String
+  templateType    RoutineTemplateType @default(CUSTOM)
+  childName       String?
+  childAge        String?
+  interests       String[]            @default([])
+  challenge       RoutineChallenge?
+  length          RoutineLength       @default(MEDIUM)
+  rewardsEnabled  Boolean             @default(true)
+  isAiGenerated   Boolean             @default(false)
+  isFavorite      Boolean             @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps           VisualRoutineStep[]
+  schedules       RoutineSchedule[]
+  completions     RoutineCompletion[]
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([userId, templateType])
+}
+
+model VisualRoutineStep {
+  id               String   @id @default(cuid())
+  routineId        String
+  orderIndex       Int
+  title            String
+  instruction      String
+  iconEmoji        String   @default("⭐")
+  illustrationKey  String?
+  durationMinutes  Int      @default(2)
+  rewardEmoji      String   @default("⭐")
+  voiceInstruction String?
+  isStoryTimeStep  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  routine          VisualRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, orderIndex])
+  @@index([routineId])
+}
+
+model RoutineSchedule {
+  id           String            @id @default(cuid())
+  userId       String
+  routineId    String
+  timeOfDay    ScheduleTimeOfDay
+  dayType      ScheduleDayType   @default(EVERY_DAY)
+  reminderTime String?
+  enabled      Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  routine      VisualRoutine     @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([routineId])
+}
+
+model RoutineCompletion {
+  id              String   @id @default(cuid())
+  routineId       String
+  userId          String
+  stepsCompleted  Int
+  stepsTotal      Int
+  durationSeconds Int?
+  completed       Boolean  @default(true)
+  skippedSteps    String[] @default([])
+  completedAt     DateTime @default(now())
+  streakDate      DateTime @db.Date
+  routine         VisualRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@index([routineId])
+  @@index([userId, streakDate])
+}
+
+model RoutineUserSettings {
+  userId            String   @id
+  rewardsEnabled    Boolean  @default(true)
+  remindersEnabled  Boolean  @default(false)
+  highContrast      Boolean  @default(false)
+  voiceProfileId    String?
+  narratorType      NarratorType @default(STANDARD)
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

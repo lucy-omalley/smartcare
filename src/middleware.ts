@@ -75,6 +75,7 @@ export const config = {
     '/saved/:path*',
     '/library/:path*',
     '/stories/:path*',
+    '/routines/:path*',
     '/learning-plan/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',
