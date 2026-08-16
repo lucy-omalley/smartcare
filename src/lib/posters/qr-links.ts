@@ -3,10 +3,10 @@ import "server-only";
 import type { PosterQrTarget } from "@prisma/client";
 
 export function getPosterScanUrl(posterId: string, baseUrl?: string): string {
-  const origin = baseUrl ?? process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const base = baseUrl ?? (process.env.NEXTAUTH_URL?.replace(/\/$/, "") || origin.replace(/\/$/, ""));
+  const base =
+    baseUrl?.replace(/\/$/, "") ??
+    process.env.NEXTAUTH_URL?.replace(/\/$/, "") ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   return `${base}/posters/scan/${posterId}`;
 }
 

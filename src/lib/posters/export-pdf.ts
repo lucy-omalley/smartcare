@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, type PDFPage, type RGB } from "pdf-lib";
 import QRCode from "qrcode";
 import type { RoutinePosterView } from "@/types/routine-poster";
 import { POSTER_LAYOUT_META } from "@/lib/posters/constants";
@@ -10,8 +10,39 @@ import { getPosterScanUrl } from "@/lib/posters/qr-links";
 const MM_TO_PT = 72 / 25.4;
 const PRINT_MARGIN_MM = 10;
 
+/** pdf-lib StandardFonts only support WinAnsi — strip emoji and non-Latin-1 chars */
+function toPdfText(value: string): string {
+  return value
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[^\x00-\xFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function mmToPt(mm: number): number {
   return mm * MM_TO_PT;
+}
+
+function drawDownArrow(page: PDFPage, centerX: number, y: number, color: RGB) {
+  page.drawLine({
+    start: { x: centerX, y: y + 8 },
+    end: { x: centerX, y: y - 4 },
+    thickness: 1.5,
+    color,
+  });
+  page.drawLine({
+    start: { x: centerX - 4, y: y - 2 },
+    end: { x: centerX, y: y - 6 },
+    thickness: 1.5,
+    color,
+  });
+  page.drawLine({
+    start: { x: centerX + 4, y: y - 2 },
+    end: { x: centerX, y: y - 6 },
+    thickness: 1.5,
+    color,
+  });
 }
 
 export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: string): Promise<Uint8Array> {
@@ -29,6 +60,7 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
   const primary = hexToRgb(theme.primary);
   const accent = hexToRgb(theme.accent);
   const textColor = hexToRgb(theme.text);
+  const badgeFill = hexToRgb(theme.secondary);
 
   page.drawRectangle({
     x: 0,
@@ -40,7 +72,8 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
 
   let y = pageHeight - margin - 20;
 
-  page.drawText(poster.title.slice(0, 60), {
+  const title = toPdfText(poster.title) || "My Routine";
+  page.drawText(title.slice(0, 60), {
     x: margin,
     y,
     size: layout.widthMm < 150 ? 14 : 20,
@@ -51,7 +84,7 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
   y -= 28;
 
   if (poster.childName) {
-    page.drawText(`For ${poster.childName}`, {
+    page.drawText(`For ${toPdfText(poster.childName)}`, {
       x: margin,
       y,
       size: 11,
@@ -62,42 +95,46 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
   }
 
   const stepSize = layout.widthMm < 150 ? 10 : 12;
-  const iconSize = layout.widthMm < 150 ? 16 : 22;
+  const badgeSize = layout.widthMm < 150 ? 18 : 24;
 
-  for (const step of poster.steps) {
-    if (y < margin + 80) break;
+  poster.steps.forEach((step, index) => {
+    if (y < margin + 80) return;
 
-    page.drawText(step.iconEmoji, {
-      x: margin,
-      y,
-      size: iconSize,
+    page.drawCircle({
+      x: margin + badgeSize / 2,
+      y: y + badgeSize / 2,
+      size: badgeSize / 2,
+      color: badgeFill,
+    });
+    page.drawText(String(index + 1), {
+      x: margin + badgeSize / 2 - (index + 1 > 9 ? 5 : 3),
+      y: y + badgeSize / 2 - 4,
+      size: Math.max(8, badgeSize * 0.45),
       font,
       color: primary,
     });
 
-    page.drawText(step.title.slice(0, 40), {
-      x: margin + iconSize + 8,
-      y: y + 2,
+    const stepTitle = toPdfText(step.title) || `Step ${index + 1}`;
+    page.drawText(stepTitle.slice(0, 40), {
+      x: margin + badgeSize + 8,
+      y: y + 4,
       size: stepSize,
       font,
       color: textColor,
-      maxWidth: pageWidth - margin * 2 - iconSize - 8,
+      maxWidth: pageWidth - margin * 2 - badgeSize - 8,
     });
 
-    y -= iconSize + 14;
+    y -= badgeSize + 10;
 
-    page.drawText("↓", {
-      x: pageWidth / 2 - 4,
-      y,
-      size: 14,
-      font,
-      color: accent,
-    });
-    y -= 18;
-  }
+    if (index < poster.steps.length - 1) {
+      drawDownArrow(page, pageWidth / 2, y, accent);
+      y -= 14;
+    }
+  });
 
-  if (poster.celebrationText) {
-    page.drawText(`${theme.rewardEmoji} ${poster.celebrationText}`, {
+  const celebration = toPdfText(poster.celebrationText ?? "");
+  if (celebration) {
+    page.drawText(celebration.slice(0, 80), {
       x: margin,
       y: Math.max(margin + 60, y),
       size: stepSize + 2,
@@ -108,7 +145,7 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
   }
 
   if (poster.rewardEnabled) {
-    page.drawText("Daily stars: ⭐ ⭐ ⭐    Weekly badge: 🏆", {
+    page.drawText("Daily stars: * * *    Weekly badge", {
       x: margin,
       y: margin + 40,
       size: 9,
@@ -157,7 +194,7 @@ export async function generatePosterPdf(poster: RoutinePosterView, baseUrl?: str
   });
 
   if (poster.parentSignature) {
-    page.drawText(`Signed: ${poster.parentSignature}`, {
+    page.drawText(`Signed: ${toPdfText(poster.parentSignature)}`, {
       x: margin + 56,
       y: margin + 8,
       size: 8,
