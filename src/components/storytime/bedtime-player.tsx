@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StarsBackground } from "@/components/storytime/stars-background";
 import { NarratorPicker, type VoiceProfileOption } from "@/components/storytime/narrator-picker";
+import { VoiceUsageSummary } from "@/components/storytime/voice-usage-summary";
+import type { VoiceUsageSnapshot } from "@/types/voice-usage";
 import { StoryListenButton } from "@/components/story/story-listen-button";
 import { useStoryAudio } from "@/hooks/use-story-audio";
 import { Heart, Moon, Timer, Download } from "lucide-react";
@@ -19,6 +21,7 @@ interface BedtimePlayerProps {
   voices: VoiceProfileOption[];
   isPremium: boolean;
   familyVoiceEnabled?: boolean;
+  voiceUsage?: VoiceUsageSnapshot | null;
   isFavorite: boolean;
   initialNarrator?: { type: "standard" } | { type: "family"; voiceProfileId: string };
   onToggleFavorite: (next: boolean) => void;
@@ -32,6 +35,7 @@ export function BedtimePlayer({
   voices,
   isPremium,
   familyVoiceEnabled,
+  voiceUsage,
   isFavorite,
   initialNarrator,
   onToggleFavorite,
@@ -205,6 +209,10 @@ export function BedtimePlayer({
           premiumLocked={!canUseFamilyVoice}
           variant="bedtime"
         />
+
+        {narrator.type === "family" && voiceUsage && (
+          <VoiceUsageSummary usage={voiceUsage} variant="bedtime" />
+        )}
 
         {voiceEngineHint && (
           <p className="text-[11px] leading-relaxed text-amber-100/90 bg-amber-500/10 border border-amber-200/20 rounded-xl px-3 py-2">

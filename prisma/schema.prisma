@@ -1005,6 +1005,8 @@ model UserUsageQuota {
   chatsToday             Int      @default(0)
   generationsThisMonth   Int      @default(0)
   familyStoriesThisMonth Int      @default(0)
+  familyVoiceGenerationsThisMonth Int @default(0)
+  voiceClonesThisMonth   Int      @default(0)
   lastDailyReset         DateTime @db.Date
   lastMonthlyReset       DateTime @db.Date
   updatedAt              DateTime @updatedAt

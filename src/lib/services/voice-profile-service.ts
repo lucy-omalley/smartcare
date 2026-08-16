@@ -8,6 +8,13 @@ import { getConfiguredVoiceProviderId, getVoiceProvider } from "@/lib/voice/voic
 import { STANDARD_NARRATOR_VOICE } from "@/lib/voice/providers/openai-preset-provider";
 import { CONSENT_VERSION } from "@/lib/voice/types";
 import { assertCanUseFamilyVoice } from "@/lib/storytime/gating";
+import {
+  assertCanCloneVoice,
+  assertCanCreateVoiceProfile,
+  assertCanGenerateFamilyNarration,
+  recordFamilyVoiceGeneration,
+  recordVoiceClone,
+} from "@/lib/storytime/voice-caps";
 import { logAIRequest } from "@/lib/ai/usage";
 import { VOICE_RECORDING_PARAGRAPH_COUNT } from "@/lib/voice/recording-script";
 
@@ -144,6 +151,7 @@ async function synthesizeAndCache(args: {
 
   if (args.voiceProfileId) {
     await assertCanUseFamilyVoice(args.userId);
+    await assertCanGenerateFamilyNarration(args.userId);
     const profile = await ensureFamilyVoiceProfileReady(args.userId, args.voiceProfileId);
     providerId = profile.provider as "openai" | "elevenlabs";
     providerVoiceId = profile.providerVoiceId!;
@@ -160,6 +168,10 @@ async function synthesizeAndCache(args: {
   });
 
   await logAIRequest({ userId: args.userId, feature: "VOICE_NARRATION", resolution: "LLM" });
+
+  if (args.voiceProfileId) {
+    await recordFamilyVoiceGeneration(args.userId);
+  }
 
   await prisma.storyNarration.upsert({
     where: { storyId_narratorKey: { storyId: args.storyId, narratorKey: args.narratorKey } },
@@ -211,6 +223,7 @@ export async function createVoiceProfile(params: {
   if (!params.consentGiven) throw new Error("Consent is required to create a voice profile.");
 
   await assertCanUseFamilyVoice(params.userId);
+  await assertCanCreateVoiceProfile(params.userId);
 
   return prisma.voiceProfile.create({
     data: {
@@ -288,6 +301,11 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
     throw new Error("Please complete at least 6 recording paragraphs before processing.");
   }
 
+  const usesPaidCloning = getConfiguredVoiceProviderId() === "elevenlabs";
+  if (usesPaidCloning) {
+    await assertCanCloneVoice(userId);
+  }
+
   await prisma.voiceProfile.update({
     where: { id: voiceProfileId },
     data: { status: "PROCESSING", processingError: null },
@@ -307,6 +325,10 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
       relationship: profile.relationship,
       samples,
     });
+
+    if (usesPaidCloning) {
+      await recordVoiceClone(userId);
+    }
 
     return prisma.voiceProfile.update({
       where: { id: voiceProfileId },

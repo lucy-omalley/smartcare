@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { BedtimePlayer } from '@/components/storytime/bedtime-player';
 import type { VoiceProfileOption } from '@/components/storytime/narrator-picker';
+import type { VoiceUsageSnapshot } from '@/types/voice-usage';
 import { toast } from 'sonner';
 
 interface Story {
@@ -54,6 +55,7 @@ export default function StoryPlayerPage() {
   const [voices, setVoices] = useState<VoiceProfileOption[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [familyVoiceEnabled, setFamilyVoiceEnabled] = useState(false);
+  const [voiceUsage, setVoiceUsage] = useState<VoiceUsageSnapshot | null>(null);
   const [initialNarrator, setInitialNarrator] = useState<NarratorSelection>({ type: 'standard' });
   const [playerReady, setPlayerReady] = useState(false);
 
@@ -84,6 +86,7 @@ export default function StoryPlayerPage() {
         setVoices(profileList);
         setIsPremium(featRes.features?.isPremium ?? false);
         setFamilyVoiceEnabled(voiceEnabled);
+        setVoiceUsage(featRes.features?.voiceUsage ?? null);
         setInitialNarrator(resolveInitialNarrator(profileList, voiceEnabled, narrRes.settings));
         setPlayerReady(true);
       })
@@ -130,6 +133,7 @@ export default function StoryPlayerPage() {
           voices={voices}
           isPremium={isPremium}
           familyVoiceEnabled={familyVoiceEnabled}
+          voiceUsage={voiceUsage}
           isFavorite={story.isFavorite}
           initialNarrator={initialNarrator}
           onToggleFavorite={toggleFavorite}

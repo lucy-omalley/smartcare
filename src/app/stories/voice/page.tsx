@@ -10,6 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Mic, Plus, Trash2, Sparkles } from 'lucide-react';
 import { RELATIONSHIP_OPTIONS } from '@/lib/voice/recording-script';
+import { VoiceUsageSummary } from '@/components/storytime/voice-usage-summary';
+import type { VoiceUsageSnapshot } from '@/types/voice-usage';
 import { toast } from 'sonner';
 
 interface VoiceProfile {
@@ -28,6 +30,7 @@ export default function VoiceLibraryPage() {
   const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
+  const [voiceUsage, setVoiceUsage] = useState<VoiceUsageSnapshot | null>(null);
 
   const load = () => {
     Promise.all([
@@ -37,6 +40,7 @@ export default function VoiceLibraryPage() {
       .then(([voiceData, featData]) => {
         setProfiles(voiceData.profiles ?? []);
         setIsPremium(featData.features?.familyVoiceEnabled ?? false);
+        setVoiceUsage(featData.features?.voiceUsage ?? null);
       })
       .finally(() => setLoading(false));
   };
@@ -78,6 +82,8 @@ export default function VoiceLibraryPage() {
             {isPremium ? 'Record a new voice' : 'Upgrade to record your voice'}
           </Link>
         </Button>
+
+        {isPremium && <VoiceUsageSummary usage={voiceUsage} />}
 
         {!isPremium && (
           <Card className="rounded-2xl border-primary/20 bg-primary/5">
