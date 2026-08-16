@@ -103,6 +103,7 @@ enum AIFeature {
   FAMILY_STORY
   VOICE_NARRATION
   ROUTINE_GENERATION
+  POSTER_GENERATION
 }
 
 enum VoiceProfileStatus {
@@ -267,6 +268,8 @@ model User {
   visualRoutines      VisualRoutine[]
   routineCompletions  RoutineCompletion[]
   routineSettings     RoutineUserSettings?
+  routinePosters      RoutinePoster[]
+  posterAnalytics     PosterAnalyticsEvent[]
 
   @@index([email])
   @@index([location])
@@ -1272,4 +1275,121 @@ model RoutineUserSettings {
   narratorType      NarratorType @default(STANDARD)
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum PosterTheme {
+  DINOSAUR
+  FIRE_ENGINE
+  SPACE
+  PRINCESS
+  UNICORN
+  ANIMALS
+  CARS
+  CONSTRUCTION
+  OCEAN
+  FAIRY
+  PIRATE
+  SAFARI
+}
+
+enum PosterLayout {
+  A4_PORTRAIT
+  A4_LANDSCAPE
+  A3_POSTER
+  FRIDGE_CARD
+  MINI_TRAVEL
+  WEEKLY_PLANNER
+}
+
+enum PosterCategory {
+  MORNING
+  BEDTIME
+  WEEKEND
+  SCHOOL
+  HOLIDAY
+  CUSTOM
+}
+
+enum PosterParentGoal {
+  INDEPENDENCE
+  CONFIDENCE
+  SPEECH
+  EMOTIONAL_REGULATION
+  HEALTHY_HABITS
+  RESPONSIBILITY
+}
+
+enum PosterQrTarget {
+  TODAY_PLAN
+  TODAY_STORY
+  TODAY_SONG
+  ROUTINE_PLAYER
+}
+
+model RoutinePoster {
+  id                  String              @id @default(cuid())
+  userId              String
+  title               String
+  childName           String?
+  childAge            String?
+  childGender         String?
+  theme               PosterTheme         @default(DINOSAUR)
+  favouriteColours    String[]            @default([])
+  templateType        RoutineTemplateType @default(MORNING)
+  challenge           RoutineChallenge?
+  length              RoutineLength       @default(MEDIUM)
+  parentGoals         PosterParentGoal[]  @default([])
+  layout              PosterLayout        @default(A4_PORTRAIT)
+  category            PosterCategory      @default(CUSTOM)
+  celebrationText     String?
+  rewardEnabled       Boolean             @default(true)
+  parentSignature     String?
+  stickerSpaceEnabled Boolean             @default(true)
+  qrTarget            PosterQrTarget      @default(TODAY_PLAN)
+  linkedRoutineId     String?
+  isAiGenerated       Boolean             @default(false)
+  printCount          Int                 @default(0)
+  qrScanCount         Int                 @default(0)
+  deletedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps               RoutinePosterStep[]
+  analytics           PosterAnalyticsEvent[]
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([userId, category])
+  @@index([theme])
+}
+
+model RoutinePosterStep {
+  id              String        @id @default(cuid())
+  posterId        String
+  orderIndex      Int
+  title           String
+  iconEmoji       String        @default("⭐")
+  illustrationKey String?
+  isStoryTimeStep Boolean       @default(false)
+  isSongStep      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  poster          RoutinePoster @relation(fields: [posterId], references: [id], onDelete: Cascade)
+
+  @@unique([posterId, orderIndex])
+  @@index([posterId])
+}
+
+model PosterAnalyticsEvent {
+  id        String        @id @default(cuid())
+  posterId  String
+  userId    String
+  eventType String
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  poster    RoutinePoster @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([posterId])
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
 }

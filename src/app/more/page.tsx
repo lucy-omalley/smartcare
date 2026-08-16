@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   UtensilsCrossed,
   BookOpen,
+  Printer,
   Puzzle,
   Trophy,
   Brain,
@@ -30,6 +31,7 @@ const MORE_ITEMS = [
   { href: '/memory?filter=milestone', label: 'Milestones', desc: 'Track development milestones', icon: Trophy },
   { href: '/memory', label: 'Memories', desc: 'Family memory timeline', icon: Brain },
   { href: '/routines', label: 'Visual Routine Studio', desc: 'AI visual routines kids can follow', icon: Puzzle },
+  { href: '/posters', label: 'Routine Poster Designer', desc: 'Printable visual routine charts', icon: Printer },
   { href: '/stories', label: 'Family Voice Storytime', desc: 'Stories in your voice for bedtime', icon: BookOpen },
   { href: '/profile?edit=story', label: 'Story Preferences', desc: 'Personalize bedtime stories for your child', icon: BookOpen },
   { href: '/profile?checkin=1', label: 'Parent Check-in', desc: 'Reflect on your parenting week', icon: HeartHandshake },
