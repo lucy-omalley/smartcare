@@ -139,7 +139,7 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
             className="rounded-xl flex-1"
             onClick={() => setTab('export')}
           >
-            Print &amp; export
+            Print
           </Button>
         </div>
 
@@ -155,7 +155,7 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
         ) : (
           <Card className="rounded-2xl print:hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Print-ready export</CardTitle>
+              <CardTitle className="text-base">Print your poster</CardTitle>
             </CardHeader>
             <CardContent>
               <PosterExportPanel
@@ -170,9 +170,27 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
 
       <style jsx global>{`
         @media print {
-          body * { visibility: hidden; }
-          #poster-print-root, #poster-print-root * { visibility: visible; }
-          #poster-print-root { position: absolute; left: 0; top: 0; width: 100%; }
+          @page {
+            margin: 10mm;
+            size: auto;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #poster-print-root,
+          #poster-print-root * {
+            visibility: visible;
+          }
+          #poster-print-root {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
         }
       `}</style>
     </AppShell>

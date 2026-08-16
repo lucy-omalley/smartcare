@@ -22,6 +22,7 @@ export function PosterFlowChart({ poster, className, printMode, qrDataUrl }: Pos
     <div
       className={cn(
         "relative overflow-hidden rounded-2xl shadow-lg",
+        "print:shadow-none print:rounded-none print:max-w-none print:w-full print:overflow-visible",
         printMode && "shadow-none rounded-none",
         className
       )}
