@@ -4,7 +4,9 @@ import type { SubscriptionPlan } from "@prisma/client";
 import { getUserPlan } from "@/lib/ai/usage";
 import { prisma } from "@/lib/db";
 import { getVoiceUsageSnapshot } from "@/lib/storytime/voice-caps";
+import { getConfiguredVoiceProviderId } from "@/lib/voice/voice-service";
 import type { VoiceUsageSnapshot } from "@/types/voice-usage";
+import type { VoiceProviderId } from "@/lib/voice/types";
 
 export const FREE_FAMILY_STORIES_PER_MONTH = 3;
 export const PREMIUM_STORY_LENGTHS = [2, 5, 10, 15] as const;
@@ -20,6 +22,7 @@ export type StorytimePlanFeatures = {
   allowedLengths: readonly number[];
   storiesRemainingThisMonth: number | null;
   voiceUsage: VoiceUsageSnapshot | null;
+  voiceProviderConfigured: VoiceProviderId;
 };
 
 async function ensureQuota(userId: string) {
@@ -66,6 +69,7 @@ export async function getStorytimeFeatures(userId: string): Promise<StorytimePla
       ? null
       : Math.max(0, FREE_FAMILY_STORIES_PER_MONTH - quota.familyStoriesThisMonth),
     voiceUsage,
+    voiceProviderConfigured: getConfiguredVoiceProviderId(),
   };
 }
 

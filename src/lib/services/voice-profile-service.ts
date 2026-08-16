@@ -124,12 +124,8 @@ async function ensureFamilyVoiceProfileReady(userId: string, voiceProfileId: str
   if (!profile) throw new Error("Voice profile not ready");
 
   const configured = getConfiguredVoiceProviderId();
-  if (configured === "elevenlabs" && profile.provider === "openai") {
-    try {
-      profile = await processVoiceProfile(userId, voiceProfileId);
-    } catch {
-      // Fall back to preset voice if ElevenLabs re-clone fails.
-    }
+  if (configured === "elevenlabs" && profile.provider !== "elevenlabs") {
+    profile = await processVoiceProfile(userId, voiceProfileId);
   }
 
   if (!profile.providerVoiceId) throw new Error("Voice profile not ready");
@@ -204,6 +200,7 @@ export async function listVoiceProfiles(userId: string) {
       relationship: true,
       avatarEmoji: true,
       status: true,
+      provider: true,
       recordingCount: true,
       consentGivenAt: true,
       createdAt: true,
@@ -312,7 +309,8 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
   });
 
   try {
-    const provider = getVoiceProvider(profile.provider as "openai" | "elevenlabs");
+    const providerId = getConfiguredVoiceProviderId();
+    const provider = getVoiceProvider(providerId);
     const samples = profile.samples.map((s) => ({
       index: s.paragraphIndex,
       audio: decryptVoiceBuffer(Buffer.from(s.encryptedData)),
