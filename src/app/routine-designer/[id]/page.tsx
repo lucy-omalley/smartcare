@@ -191,10 +191,16 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
             left: 0;
             top: 0;
             width: 100%;
+            height: auto;
             display: flex;
             justify-content: center;
+            overflow: visible;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+          }
+          #poster-print-root * {
+            overflow: visible !important;
+            max-height: none !important;
           }
         }
       `}</style>
