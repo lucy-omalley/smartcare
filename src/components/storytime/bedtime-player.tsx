@@ -75,7 +75,7 @@ export function BedtimePlayer({
       const engine = res.headers.get("X-Parenfy-Voice-Engine");
       if (engine === "openai-preset") {
         setVoiceEngineHint(
-          "Using a similar AI voice for your profile — it should sound different from the Original narrator. Exact voice cloning requires the narration engine to be fully enabled."
+          "This story is using a preset AI voice. Open Voice library and tap Clone my voice to upgrade to your real ElevenLabs narration."
         );
       } else if (engine === "elevenlabs") {
         setVoiceEngineHint(null);

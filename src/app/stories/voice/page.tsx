@@ -8,7 +8,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mic, Plus, Trash2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mic, Plus, Trash2, Sparkles, Loader2, Wand2 } from 'lucide-react';
 import { RELATIONSHIP_OPTIONS } from '@/lib/voice/recording-script';
 import { VoiceUsageSummary } from '@/components/storytime/voice-usage-summary';
 import type { VoiceUsageSnapshot } from '@/types/voice-usage';
@@ -20,7 +20,9 @@ interface VoiceProfile {
   relationship: string;
   avatarEmoji: string;
   status: string;
+  provider?: string;
   recordingCount: number;
+  processingError?: string | null;
   createdAt: string;
 }
 
@@ -31,6 +33,8 @@ export default function VoiceLibraryPage() {
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [voiceUsage, setVoiceUsage] = useState<VoiceUsageSnapshot | null>(null);
+  const [voiceProviderConfigured, setVoiceProviderConfigured] = useState<'openai' | 'elevenlabs'>('openai');
+  const [upgradingId, setUpgradingId] = useState<string | null>(null);
 
   const load = () => {
     Promise.all([
@@ -41,6 +45,7 @@ export default function VoiceLibraryPage() {
         setProfiles(voiceData.profiles ?? []);
         setIsPremium(featData.features?.familyVoiceEnabled ?? false);
         setVoiceUsage(featData.features?.voiceUsage ?? null);
+        setVoiceProviderConfigured(featData.features?.voiceProviderConfigured ?? 'openai');
       })
       .finally(() => setLoading(false));
   };
@@ -61,7 +66,27 @@ export default function VoiceLibraryPage() {
     load();
   };
 
+  const upgradeToElevenLabs = async (id: string) => {
+    setUpgradingId(id);
+    try {
+      const res = await fetch(`/api/voice/profiles/${id}/process`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Could not upgrade voice');
+      toast.success('Voice upgraded — stories will now use your cloned voice.');
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not upgrade voice');
+    } finally {
+      setUpgradingId(null);
+    }
+  };
+
   const relLabel = (r: string) => RELATIONSHIP_OPTIONS.find((o) => o.value === r)?.label ?? r;
+
+  const needsElevenLabsUpgrade = (p: VoiceProfile) =>
+    voiceProviderConfigured === 'elevenlabs' &&
+    p.status === 'READY' &&
+    p.provider !== 'elevenlabs';
 
   return (
     <AppShell>
@@ -75,6 +100,18 @@ export default function VoiceLibraryPage() {
             <p className="text-xs text-muted-foreground">Family voices for bedtime stories</p>
           </div>
         </div>
+
+        {isPremium && (
+          <div className="rounded-xl border border-dashed px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+            Narration engine:{' '}
+            <strong className="text-foreground">
+              {voiceProviderConfigured === 'elevenlabs' ? 'ElevenLabs (real voice clone)' : 'OpenAI presets (similar voice)'}
+            </strong>
+            {voiceProviderConfigured !== 'elevenlabs' && (
+              <span> — add <code className="text-[10px]">ELEVENLABS_API_KEY</code> in Vercel and redeploy for true cloning.</span>
+            )}
+          </div>
+        )}
 
         <Button asChild className="w-full rounded-xl" disabled={!isPremium}>
           <Link href={isPremium ? '/stories/voice/record' : '/billing'}>
@@ -109,11 +146,39 @@ export default function VoiceLibraryPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{relLabel(p.relationship)}</p>
-                  <Badge variant={p.status === 'READY' ? 'default' : 'secondary'} className="mt-1 text-[10px] rounded-full">
-                    {p.status === 'READY' ? 'Ready' : p.status.toLowerCase()}
-                  </Badge>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Badge variant={p.status === 'READY' ? 'default' : 'secondary'} className="text-[10px] rounded-full">
+                      {p.status === 'READY' ? 'Ready' : p.status.toLowerCase()}
+                    </Badge>
+                    {p.status === 'READY' && (
+                      <Badge variant="outline" className="text-[10px] rounded-full">
+                        {p.provider === 'elevenlabs' ? 'Your cloned voice' : 'Preset voice'}
+                      </Badge>
+                    )}
+                  </div>
+                  {p.processingError && (
+                    <p className="text-[10px] text-destructive mt-1 leading-relaxed">{p.processingError}</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
+                  {needsElevenLabsUpgrade(p) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full text-xs"
+                      disabled={upgradingId === p.id}
+                      onClick={() => upgradeToElevenLabs(p.id)}
+                    >
+                      {upgradingId === p.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Wand2 className="h-3 w-3 mr-1" />
+                          Clone my voice
+                        </>
+                      )}
+                    </Button>
+                  )}
                   {p.status === 'READY' && (
                     <Button size="sm" className="rounded-full text-xs" asChild>
                       <Link href="/stories/create">
