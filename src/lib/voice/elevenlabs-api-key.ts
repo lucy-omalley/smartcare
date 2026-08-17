@@ -47,7 +47,7 @@ export function formatElevenLabsAuthError(detail: unknown): string {
 
   if (message?.toLowerCase().includes("invalid api key")) {
     return (
-      "ElevenLabs rejected the API key. In Vercel → Environment Variables, replace ELEVENLABS_API_KEY with a fresh key from elevenlabs.io/app/settings/api-keys (no quotes), then redeploy."
+      "ElevenLabs rejected the API key. Create a new key at elevenlabs.io/app/settings/api-keys: copy the full key when it is first shown, turn off “Restrict Key” (or enable Voices + Text to Speech), paste into Vercel as ELEVENLABS_API_KEY with no quotes, tick Production, then Redeploy."
     );
   }
 
