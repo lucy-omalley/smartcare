@@ -19,6 +19,8 @@ export function resolveModelForFeature(feature: AIFeature): { model: string; tie
     case "ROUTINE_GENERATION":
     case "POSTER_GENERATION":
     case "ADVENTURE_GENERATION":
+    case "TOY_BRAIN_IDENTIFY":
+    case "TOY_BRAIN_PLAY_IDEAS":
     default:
       return { model: FAST_MODEL, tier: "fast" };
   }

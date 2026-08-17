@@ -16,6 +16,7 @@ import {
   BookOpen,
   LayoutGrid,
   Printer,
+  Brain,
 } from "lucide-react";
 
 const NAV = [
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/admin/founder/storytime", label: "Storytime", icon: BookOpen },
   { href: "/admin/founder/routines", label: "Routines", icon: LayoutGrid },
   { href: "/admin/founder/posters", label: "Adventure Journey", icon: Printer },
+  { href: "/admin/founder/toy-brain", label: "Toy Brain", icon: Brain },
   { href: "/admin/founder/retention", label: "Retention", icon: TrendingUp },
   { href: "/admin/founder/ai", label: "AI", icon: Sparkles },
   { href: "/admin/founder/errors", label: "Errors", icon: AlertTriangle },

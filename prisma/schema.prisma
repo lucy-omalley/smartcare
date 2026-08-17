@@ -105,6 +105,8 @@ enum AIFeature {
   ROUTINE_GENERATION
   POSTER_GENERATION
   ADVENTURE_GENERATION
+  TOY_BRAIN_IDENTIFY
+  TOY_BRAIN_PLAY_IDEAS
 }
 
 enum VoiceProfileStatus {
@@ -271,6 +273,8 @@ model User {
   routineSettings     RoutineUserSettings?
   routinePosters      RoutinePoster[]
   posterAnalytics     PosterAnalyticsEvent[]
+  toyProfiles         ToyProfile[]
+  toyAnalytics        ToyAnalyticsEvent[]
 
   @@index([email])
   @@index([location])
@@ -1015,6 +1019,7 @@ model UserUsageQuota {
   familyStoriesThisMonth Int      @default(0)
   familyVoiceGenerationsThisMonth Int @default(0)
   voiceClonesThisMonth   Int      @default(0)
+  toyScansThisMonth      Int      @default(0)
   lastDailyReset         DateTime @db.Date
   lastMonthlyReset       DateTime @db.Date
   updatedAt              DateTime @updatedAt
@@ -1430,6 +1435,76 @@ model PosterAnalyticsEvent {
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([posterId])
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+}
+
+enum ToyCategory {
+  LEGO
+  DUPLO
+  MAGNETIC_TILES
+  BUILDING_BLOCKS
+  PLAY_DOH
+  TOY_CARS
+  TRAIN_SETS
+  ANIMAL_FIGURES
+  KITCHEN_SETS
+  PUZZLE
+  BOOKS
+  MUSICAL_TOYS
+  BALLS
+  ART_SUPPLIES
+  DOLLS
+  PRETEND_PLAY
+  UNKNOWN
+}
+
+enum ToyScanStatus {
+  PENDING
+  IDENTIFIED
+  CONFIRMED
+  MANUAL
+}
+
+model ToyProfile {
+  id              String         @id @default(cuid())
+  userId          String
+  name            String
+  category        ToyCategory    @default(UNKNOWN)
+  confidence      Float?
+  recommendedAge  String?
+  description     String?        @db.Text
+  photoData       String?        @db.Text
+  mimeType        String?
+  isConfirmed     Boolean        @default(false)
+  isFavourite     Boolean        @default(false)
+  activities      Json           @default("[]")
+  addedToTodayAt  DateTime?
+  lastPlayedAt    DateTime?
+  scanStatus      ToyScanStatus  @default(PENDING)
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analytics       ToyAnalyticsEvent[]
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([userId, category])
+  @@index([userId, isFavourite])
+}
+
+model ToyAnalyticsEvent {
+  id        String      @id @default(cuid())
+  toyId     String?
+  userId    String
+  eventType String
+  metadata  Json?
+  createdAt DateTime    @default(now())
+  toy       ToyProfile? @relation(fields: [toyId], references: [id], onDelete: SetNull)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([toyId])
   @@index([userId, createdAt])
   @@index([eventType, createdAt])
 }

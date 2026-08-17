@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AdventureJourneyView, AdventureFeatures, AdventurePageView } from '@/types/adventure-journey';
 import { AdventurePreview } from '@/components/adventure/adventure-preview';
@@ -23,6 +23,8 @@ export default function AdventureEditorPage({ params }: { params: { id: string }
   const [draft, setDraft] = useState<AdventureJourneyView | null>(null);
   const [features, setFeatures] = useState<AdventureFeatures | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [tab, setTab] = useState<'edit' | 'export'>('edit');
 
   useEffect(() => {
@@ -93,7 +95,9 @@ export default function AdventureEditorPage({ params }: { params: { id: string }
       setAdventure(data.poster);
       setDraft(data.poster);
       trackEvent('adventure_edited', { adventureId: params.id });
-      toast.success('Adventure saved');
+      toast.success('Adventure updated successfully');
+      setSaveSuccess(true);
+      window.setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not save');
     } finally {
@@ -115,9 +119,37 @@ export default function AdventureEditorPage({ params }: { params: { id: string }
       if (res.ok) {
         setAdventure(data.poster);
         setDraft(data.poster);
+        toast.success('Adventure updated successfully');
+        setSaveSuccess(true);
+        window.setTimeout(() => setSaveSuccess(false), 4000);
+      } else {
+        toast.error(data.error ?? 'Could not update layout');
       }
     } catch {
-      /* revert on next fetch */
+      toast.error('Could not update layout');
+    }
+  };
+
+  const deleteAdventure = async () => {
+    if (
+      !window.confirm(
+        'Delete this adventure? This cannot be undone, but you can create a new one anytime.'
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/posters/${params.id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Could not delete adventure');
+      trackEvent('adventure_deleted', { adventureId: params.id });
+      toast.success('Adventure deleted');
+      router.push('/adventure-journey');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not delete adventure');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -141,11 +173,31 @@ export default function AdventureEditorPage({ params }: { params: { id: string }
             <Link href="/adventure-journey"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
           <h1 className="text-xl font-bold flex-1 truncate">{draft.title}</h1>
-          <Button size="sm" className="rounded-full" onClick={save} disabled={saving}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full text-destructive hover:text-destructive"
+            onClick={deleteAdventure}
+            disabled={deleting || saving}
+            aria-label="Delete adventure"
+          >
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
+          <Button size="sm" className="rounded-full" onClick={save} disabled={saving || deleting}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             Save
           </Button>
         </div>
+
+        {saveSuccess && (
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200 px-4 py-3 text-sm print:hidden"
+          >
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            Adventure updated successfully
+          </div>
+        )}
 
         <div className="flex justify-center print:block">
           <AdventurePreview adventure={draft} />
@@ -173,10 +225,35 @@ export default function AdventureEditorPage({ params }: { params: { id: string }
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Edit your adventure</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {features && (
                 <AdventureEditor adventure={draft} features={features} onChange={handleEditorChange} />
               )}
+              <Button
+                className="rounded-xl w-full"
+                onClick={save}
+                disabled={saving || deleting}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save changes
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl w-full text-destructive hover:text-destructive"
+                onClick={deleteAdventure}
+                disabled={deleting || saving}
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Delete adventure
+              </Button>
             </CardContent>
           </Card>
         ) : (

@@ -8,11 +8,12 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Plus, Sparkles, Map } from 'lucide-react';
+import { ArrowRight, Plus, Sparkles, Map, Trash2, Loader2 } from 'lucide-react';
 import type { AdventureJourneyView, AdventureFeatures } from '@/types/adventure-journey';
 import { POSTER_CATEGORY_OPTIONS } from '@/lib/posters/constants';
 import { POSTER_THEMES } from '@/lib/posters/themes';
 import { trackEvent } from '@/lib/analytics';
+import { toast } from 'sonner';
 
 export default function AdventureJourneyHubPage() {
   const { status } = useSession();
@@ -20,20 +21,49 @@ export default function AdventureJourneyHubPage() {
   const [adventures, setAdventures] = useState<AdventureJourneyView[]>([]);
   const [features, setFeatures] = useState<AdventureFeatures | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadAdventures = () =>
+    fetch('/api/posters')
+      .then((r) => r.json())
+      .then((listRes) => setAdventures(listRes.posters ?? []));
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/signin');
     if (status !== 'authenticated') return;
 
-    Promise.all([
-      fetch('/api/posters').then((r) => r.json()),
-      fetch('/api/posters/features').then((r) => r.json()),
-    ]).then(([listRes, featRes]) => {
-      setAdventures(listRes.posters ?? []);
-      setFeatures(featRes.features);
-    });
+    Promise.all([loadAdventures(), fetch('/api/posters/features').then((r) => r.json())]).then(
+      ([, featRes]) => {
+        setFeatures(featRes.features);
+      }
+    );
     trackEvent('feature_used', { feature: 'AI Adventure Journey' });
   }, [status, router]);
+
+  const deleteAdventure = async (id: string, title: string) => {
+    if (
+      !window.confirm(`Delete "${title}"? This cannot be undone, but you can create a new adventure anytime.`)
+    ) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/posters/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Could not delete adventure');
+      setAdventures((prev) => prev.filter((a) => a.id !== id));
+      trackEvent('adventure_deleted', { adventureId: id });
+      toast.success('Adventure deleted');
+      if (features && !features.isPremium) {
+        const featRes = await fetch('/api/posters/features').then((r) => r.json());
+        setFeatures(featRes.features);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not delete adventure');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (categoryFilter === 'ALL') return adventures;
@@ -102,10 +132,11 @@ export default function AdventureJourneyHubPage() {
             filtered.map((a) => {
               const theme = POSTER_THEMES[a.theme];
               const pageCount = a.pages?.length ?? a.steps?.length ?? 0;
+              const isDeleting = deletingId === a.id;
               return (
-                <Link key={a.id} href={`/adventure-journey/${a.id}`}>
-                  <Card className="rounded-2xl hover:border-primary/40 transition-colors">
-                    <CardContent className="p-4 flex items-center gap-3">
+                <Card key={a.id} className="rounded-2xl hover:border-primary/40 transition-colors">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Link href={`/adventure-journey/${a.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <span className="text-2xl">{theme?.emoji ?? '✨'}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{a.title}</p>
@@ -114,9 +145,24 @@ export default function AdventureJourneyHubPage() {
                         </p>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </Link>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                      disabled={isDeleting}
+                      aria-label={`Delete ${a.title}`}
+                      onClick={() => deleteAdventure(a.id, a.title)}
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
               );
             })
           )}

@@ -43,11 +43,12 @@ export default withAuth(
     const pathname = request.nextUrl.pathname;
     // Single Permissions-Policy source — next.config must NOT set microphone (duplicate headers block mic).
     const allowMicrophone = pathname.startsWith('/stories/voice');
+    const allowCamera = pathname.startsWith('/toy-brain/scan');
+    const cameraPolicy = allowCamera ? 'camera=(self)' : 'camera=()';
+    const micPolicy = allowMicrophone ? 'microphone=(self)' : 'microphone=()';
     headers.set(
       'Permissions-Policy',
-      allowMicrophone
-        ? 'camera=(), microphone=(self), geolocation=()'
-        : 'camera=(), microphone=(), geolocation=()'
+      `${cameraPolicy}, ${micPolicy}, geolocation=()`
     );
 
     return response;
@@ -78,6 +79,7 @@ export const config = {
     '/routines/:path*',
     '/routine-designer/:path*',
     '/adventure-journey/:path*',
+    '/toy-brain/:path*',
     '/posters/:path*',
     '/learning-plan/:path*',
     '/onboarding/:path*',
