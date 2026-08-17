@@ -79,5 +79,6 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
   }
 
   await deleteAdventureJourney(guard.userId, params.id);
+  await persistAnalyticsEvent("adventure_deleted", guard.userId, { adventureId: params.id });
   return NextResponse.json({ ok: true });
 }

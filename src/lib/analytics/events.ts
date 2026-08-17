@@ -83,6 +83,7 @@ export type AnalyticsEvent =
   | "adventure_printed"
   | "adventure_qr_scanned"
   | "adventure_edited"
+  | "adventure_deleted"
   | "adventure_completed"
   | "adventure_story_played"
   | "adventure_song_played"
