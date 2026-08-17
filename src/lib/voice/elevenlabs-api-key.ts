@@ -45,11 +45,19 @@ export function formatElevenLabsAuthError(detail: unknown): string {
     message = typeof raw === "string" ? raw : null;
   }
 
-  if (message?.toLowerCase().includes("invalid api key")) {
+  const lower = message?.toLowerCase() ?? "";
+
+  if (lower.includes("instant voice cloning") || lower.includes("does not include")) {
+    return (
+      "Your ElevenLabs account needs a paid plan for voice cloning. Upgrade the ElevenLabs account tied to your API key to Starter or above at elevenlabs.io/pricing, then try Clone my voice again. Until then, stories will use a similar preset AI voice."
+    );
+  }
+
+  if (lower.includes("invalid api key")) {
     return (
       "ElevenLabs rejected the API key. Create a new key at elevenlabs.io/app/settings/api-keys: copy the full key when it is first shown, turn off “Restrict Key” (or enable Voices + Text to Speech), paste into Vercel as ELEVENLABS_API_KEY with no quotes, tick Production, then Redeploy."
     );
   }
 
-  return message ?? "ElevenLabs authentication failed. Check ELEVENLABS_API_KEY in Vercel and redeploy.";
+  return message ?? "ElevenLabs request failed. Check your API key and ElevenLabs plan, then try again.";
 }
