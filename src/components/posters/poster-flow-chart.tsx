@@ -11,9 +11,10 @@ interface PosterFlowChartProps {
   className?: string;
   printMode?: boolean;
   qrDataUrl?: string | null;
+  scanBasePath?: string;
 }
 
-export function PosterFlowChart({ poster, className, printMode, qrDataUrl }: PosterFlowChartProps) {
+export function PosterFlowChart({ poster, className, printMode, qrDataUrl, scanBasePath = "/adventure-journey/scan" }: PosterFlowChartProps) {
   const theme = applyColourAccent(getThemeStyle(poster.theme), poster.favouriteColours[0]);
   const layout = POSTER_LAYOUT_META[poster.layout];
   const isCompact = layout.widthMm < 160;
@@ -168,7 +169,7 @@ interface PosterQrProps {
   size?: number;
 }
 
-export function PosterQr({ posterId, size = 120 }: PosterQrProps) {
+export function PosterQr({ posterId, size = 120, scanBasePath = "/adventure-journey/scan" }: PosterQrProps & { scanBasePath?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -176,7 +177,7 @@ export function PosterQr({ posterId, size = 120 }: PosterQrProps) {
     (async () => {
       const QRCode = (await import("qrcode")).default;
       const base = window.location.origin;
-      const url = `${base}/routine-designer/scan/${posterId}`;
+      const url = `${base}${scanBasePath}/${posterId}`;
       const canvas = canvasRef.current;
       if (!canvas || cancelled) return;
       await QRCode.toCanvas(canvas, url, { width: size, margin: 1 });
@@ -184,26 +185,34 @@ export function PosterQr({ posterId, size = 120 }: PosterQrProps) {
     return () => {
       cancelled = true;
     };
-  }, [posterId, size]);
+  }, [posterId, size, scanBasePath]);
 
   return <canvas ref={canvasRef} className="rounded-lg bg-white p-1" aria-label="QR code" />;
 }
 
-export function PosterPreviewWithQr({ poster, printMode }: { poster: RoutinePosterView; printMode?: boolean }) {
+export function PosterPreviewWithQr({
+  poster,
+  printMode,
+  scanBasePath = "/adventure-journey/scan",
+}: {
+  poster: RoutinePosterView;
+  printMode?: boolean;
+  scanBasePath?: string;
+}) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const QRCode = (await import("qrcode")).default;
-      const url = `${window.location.origin}/routine-designer/scan/${poster.id}`;
+      const url = `${window.location.origin}${scanBasePath}/${poster.id}`;
       const dataUrl = await QRCode.toDataURL(url, { width: 120, margin: 1 });
       if (!cancelled) setQrDataUrl(dataUrl);
     })();
     return () => {
       cancelled = true;
     };
-  }, [poster.id]);
+  }, [poster.id, scanBasePath]);
 
   return (
     <div id="poster-print-root">

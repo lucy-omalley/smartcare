@@ -16,7 +16,9 @@ import { getThemeStyle } from "@/lib/posters/themes";
 import { buildTemplateRoutine } from "@/lib/routines/templates";
 import { stepCountForLength } from "@/lib/routines/constants";
 import { categoryForTemplate } from "@/lib/posters/constants";
-import type { GeneratePosterInput, GeneratedPosterPayload, RoutinePosterView } from "@/types/routine-poster";
+import type { GeneratedPosterPayload, LegacyGeneratePosterInput, RoutinePosterView } from "@/types/routine-poster";
+
+type GeneratePosterInput = LegacyGeneratePosterInput;
 
 const SYSTEM = posterGenerationSystemPrompt(
   `Design vertical flow-chart poster steps. Each step needs ONE large emoji and 2-4 word title.
@@ -30,17 +32,44 @@ function toView(
       id: string;
       orderIndex: number;
       title: string;
+      storyText: string | null;
+      missionLabel: string | null;
       iconEmoji: string;
       illustrationKey: string | null;
+      rewardStars: number;
+      pageQrTarget: RoutinePoster["qrTarget"] | null;
       isStoryTimeStep: boolean;
       isSongStep: boolean;
     }>;
   }
 ): RoutinePosterView {
+  const pageViews = poster.steps
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map((s) => ({
+      id: s.id,
+      orderIndex: s.orderIndex,
+      title: s.title,
+      storyText: s.storyText,
+      missionLabel: s.missionLabel ?? s.title,
+      iconEmoji: s.iconEmoji,
+      illustrationKey: s.illustrationKey,
+      rewardStars: s.rewardStars ?? 1,
+      pageQrTarget: s.pageQrTarget,
+      isStoryTimeStep: s.isStoryTimeStep,
+      isSongStep: s.isSongStep,
+    }));
+  const totalRewardStars = pageViews.reduce((sum, p) => sum + (p.rewardStars ?? 1), 0);
   return {
     id: poster.id,
     title: poster.title,
     routineGoal: poster.routineGoal,
+    characterName: poster.characterName,
+    storyIntro: poster.storyIntro,
+    storyEnding: poster.storyEnding,
+    storyTheme: poster.storyTheme,
+    adventureFormat: poster.adventureFormat,
+    totalRewardStars: poster.totalRewardStars || totalRewardStars,
+    adventurePoints: poster.adventurePoints || totalRewardStars * 10,
     childName: poster.childName,
     childAge: poster.childAge,
     childGender: poster.childGender,
@@ -64,17 +93,8 @@ function toView(
     qrScanCount: poster.qrScanCount,
     createdAt: poster.createdAt.toISOString(),
     updatedAt: poster.updatedAt.toISOString(),
-    steps: poster.steps
-      .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map((s) => ({
-        id: s.id,
-        orderIndex: s.orderIndex,
-        title: s.title,
-        iconEmoji: s.iconEmoji,
-        illustrationKey: s.illustrationKey,
-        isStoryTimeStep: s.isStoryTimeStep,
-        isSongStep: s.isSongStep,
-      })),
+    pages: pageViews,
+    steps: pageViews,
   };
 }
 

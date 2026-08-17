@@ -72,12 +72,20 @@ export type AnalyticsEvent =
   | "routine_started"
   | "routine_completed"
   | "routine_step_skipped"
-  // Routine Poster Designer
+  // Routine Poster / Adventure Journey
   | "poster_created"
   | "poster_printed"
   | "poster_downloaded"
   | "poster_qr_scanned"
   | "poster_edited"
+  // AI Adventure Journey
+  | "adventure_generated"
+  | "adventure_printed"
+  | "adventure_qr_scanned"
+  | "adventure_edited"
+  | "adventure_completed"
+  | "adventure_story_played"
+  | "adventure_song_played"
   // Meals
   | "meal_viewed"
   | "meal_saved"

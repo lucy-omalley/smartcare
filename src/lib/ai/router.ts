@@ -18,6 +18,7 @@ export function resolveModelForFeature(feature: AIFeature): { model: string; tie
     case "VOICE_NARRATION":
     case "ROUTINE_GENERATION":
     case "POSTER_GENERATION":
+    case "ADVENTURE_GENERATION":
     default:
       return { model: FAST_MODEL, tier: "fast" };
   }

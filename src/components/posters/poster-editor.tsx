@@ -49,8 +49,12 @@ export function PosterEditor({ poster, features, onChange }: PosterEditorProps) 
       id: `temp-${Date.now()}`,
       orderIndex: poster.steps.length,
       title: "New Step",
+      storyText: null,
+      missionLabel: "New Step",
       iconEmoji: "⭐",
       illustrationKey: null,
+      rewardStars: 1,
+      pageQrTarget: null,
       isStoryTimeStep: false,
       isSongStep: false,
     };
