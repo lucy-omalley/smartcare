@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Heart, Search } from 'lucide-react';
+import { ArrowLeft, Heart, Search, Trash2 } from 'lucide-react';
 import { categoryEmoji, categoryLabel } from '@/lib/storytime/constants';
 import type { StoryCategory } from '@prisma/client';
+import { toast } from 'sonner';
 
 interface StoryItem {
   id: string;
@@ -49,6 +50,17 @@ export default function StoryHistoryPage() {
     if (status === 'unauthenticated') router.push('/auth/signin');
     if (status === 'authenticated') load();
   }, [status, router, filter]);
+
+  const deleteStory = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}" permanently?`)) return;
+    const res = await fetch(`/api/storytime/stories/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Could not delete story');
+      return;
+    }
+    toast.success('Story deleted');
+    load();
+  };
 
   return (
     <AppShell>
@@ -100,9 +112,9 @@ export default function StoryHistoryPage() {
             <p className="text-sm text-muted-foreground text-center py-8">No stories yet. Create your first tale!</p>
           ) : (
             stories.map((s) => (
-              <Link key={s.id} href={`/stories/${s.id}`}>
-                <Card className="rounded-2xl mb-2 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-4 flex items-start gap-3">
+              <Card key={s.id} className="rounded-2xl mb-2 hover:border-primary/30 transition-colors">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <Link href={`/stories/${s.id}`} className="flex items-start gap-3 flex-1 min-w-0">
                     <span className="text-xl">{categoryEmoji(s.category)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{s.title}</p>
@@ -115,9 +127,18 @@ export default function StoryHistoryPage() {
                         <p className="text-[10px] text-muted-foreground mt-1">Played {s.playCount}×</p>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </Link>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0 text-destructive"
+                    aria-label={`Delete ${s.title}`}
+                    onClick={() => void deleteStory(s.id, s.title)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </CardContent>
+              </Card>
             ))
           )}
         </section>
