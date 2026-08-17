@@ -8,15 +8,16 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
-import { PosterGeneratorForm } from '@/components/posters/poster-generator-form';
-import type { PosterFeatures } from '@/types/routine-poster';
+import { AdventureGeneratorForm } from '@/components/adventure/adventure-generator-form';
+import type { AdventureFeatures } from '@/types/adventure-journey';
 
-export default function CreateRoutineDesignerPage() {
+export default function CreateAdventureJourneyPage() {
   const { status } = useSession();
   const router = useRouter();
-  const [features, setFeatures] = useState<PosterFeatures | null>(null);
+  const [features, setFeatures] = useState<AdventureFeatures | null>(null);
   const [childName, setChildName] = useState('');
   const [childAge, setChildAge] = useState('');
+  const [interests, setInterests] = useState<string[]>([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/auth/signin');
@@ -29,6 +30,7 @@ export default function CreateRoutineDesignerPage() {
       setFeatures(f.features);
       setChildName(p.profile?.childNickname ?? '');
       setChildAge(p.profile?.childAge ?? '');
+      setInterests(Array.isArray(p.profile?.childInterests) ? p.profile.childInterests : []);
     });
   }, [status, router]);
 
@@ -37,9 +39,9 @@ export default function CreateRoutineDesignerPage() {
       <div className="container max-w-lg mx-auto p-4 space-y-4 pb-24">
         <div className="flex items-center gap-2 pt-2">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href="/routine-designer"><ArrowLeft className="h-4 w-4" /></Link>
+            <Link href="/adventure-journey"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
-          <h1 className="text-xl font-bold">Design a routine</h1>
+          <h1 className="text-xl font-bold">Create adventure</h1>
         </div>
 
         <Card className="rounded-2xl">
@@ -48,10 +50,11 @@ export default function CreateRoutineDesignerPage() {
           </CardHeader>
           <CardContent>
             {features ? (
-              <PosterGeneratorForm
+              <AdventureGeneratorForm
                 features={features}
                 defaultChildName={childName}
                 defaultChildAge={childAge}
+                defaultInterests={interests}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Loading…</p>

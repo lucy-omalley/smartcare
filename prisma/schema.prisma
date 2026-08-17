@@ -104,6 +104,7 @@ enum AIFeature {
   VOICE_NARRATION
   ROUTINE_GENERATION
   POSTER_GENERATION
+  ADVENTURE_GENERATION
 }
 
 enum VoiceProfileStatus {
@@ -1334,11 +1335,36 @@ enum PosterQrTarget {
   ROUTINE_PLAYER
 }
 
+enum AdventureFormat {
+  STORY_BOOK
+  POSTER
+  FLOW_CHART
+  COMIC_STRIP
+  ADVENTURE_CARDS
+}
+
+enum StoryTheme {
+  ADVENTURE
+  MISSION
+  TREASURE_HUNT
+  MAGIC
+  SPACE
+  SAFARI
+  FANTASY
+}
+
 model RoutinePoster {
   id                  String              @id @default(cuid())
   userId              String
   title               String
   routineGoal         String?
+  characterName       String?
+  storyIntro          String?
+  storyEnding         String?
+  storyTheme          StoryTheme          @default(ADVENTURE)
+  adventureFormat     AdventureFormat     @default(STORY_BOOK)
+  totalRewardStars    Int                 @default(0)
+  adventurePoints     Int                 @default(0)
   childName           String?
   childAge            String?
   childGender         String?
@@ -1378,8 +1404,12 @@ model RoutinePosterStep {
   posterId        String
   orderIndex      Int
   title           String
+  storyText       String?
+  missionLabel    String?
   iconEmoji       String        @default("⭐")
   illustrationKey String?
+  rewardStars     Int           @default(1)
+  pageQrTarget    PosterQrTarget?
   isStoryTimeStep Boolean       @default(false)
   isSongStep      Boolean       @default(false)
   createdAt       DateTime      @default(now())

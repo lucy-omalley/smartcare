@@ -44,8 +44,8 @@ export default function FounderPostersPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-xl font-bold">AI Routine Designer</h2>
-        <p className="text-sm text-muted-foreground">Printable routine posters — last 30 days where noted</p>
+        <h2 className="text-xl font-bold">AI Adventure Journey</h2>
+        <p className="text-sm text-muted-foreground">Story adventures & printable routines — last 30 days where noted</p>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

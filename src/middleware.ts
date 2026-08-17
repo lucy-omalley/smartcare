@@ -77,6 +77,7 @@ export const config = {
     '/stories/:path*',
     '/routines/:path*',
     '/routine-designer/:path*',
+    '/adventure-journey/:path*',
     '/posters/:path*',
     '/learning-plan/:path*',
     '/onboarding/:path*',

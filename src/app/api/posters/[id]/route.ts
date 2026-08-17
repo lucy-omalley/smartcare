@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { requireAiSession, aiGuardErrorResponse } from "@/lib/auth/session-guards";
 import { mapAiRouteError } from "@/lib/ai/route-errors";
 import {
-  deleteRoutinePoster,
-  getRoutinePoster,
-  updateRoutinePoster,
-} from "@/lib/services/poster-generator";
+  deleteAdventureJourney,
+  getAdventureJourney,
+  updateAdventureJourney,
+} from "@/lib/services/adventure-generator";
 import { persistAnalyticsEvent } from "@/lib/analytics/persist";
-import type { PosterCategory, PosterLayout, PosterQrTarget, PosterTheme } from "@prisma/client";
+import type {
+  AdventureFormat,
+  PosterCategory,
+  PosterLayout,
+  PosterQrTarget,
+  PosterTheme,
+  StoryTheme,
+} from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +26,8 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
-  const poster = await getRoutinePoster(guard.userId, params.id);
-  if (!poster) return NextResponse.json({ error: "Poster not found." }, { status: 404 });
+  const poster = await getAdventureJourney(guard.userId, params.id);
+  if (!poster) return NextResponse.json({ error: "Adventure not found." }, { status: 404 });
   return NextResponse.json({ poster });
 }
 
@@ -32,10 +39,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   try {
     const body = await request.json();
-    const poster = await updateRoutinePoster(guard.userId, params.id, {
+    const poster = await updateAdventureJourney(guard.userId, params.id, {
       title: body.title,
       routineGoal: body.routineGoal,
-      theme: body.theme,
+      characterName: body.characterName,
+      storyIntro: body.storyIntro,
+      storyEnding: body.storyEnding,
+      storyTheme: body.storyTheme as StoryTheme | undefined,
+      adventureFormat: body.adventureFormat as AdventureFormat | undefined,
+      theme: body.theme as PosterTheme | undefined,
       favouriteColours: body.favouriteColours,
       numberOfChildren: body.numberOfChildren,
       layout: body.layout as PosterLayout | undefined,
@@ -45,11 +57,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       rewardEnabled: body.rewardEnabled,
       stickerSpaceEnabled: body.stickerSpaceEnabled,
       qrTarget: body.qrTarget as PosterQrTarget | undefined,
+      pages: body.pages,
       steps: body.steps,
     });
 
-    if (!poster) return NextResponse.json({ error: "Poster not found." }, { status: 404 });
+    if (!poster) return NextResponse.json({ error: "Adventure not found." }, { status: 404 });
 
+    await persistAnalyticsEvent("adventure_edited", guard.userId, { adventureId: params.id });
     await persistAnalyticsEvent("poster_edited", guard.userId, { posterId: params.id });
     return NextResponse.json({ poster });
   } catch (error) {
@@ -64,6 +78,6 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json(aiGuardErrorResponse(guard), { status: guard.status });
   }
 
-  await deleteRoutinePoster(guard.userId, params.id);
+  await deleteAdventureJourney(guard.userId, params.id);
   return NextResponse.json({ ok: true });
 }

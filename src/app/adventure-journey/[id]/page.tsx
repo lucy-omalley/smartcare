@@ -9,18 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import type { RoutinePosterView, PosterFeatures, PosterStepView } from '@/types/routine-poster';
-import { PosterPreviewWithQr } from '@/components/posters/poster-flow-chart';
-import { PosterEditor } from '@/components/posters/poster-editor';
-import { PosterExportPanel } from '@/components/posters/poster-export-panel';
+import type { AdventureJourneyView, AdventureFeatures, AdventurePageView } from '@/types/adventure-journey';
+import { AdventurePreview } from '@/components/adventure/adventure-preview';
+import { AdventureEditor } from '@/components/adventure/adventure-editor';
+import { AdventureExportPanel } from '@/components/adventure/adventure-export-panel';
 import type { PosterLayout } from '@prisma/client';
+import { trackEvent } from '@/lib/analytics';
 
-export default function PosterEditorPage({ params }: { params: { id: string } }) {
+export default function AdventureEditorPage({ params }: { params: { id: string } }) {
   const { status } = useSession();
   const router = useRouter();
-  const [poster, setPoster] = useState<RoutinePosterView | null>(null);
-  const [draft, setDraft] = useState<RoutinePosterView | null>(null);
-  const [features, setFeatures] = useState<PosterFeatures | null>(null);
+  const [adventure, setAdventure] = useState<AdventureJourneyView | null>(null);
+  const [draft, setDraft] = useState<AdventureJourneyView | null>(null);
+  const [features, setFeatures] = useState<AdventureFeatures | null>(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<'edit' | 'export'>('edit');
 
@@ -33,7 +34,7 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
       fetch('/api/posters/features').then((r) => r.json()),
     ]).then(([pRes, fRes]) => {
       if (pRes.poster) {
-        setPoster(pRes.poster);
+        setAdventure(pRes.poster);
         setDraft(pRes.poster);
       }
       setFeatures(fRes.features);
@@ -41,8 +42,17 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
   }, [status, router, params.id]);
 
   const handleEditorChange = useCallback(
-    (steps: PosterStepView[], meta?: Partial<RoutinePosterView>) => {
-      setDraft((prev) => (prev ? { ...prev, ...meta, steps } : prev));
+    (pages: AdventurePageView[], meta?: Partial<AdventureJourneyView>) => {
+      setDraft((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...meta,
+              pages,
+              steps: pages,
+            }
+          : prev
+      );
     },
     []
   );
@@ -51,29 +61,39 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
     if (!draft) return;
     setSaving(true);
     try {
+      const pages = draft.pages.length ? draft.pages : draft.steps;
       const res = await fetch(`/api/posters/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: draft.title,
           routineGoal: draft.routineGoal,
+          characterName: draft.characterName,
+          storyIntro: draft.storyIntro,
+          storyEnding: draft.storyEnding,
+          storyTheme: draft.storyTheme,
+          adventureFormat: draft.adventureFormat,
           theme: draft.theme,
           favouriteColours: draft.favouriteColours,
           celebrationText: draft.celebrationText,
           layout: draft.layout,
-          steps: draft.steps.map((s) => ({
-            title: s.title,
-            iconEmoji: s.iconEmoji,
-            isStoryTimeStep: s.isStoryTimeStep,
-            isSongStep: s.isSongStep,
+          pages: pages.map((p) => ({
+            title: p.missionLabel ?? p.title,
+            missionLabel: p.missionLabel ?? p.title,
+            storyText: p.storyText ?? '',
+            iconEmoji: p.iconEmoji,
+            rewardStars: p.rewardStars,
+            isStoryTimeStep: p.isStoryTimeStep,
+            isSongStep: p.isSongStep,
           })),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Save failed');
-      setPoster(data.poster);
+      setAdventure(data.poster);
       setDraft(data.poster);
-      toast.success('Poster saved');
+      trackEvent('adventure_edited', { adventureId: params.id });
+      toast.success('Adventure saved');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not save');
     } finally {
@@ -93,11 +113,11 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
       });
       const data = await res.json();
       if (res.ok) {
-        setPoster(data.poster);
+        setAdventure(data.poster);
         setDraft(data.poster);
       }
     } catch {
-      /* layout revert on error handled by next fetch */
+      /* revert on next fetch */
     }
   };
 
@@ -111,14 +131,16 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
     );
   }
 
+  const printRootId = draft.adventureFormat === 'STORY_BOOK' ? 'adventure-print-root' : 'adventure-print-root';
+
   return (
     <AppShell>
       <div className="container max-w-lg mx-auto p-4 space-y-4 pb-24 print:p-0">
         <div className="flex items-center gap-2 pt-2 print:hidden">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href="/routine-designer"><ArrowLeft className="h-4 w-4" /></Link>
+            <Link href="/adventure-journey"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
-          <h1 className="text-xl font-bold flex-1 truncate">Your routine poster</h1>
+          <h1 className="text-xl font-bold flex-1 truncate">{draft.title}</h1>
           <Button size="sm" className="rounded-full" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             Save
@@ -126,7 +148,7 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
         </div>
 
         <div className="flex justify-center print:block">
-          <PosterPreviewWithQr poster={draft} />
+          <AdventurePreview adventure={draft} />
         </div>
 
         <div className="flex gap-2 print:hidden">
@@ -135,7 +157,7 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
             className="rounded-xl flex-1"
             onClick={() => setTab('edit')}
           >
-            Edit steps
+            Edit story
           </Button>
           <Button
             variant={tab === 'export' ? 'default' : 'outline'}
@@ -149,22 +171,22 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
         {tab === 'edit' ? (
           <Card className="rounded-2xl print:hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Edit your routine</CardTitle>
+              <CardTitle className="text-base">Edit your adventure</CardTitle>
             </CardHeader>
             <CardContent>
               {features && (
-                <PosterEditor poster={draft} features={features} onChange={handleEditorChange} />
+                <AdventureEditor adventure={draft} features={features} onChange={handleEditorChange} />
               )}
             </CardContent>
           </Card>
         ) : (
           <Card className="rounded-2xl print:hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Print your poster</CardTitle>
+              <CardTitle className="text-base">Print your adventure</CardTitle>
             </CardHeader>
             <CardContent>
-              <PosterExportPanel
-                poster={draft}
+              <AdventureExportPanel
+                adventure={draft}
                 onLayoutChange={updateLayout}
                 isPremium={features?.isPremium ?? false}
               />
@@ -182,19 +204,26 @@ export default function PosterEditorPage({ params }: { params: { id: string } })
           body * {
             visibility: hidden;
           }
-          #poster-print-root,
-          #poster-print-root * {
+          #${printRootId},
+          #${printRootId} * {
             visibility: visible;
           }
-          #poster-print-root {
+          #${printRootId} {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
+            height: auto;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            overflow: visible;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+          }
+          #${printRootId} * {
+            overflow: visible !important;
+            max-height: none !important;
           }
         }
       `}</style>
