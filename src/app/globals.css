@@ -97,4 +97,50 @@
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
+
+  /* Landing V2 — lightweight CSS animations (no JS, respects reduced motion) */
+  @keyframes landing-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes landing-pulse-soft {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .landing-fade-up {
+    animation: landing-fade-up 0.7s ease-out both;
+  }
+
+  .landing-pulse-soft {
+    animation: landing-pulse-soft 2s ease-in-out infinite;
+  }
+
+  .landing-delay-1 { animation-delay: 0.05s; }
+  .landing-delay-2 { animation-delay: 0.12s; }
+  .landing-delay-3 { animation-delay: 0.2s; }
+  .landing-delay-4 { animation-delay: 0.28s; }
+  .landing-delay-5 { animation-delay: 0.36s; }
+  .landing-delay-6 { animation-delay: 0.44s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-fade-up,
+    .landing-pulse-soft {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
