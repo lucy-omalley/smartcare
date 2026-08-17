@@ -36,7 +36,7 @@ export const HERO = {
 export const TRUST_BADGES = [
   "Free to Start",
   "Multiple Child Profiles",
-  "Designed for Children Aged 2–6",
+  "Designed for Children Aged 0–6",
   "Privacy First",
 ] as const;
 
@@ -240,7 +240,7 @@ export const FAQ_V2 = [
   {
     question: "What age is Parenfy for?",
     answer:
-      "Parenfy is designed for families with children aged 2–6, though many parents use activities and stories flexibly for slightly older siblings too.",
+      "Parenfy is designed for families with children aged 0–6, though many parents use activities and stories flexibly for slightly older siblings too.",
   },
   {
     question: "Can I add multiple children?",
