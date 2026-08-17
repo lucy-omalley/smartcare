@@ -49,6 +49,7 @@ import { TodayWowDashboard } from '@/components/today/today-wow-dashboard';
 import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
 import { StorytimePromoCard } from '@/components/storytime/storytime-promo-card';
 import { AdventureJourneyPromoCard } from '@/components/adventure/adventure-journey-promo-card';
+import { ToyBrainPromoCard } from '@/components/toy-brain/toy-brain-promo-card';
 
 const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
 
@@ -733,6 +734,7 @@ export default function TodayPage() {
               />
               <StorytimePromoCard childName={childName} compact />
               <AdventureJourneyPromoCard childName={childName} compact />
+              <ToyBrainPromoCard childName={childName} compact />
               {languageSection && (
                 <TodayPlanCard
                   emoji="💬"

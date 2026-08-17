@@ -87,6 +87,15 @@ export type AnalyticsEvent =
   | "adventure_completed"
   | "adventure_story_played"
   | "adventure_song_played"
+  // AI Toy Brain
+  | "toy_brain_scanned"
+  | "toy_brain_confirmed"
+  | "toy_brain_manual_added"
+  | "toy_brain_updated"
+  | "toy_brain_deleted"
+  | "toy_brain_favourited"
+  | "toy_brain_added_to_today"
+  | "toy_brain_activity_printed"
   // Meals
   | "meal_viewed"
   | "meal_saved"
