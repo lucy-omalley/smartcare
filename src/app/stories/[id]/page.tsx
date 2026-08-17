@@ -111,6 +111,17 @@ export default function StoryPlayerPage() {
     }
   }, [storyId]);
 
+  const deleteStory = useCallback(async () => {
+    if (!confirm('Delete this story permanently? This cannot be undone.')) return;
+    const res = await fetch(`/api/storytime/stories/${storyId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Could not delete story');
+      return;
+    }
+    toast.success('Story deleted');
+    router.push('/stories/history');
+  }, [storyId, router]);
+
   if (!story || !playerReady) {
     return (
       <AppShell>
@@ -140,6 +151,7 @@ export default function StoryPlayerPage() {
           isFavorite={story.isFavorite}
           initialNarrator={initialNarrator}
           onToggleFavorite={toggleFavorite}
+          onDelete={deleteStory}
         />
       </div>
     </AppShell>

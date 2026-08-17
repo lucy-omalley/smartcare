@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { StarsBackground } from "@/components/storytime/stars-background";
 import { NarratorPicker, type VoiceProfileOption } from "@/components/storytime/narrator-picker";
@@ -9,7 +9,13 @@ import { VoiceUsageSummary } from "@/components/storytime/voice-usage-summary";
 import type { VoiceUsageSnapshot } from "@/types/voice-usage";
 import { StoryListenButton } from "@/components/story/story-listen-button";
 import { useStoryAudio } from "@/hooks/use-story-audio";
-import { Heart, Moon, Timer, Download } from "lucide-react";
+import {
+  getCachedFamilyStoryAudio,
+  getFamilyStoryAudioFetch,
+  prefetchFamilyStoryAudio,
+  type FamilyNarratorSelection,
+} from "@/lib/family-story-audio-prefetch";
+import { Heart, Moon, Timer, Download, Trash2 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,8 +31,29 @@ interface BedtimePlayerProps {
   voiceProviderConfigured?: "openai" | "elevenlabs";
   voiceUsage?: VoiceUsageSnapshot | null;
   isFavorite: boolean;
-  initialNarrator?: { type: "standard" } | { type: "family"; voiceProfileId: string };
+  initialNarrator?: FamilyNarratorSelection;
   onToggleFavorite: (next: boolean) => void;
+  onDelete?: () => void | Promise<void>;
+}
+
+function applyVoiceEngineHint(
+  engine: string | null,
+  selection: FamilyNarratorSelection,
+  setVoiceEngineHint: (hint: string | null) => void,
+  cloneConfirmedRef: MutableRefObject<string | null>
+) {
+  if (engine === "openai-preset") {
+    setVoiceEngineHint(
+      "This story is using a preset AI voice. Open Voice library and tap Clone my voice to upgrade to your real ElevenLabs narration."
+    );
+  } else if (engine === "elevenlabs") {
+    if (selection.type === "family") {
+      cloneConfirmedRef.current = selection.voiceProfileId;
+    }
+    setVoiceEngineHint(null);
+  } else {
+    setVoiceEngineHint(null);
+  }
 }
 
 export function BedtimePlayer({
@@ -42,11 +69,14 @@ export function BedtimePlayer({
   isFavorite,
   initialNarrator,
   onToggleFavorite,
+  onDelete,
 }: BedtimePlayerProps) {
-  const [narrator, setNarrator] = useState(initialNarrator ?? { type: "standard" as const });
+  const [narrator, setNarrator] = useState<FamilyNarratorSelection>(initialNarrator ?? { type: "standard" });
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
-  const [showText, setShowText] = useState(false);
+  const [showText, setShowText] = useState(true);
   const [voiceEngineHint, setVoiceEngineHint] = useState<string | null>(null);
+  const [prefetching, setPrefetching] = useState(false);
+  const [audioCached, setAudioCached] = useState(false);
   const playStartedRef = useRef(false);
   const cloneConfirmedRef = useRef<string | null>(null);
   const narratorRef = useRef(narrator);
@@ -88,40 +118,37 @@ export function BedtimePlayer({
     setVoiceEngineHint(message);
   }, [presetVoiceSelected, voiceProviderConfigured, selectedFamilyVoice?.id, narrator]);
 
+  useEffect(() => {
+    const cached = getCachedFamilyStoryAudio(storyId, narrator);
+    setAudioCached(!!cached);
+    if (cached) {
+      applyVoiceEngineHint(cached.voiceEngine, narrator, setVoiceEngineHint, cloneConfirmedRef);
+      return;
+    }
+
+    setPrefetching(true);
+    prefetchFamilyStoryAudio(storyId, narrator)
+      .then((entry) => {
+        setAudioCached(true);
+        applyVoiceEngineHint(entry.voiceEngine, narrator, setVoiceEngineHint, cloneConfirmedRef);
+      })
+      .catch(() => {
+        setAudioCached(false);
+      })
+      .finally(() => setPrefetching(false));
+  }, [storyId, narrator]);
+
   const fetchNarration = useCallback(
     async (signal?: AbortSignal) => {
       const selection = narratorRef.current;
-      const url =
-        selection.type === "family"
-          ? `/api/storytime/stories/${storyId}/audio?voiceProfileId=${encodeURIComponent(selection.voiceProfileId)}`
-          : `/api/storytime/stories/${storyId}/audio`;
-
-      const res = await fetch(url, { signal, cache: "no-store" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? "Could not load narration");
-      }
-
-      const engine = res.headers.get("X-Parenfy-Voice-Engine");
-      if (engine === "openai-preset") {
-        setVoiceEngineHint(
-          "This story is using a preset AI voice. Open Voice library and tap Clone my voice to upgrade to your real ElevenLabs narration."
-        );
-      } else if (engine === "elevenlabs") {
-        if (selection.type === "family") {
-          cloneConfirmedRef.current = selection.voiceProfileId;
-        }
-        setVoiceEngineHint(null);
-      } else {
-        setVoiceEngineHint(null);
-      }
-
-      return res.blob();
+      const { blob, voiceEngine } = await getFamilyStoryAudioFetch(storyId, selection, signal);
+      applyVoiceEngineHint(voiceEngine, selection, setVoiceEngineHint, cloneConfirmedRef);
+      return blob;
     },
     [storyId]
   );
 
-  const saveNarrator = useCallback(async (selection: typeof narrator) => {
+  const saveNarrator = useCallback(async (selection: FamilyNarratorSelection) => {
     await fetch("/api/storytime/narrator", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -133,9 +160,10 @@ export function BedtimePlayer({
     });
   }, []);
 
-  const handleNarratorChange = (selection: typeof narrator) => {
+  const handleNarratorChange = (selection: FamilyNarratorSelection) => {
     cloneConfirmedRef.current = null;
     setNarrator(selection);
+    setAudioCached(false);
     void saveNarrator(selection);
     storyAudio.stop();
     setVoiceEngineHint(null);
@@ -198,7 +226,7 @@ export function BedtimePlayer({
 
   const downloadAudio = async () => {
     try {
-      const blob = await fetchNarration();
+      const { blob } = await getFamilyStoryAudioFetch(storyId, narratorRef.current);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -209,6 +237,15 @@ export function BedtimePlayer({
       toast.error(err instanceof Error ? err.message : "Download failed");
     }
   };
+
+  const listenLoading = storyAudio.isLoading || (prefetching && !audioCached);
+  const listenHint = listenLoading
+    ? audioCached
+      ? "Starting playback…"
+      : "Preparing narration — first listen may take up to a minute…"
+    : audioCached
+      ? "Ready — tap to listen"
+      : "Tap to listen";
 
   return (
     <div className={cn("relative min-h-[70vh] rounded-3xl overflow-hidden text-indigo-50")} style={{ background: "linear-gradient(180deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%)" }}>
@@ -228,13 +265,30 @@ export function BedtimePlayer({
                 <Download className="h-4 w-4" />
               </Button>
             )}
+            {onDelete && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-indigo-100 hover:bg-white/10 hover:text-rose-200 rounded-full"
+                onClick={() => void onDelete()}
+                aria-label="Delete story"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="text-center space-y-2 pt-4">
+        <div className="text-center space-y-2 pt-2">
           <h1 className="text-2xl font-bold leading-snug">{title}</h1>
           {moralTheme && <p className="text-xs opacity-75">💡 {moralTheme}</p>}
         </div>
+
+        {showText && (
+          <div className="rounded-2xl bg-black/20 p-4 text-sm leading-relaxed max-h-56 overflow-y-auto whitespace-pre-line">
+            {storyText}
+          </div>
+        )}
 
         <NarratorPicker
           value={narrator}
@@ -257,20 +311,15 @@ export function BedtimePlayer({
           </p>
         )}
 
-        {narrator.type === "family" && storyAudio.isLoading && (
-          <p className="text-center text-xs text-indigo-200/80">
-            Preparing narration in your family voice…
-          </p>
-        )}
-
-        <div className="flex flex-col items-center gap-4 py-6">
+        <div className="flex flex-col items-center gap-3 py-4">
           <StoryListenButton
             active={storyAudio.isActive}
+            loading={listenLoading && !storyAudio.isPlaying}
             onToggle={handleListen}
             className="scale-125 rounded-full h-14 px-8 text-base"
             size="default"
           />
-          <p className="text-xs opacity-70">Tap to listen</p>
+          <p className="text-xs opacity-70 text-center px-4">{listenHint}</p>
         </div>
 
         <div className="flex items-center justify-center gap-2">
@@ -295,14 +344,8 @@ export function BedtimePlayer({
           className="w-full text-indigo-200 hover:bg-white/10 rounded-xl text-xs"
           onClick={() => setShowText((s) => !s)}
         >
-          {showText ? "Hide story text" : "Read along"}
+          {showText ? "Hide story text" : "Show story text"}
         </Button>
-
-        {showText && (
-          <div className="rounded-2xl bg-black/20 p-4 text-sm leading-relaxed max-h-48 overflow-y-auto whitespace-pre-line">
-            {storyText}
-          </div>
-        )}
       </div>
     </div>
   );
