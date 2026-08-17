@@ -9,6 +9,7 @@ export interface VoiceProfileOption {
   relationship: string;
   avatarEmoji: string;
   status: string;
+  provider?: string;
 }
 
 interface NarratorPickerProps {
@@ -114,6 +115,7 @@ export function NarratorPicker({
               <p className="text-sm font-medium mt-1">{voice.name}</p>
               <p className={cn("text-[10px] capitalize", isBedtime ? "text-indigo-200/70" : "text-muted-foreground")}>
                 {voice.relationship.toLowerCase()}
+                {voice.provider && voice.provider !== "elevenlabs" ? " · preset" : voice.provider === "elevenlabs" ? " · cloned" : ""}
               </p>
             </button>
           );

@@ -20,7 +20,11 @@ import { VOICE_RECORDING_PARAGRAPH_COUNT } from "@/lib/voice/recording-script";
 
 const inflight = new Map<string, Promise<Buffer>>();
 
-const NARRATION_CACHE_VERSION = "v2";
+const NARRATION_CACHE_VERSION = "v3";
+
+async function invalidateNarrationsForVoiceProfile(voiceProfileId: string) {
+  await prisma.storyNarration.deleteMany({ where: { voiceProfileId } });
+}
 
 export function buildNarratorKey(voiceProfileId: string | null): string {
   return voiceProfileId ?? "standard";
@@ -327,6 +331,8 @@ export async function processVoiceProfile(userId: string, voiceProfileId: string
     if (usesPaidCloning) {
       await recordVoiceClone(userId);
     }
+
+    await invalidateNarrationsForVoiceProfile(voiceProfileId);
 
     return prisma.voiceProfile.update({
       where: { id: voiceProfileId },

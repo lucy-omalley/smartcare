@@ -56,6 +56,7 @@ export default function StoryPlayerPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [familyVoiceEnabled, setFamilyVoiceEnabled] = useState(false);
   const [voiceUsage, setVoiceUsage] = useState<VoiceUsageSnapshot | null>(null);
+  const [voiceProviderConfigured, setVoiceProviderConfigured] = useState<'openai' | 'elevenlabs'>('openai');
   const [initialNarrator, setInitialNarrator] = useState<NarratorSelection>({ type: 'standard' });
   const [playerReady, setPlayerReady] = useState(false);
 
@@ -87,6 +88,7 @@ export default function StoryPlayerPage() {
         setIsPremium(featRes.features?.isPremium ?? false);
         setFamilyVoiceEnabled(voiceEnabled);
         setVoiceUsage(featRes.features?.voiceUsage ?? null);
+        setVoiceProviderConfigured(featRes.features?.voiceProviderConfigured ?? 'openai');
         setInitialNarrator(resolveInitialNarrator(profileList, voiceEnabled, narrRes.settings));
         setPlayerReady(true);
       })
@@ -133,6 +135,7 @@ export default function StoryPlayerPage() {
           voices={voices}
           isPremium={isPremium}
           familyVoiceEnabled={familyVoiceEnabled}
+          voiceProviderConfigured={voiceProviderConfigured}
           voiceUsage={voiceUsage}
           isFavorite={story.isFavorite}
           initialNarrator={initialNarrator}
