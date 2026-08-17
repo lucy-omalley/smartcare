@@ -84,9 +84,9 @@ export default function VoiceLibraryPage() {
   const relLabel = (r: string) => RELATIONSHIP_OPTIONS.find((o) => o.value === r)?.label ?? r;
 
   const needsElevenLabsUpgrade = (p: VoiceProfile) =>
-    voiceProviderConfigured === 'elevenlabs' &&
-    p.status === 'READY' &&
-    p.provider !== 'elevenlabs';
+    p.status === 'READY' && p.provider !== 'elevenlabs';
+
+  const hasPresetVoices = profiles.some(needsElevenLabsUpgrade);
 
   return (
     <AppShell>
@@ -100,6 +100,22 @@ export default function VoiceLibraryPage() {
             <p className="text-xs text-muted-foreground">Family voices for bedtime stories</p>
           </div>
         </div>
+
+        {isPremium && hasPresetVoices && (
+          <div className="rounded-xl border border-amber-200/40 bg-amber-50/80 dark:bg-amber-950/30 px-3 py-2.5 text-[11px] text-amber-950 dark:text-amber-100 leading-relaxed">
+            {voiceProviderConfigured === 'elevenlabs' ? (
+              <>
+                <strong>Upgrade to your real voice.</strong> Preset voices sound similar but aren&apos;t your recording.
+                Tap <strong>Clone my voice</strong> on each profile below, or play a story in your family voice — we&apos;ll clone automatically on first listen.
+              </>
+            ) : (
+              <>
+                <strong>Preset voice active.</strong> Stories use a similar AI voice until real cloning is enabled on the server.
+                Ask your admin to add <code className="text-[10px]">ELEVENLABS_API_KEY</code> in Vercel, then tap <strong>Clone my voice</strong> here.
+              </>
+            )}
+          </div>
+        )}
 
         {isPremium && (
           <div className="rounded-xl border border-dashed px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
@@ -166,8 +182,13 @@ export default function VoiceLibraryPage() {
                       size="sm"
                       variant="secondary"
                       className="rounded-full text-xs"
-                      disabled={upgradingId === p.id}
+                      disabled={upgradingId === p.id || voiceProviderConfigured !== 'elevenlabs'}
                       onClick={() => upgradeToElevenLabs(p.id)}
+                      title={
+                        voiceProviderConfigured !== 'elevenlabs'
+                          ? 'ElevenLabs must be enabled on the server before cloning'
+                          : undefined
+                      }
                     >
                       {upgradingId === p.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />

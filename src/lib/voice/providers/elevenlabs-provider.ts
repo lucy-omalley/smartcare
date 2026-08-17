@@ -1,13 +1,27 @@
 import "server-only";
 
 import type { VoiceCloneInput, VoiceCloneResult, VoiceProvider, VoiceSynthesisInput } from "@/lib/voice/types";
+import {
+  formatElevenLabsAuthError,
+  normalizeElevenLabsApiKey,
+} from "@/lib/voice/elevenlabs-api-key";
 
 const BASE = "https://api.elevenlabs.io/v1";
 
 function apiKey(): string {
-  const key = process.env.ELEVENLABS_API_KEY?.trim();
+  const key = normalizeElevenLabsApiKey(process.env.ELEVENLABS_API_KEY);
   if (!key) throw new Error("ELEVENLABS_API_KEY is not configured");
   return key;
+}
+
+function parseElevenLabsError(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { detail?: unknown };
+    if (parsed.detail) return formatElevenLabsAuthError(parsed.detail);
+  } catch {
+    // Fall through to raw body slice.
+  }
+  return `ElevenLabs voice clone failed: ${body.slice(0, 200)}`;
 }
 
 export class ElevenLabsVoiceProvider implements VoiceProvider {
@@ -31,7 +45,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
 
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`ElevenLabs voice clone failed: ${err.slice(0, 200)}`);
+      throw new Error(parseElevenLabsError(err));
     }
 
     const data = (await res.json()) as { voice_id: string };
@@ -54,7 +68,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
 
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`ElevenLabs TTS failed: ${err.slice(0, 200)}`);
+      throw new Error(parseElevenLabsError(err).replace("voice clone", "TTS"));
     }
 
     return Buffer.from(await res.arrayBuffer());

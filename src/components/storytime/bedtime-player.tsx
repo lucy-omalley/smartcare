@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StarsBackground } from "@/components/storytime/stars-background";
 import { NarratorPicker, type VoiceProfileOption } from "@/components/storytime/narrator-picker";
@@ -21,6 +22,7 @@ interface BedtimePlayerProps {
   voices: VoiceProfileOption[];
   isPremium: boolean;
   familyVoiceEnabled?: boolean;
+  voiceProviderConfigured?: "openai" | "elevenlabs";
   voiceUsage?: VoiceUsageSnapshot | null;
   isFavorite: boolean;
   initialNarrator?: { type: "standard" } | { type: "family"; voiceProfileId: string };
@@ -35,6 +37,7 @@ export function BedtimePlayer({
   voices,
   isPremium,
   familyVoiceEnabled,
+  voiceProviderConfigured = "openai",
   voiceUsage,
   isFavorite,
   initialNarrator,
@@ -45,6 +48,7 @@ export function BedtimePlayer({
   const [showText, setShowText] = useState(false);
   const [voiceEngineHint, setVoiceEngineHint] = useState<string | null>(null);
   const playStartedRef = useRef(false);
+  const cloneConfirmedRef = useRef<string | null>(null);
   const narratorRef = useRef(narrator);
   const storyAudio = useStoryAudio({
     onError: (message) => toast.error(message),
@@ -57,6 +61,32 @@ export function BedtimePlayer({
     if (!initialNarrator) return;
     setNarrator(initialNarrator);
   }, [initialNarrator]);
+
+  const selectedFamilyVoice = useMemo(() => {
+    if (narrator.type !== "family") return null;
+    return voices.find((v) => v.id === narrator.voiceProfileId) ?? null;
+  }, [narrator, voices]);
+
+  const presetVoiceSelected =
+    narrator.type === "family" &&
+    selectedFamilyVoice?.status === "READY" &&
+    selectedFamilyVoice.provider !== "elevenlabs";
+
+  useEffect(() => {
+    if (narrator.type === "family" && cloneConfirmedRef.current === narrator.voiceProfileId) {
+      setVoiceEngineHint(null);
+      return;
+    }
+    if (!presetVoiceSelected) {
+      setVoiceEngineHint(null);
+      return;
+    }
+    const message =
+      voiceProviderConfigured === "elevenlabs"
+        ? "This story will use a preset AI voice until your voice is cloned. Open Voice library and tap Clone my voice, or press Listen — we'll clone automatically on first play."
+        : "This story uses a preset AI voice (not your recording). Open Voice library and tap Clone my voice once ElevenLabs cloning is enabled.";
+    setVoiceEngineHint(message);
+  }, [presetVoiceSelected, voiceProviderConfigured, selectedFamilyVoice?.id, narrator]);
 
   const fetchNarration = useCallback(
     async (signal?: AbortSignal) => {
@@ -78,6 +108,9 @@ export function BedtimePlayer({
           "This story is using a preset AI voice. Open Voice library and tap Clone my voice to upgrade to your real ElevenLabs narration."
         );
       } else if (engine === "elevenlabs") {
+        if (selection.type === "family") {
+          cloneConfirmedRef.current = selection.voiceProfileId;
+        }
         setVoiceEngineHint(null);
       } else {
         setVoiceEngineHint(null);
@@ -101,6 +134,7 @@ export function BedtimePlayer({
   }, []);
 
   const handleNarratorChange = (selection: typeof narrator) => {
+    cloneConfirmedRef.current = null;
     setNarrator(selection);
     void saveNarrator(selection);
     storyAudio.stop();
@@ -216,7 +250,10 @@ export function BedtimePlayer({
 
         {voiceEngineHint && (
           <p className="text-[11px] leading-relaxed text-amber-100/90 bg-amber-500/10 border border-amber-200/20 rounded-xl px-3 py-2">
-            {voiceEngineHint}
+            {voiceEngineHint}{" "}
+            <Link href="/stories/voice" className="underline underline-offset-2 text-amber-50">
+              Voice library
+            </Link>
           </p>
         )}
 
