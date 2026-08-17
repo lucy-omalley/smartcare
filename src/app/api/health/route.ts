@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getConfiguredVoiceProviderId } from "@/lib/voice/voice-service";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +9,6 @@ export async function GET() {
     ok: true,
     service: "parenfy",
     timestamp: new Date().toISOString(),
+    voiceProviderConfigured: getConfiguredVoiceProviderId(),
   });
 }
