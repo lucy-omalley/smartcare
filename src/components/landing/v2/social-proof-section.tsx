@@ -1,14 +1,14 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { TESTIMONIALS_V2 } from "@/lib/landing/v2-content";
+import { SECTIONS, TESTIMONIALS_V2 } from "@/lib/landing/v2-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 
 function StarRow({ count }: { count: number }) {
   return (
-    <div className="flex gap-0.5" aria-label={`${count} out of 5 stars`}>
+    <div className="flex gap-1" aria-label={`${count} out of 5 stars`}>
       {Array.from({ length: count }).map((_, i) => (
-        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+        <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden />
       ))}
     </div>
   );
@@ -16,23 +16,25 @@ function StarRow({ count }: { count: number }) {
 
 export function SocialProofSection() {
   return (
-    <LandingSection className="bg-muted/20">
+    <LandingSection id="testimonials" className="bg-gradient-to-b from-muted/20 to-background">
       <SectionHeader
-        eyebrow="Social proof"
-        title="Loved by beta parents"
-        description="Real feedback from families shaping Parenfy with us."
+        eyebrow={SECTIONS.testimonials.eyebrow}
+        title={SECTIONS.testimonials.title}
+        description={SECTIONS.testimonials.description}
       />
-      <ul className="grid md:grid-cols-3 gap-5 md:gap-6">
+      <ul className="grid md:grid-cols-3 gap-6 md:gap-8">
         {TESTIMONIALS_V2.map((t) => (
           <li
             key={t.name}
-            className="rounded-3xl border bg-card p-6 md:p-8 shadow-sm space-y-4 flex flex-col"
+            className="rounded-[2rem] border bg-card p-8 md:p-10 shadow-md hover:shadow-lg transition-shadow space-y-5 flex flex-col min-h-[280px]"
           >
             <StarRow count={t.stars} />
-            <blockquote className="text-base leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</blockquote>
-            <footer className="text-sm">
-              <p className="font-semibold">{t.name}</p>
-              <p className="text-muted-foreground text-xs mt-0.5">{t.role}</p>
+            <blockquote className="text-lg md:text-xl leading-relaxed flex-1 font-medium text-foreground/90">
+              &ldquo;{t.quote}&rdquo;
+            </blockquote>
+            <footer className="pt-4 border-t border-border/60">
+              <p className="font-semibold text-base">{t.name}</p>
+              <p className="text-muted-foreground text-sm mt-0.5">{t.role}</p>
             </footer>
           </li>
         ))}

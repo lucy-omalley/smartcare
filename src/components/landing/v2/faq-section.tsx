@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FAQ_V2 } from "@/lib/landing/v2-content";
+import { FAQ_V2, SECTIONS } from "@/lib/landing/v2-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 
 export function FaqSectionV2() {
   return (
     <LandingSection id="faq">
-      <SectionHeader eyebrow="FAQ" title="Questions parents ask" />
+      <SectionHeader eyebrow={SECTIONS.faq.eyebrow} title={SECTIONS.faq.title} />
       <div className="max-w-2xl mx-auto space-y-3">
         {FAQ_V2.map((item) => (
           <details

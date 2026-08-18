@@ -8,29 +8,31 @@ import {
   Printer,
   Sparkles,
   Sun,
-  Trophy,
+  TrendingUp,
   Users,
-  UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
 export const V2_NAV = [
   { href: "#experiences", label: "Experiences" },
   { href: "#journey", label: "Your day" },
-  { href: "#screenshots", label: "App preview" },
+  { href: "#testimonials", label: "Stories" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ] as const;
 
 export const HERO = {
   headline: "Your AI Family Companion",
-  subheadline:
-    "Helping busy parents plan, play, build routines and create magical bedtime moments.",
-  description:
-    "Everything personalised around your child. From today's activities to bedtime stories.",
+  subheadlineLines: [
+    "Helping busy parents create calmer mornings,",
+    "more meaningful play,",
+    "easier routines",
+    "and magical bedtimes.",
+  ],
   primaryCta: "Start Free",
-  secondaryCta: "Watch 60 Second Demo",
-  demoTarget: "#screenshots",
+  secondaryCta: "Watch Demo",
+  demoTarget: "#experiences",
+  socialProof: "Loved by early beta parents.",
 } as const;
 
 export const TRUST_BADGES = [
@@ -49,7 +51,6 @@ export type HeroExperienceV2 = {
   title: string;
   description: string;
   flow: FlowStep[];
-  benefits: readonly string[];
   cta: string;
   href: string;
   badge?: string;
@@ -60,24 +61,18 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
   {
     id: "toy-brain",
     emoji: "🧸",
-    title: "AI Toy Brain",
-    headline: "Snap a Toy.\nUnlock New Ways to Play.",
+    title: "Toy Brain",
+    headline: "Snap Any Toy.\nDiscover New Ways To Play.",
     description:
-      "Take a photo of any toy. Parenfy recognises it and creates personalised activities based on your child's age, interests and learning goals.",
+      "Photograph any toy. Parenfy recognises it and creates personalised activities for your child's age and interests.",
     flow: [
-      { label: "Photo of toy", emoji: "📸" },
-      { label: "AI recognition", emoji: "✨" },
-      { label: "5 activity ideas", emoji: "🎯" },
-      { label: "Skills developed", emoji: "📈" },
+      { label: "Phone takes photo", emoji: "📸" },
+      { label: "Toy recognised", emoji: "✨" },
+      { label: "5 personalised activities", emoji: "🎯" },
+      { label: "Learning skills", emoji: "📈" },
       { label: "Add to Today's Plan", emoji: "☀️" },
     ],
-    benefits: [
-      "Uses toys you already own",
-      "Saves preparation time",
-      "Encourages creativity",
-      "Builds developmental skills",
-    ],
-    cta: "Try Toy Brain",
+    cta: "Explore Toy Brain",
     href: "/toy-brain",
     theme: "coral",
   },
@@ -87,21 +82,14 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
     title: "Adventure Routine Planner",
     headline: "Turn Daily Routines Into Adventures.",
     description:
-      "Generate beautiful printable adventure posters personalised for your child. Make brushing teeth, bath time and bedtime feel like exciting missions.",
+      "Generate beautiful printable adventure posters. Make brushing teeth, bath time and bedtime feel like exciting missions.",
     flow: [
-      { label: "Bedtime routine", emoji: "🛁" },
-      { label: "Dinosaur adventure", emoji: "🦕" },
-      { label: "Mission complete", emoji: "⭐" },
-      { label: "QR code poster", emoji: "📱" },
-      { label: "Story time", emoji: "📖" },
+      { label: "Generate Adventure", emoji: "🦕" },
+      { label: "Print Poster", emoji: "🖨️" },
+      { label: "Child completes missions", emoji: "⭐" },
+      { label: "QR Story", emoji: "📱" },
     ],
-    benefits: [
-      "Less resistance at routine time",
-      "Builds independence",
-      "Printable at home",
-      "Beautiful designs",
-    ],
-    cta: "Create Adventure Poster",
+    cta: "Create Adventure",
     href: "/adventure-journey",
     theme: "sage",
   },
@@ -109,27 +97,53 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
     id: "storytime",
     emoji: "🌙",
     title: "Family Voice Storytime",
-    headline: "Bedtime Stories In Your Own Voice.",
+    headline: "Bedtime Stories In The Voices They Love.",
     description:
-      "Create personalised bedtime stories narrated using your family's voice. Stay emotionally connected even when you're away.",
+      "Personalised bedtime stories narrated in your family's voice — stay emotionally connected even when you're away.",
     flow: [
       { label: "Choose narrator", emoji: "🎙️" },
       { label: "Generate story", emoji: "✨" },
-      { label: "Press play", emoji: "▶️" },
-      { label: "Sweet dreams", emoji: "😴" },
+      { label: "Play story", emoji: "▶️" },
+      { label: "Happy bedtime", emoji: "😴" },
     ],
-    benefits: [
-      "Emotional connection",
-      "Personalised stories",
-      "Family memories",
-      "Premium bedtime experience",
-    ],
-    cta: "Listen To Sample Story",
+    cta: "Listen To Sample",
     href: "/stories",
     badge: "Premium",
     theme: "sky",
   },
 ];
+
+export const SECTIONS = {
+  experiences: {
+    eyebrow: "Three hero experiences",
+    title: "Built for real family days",
+    description: "Play, routines, and bedtime — each given equal room to shine.",
+  },
+  journey: {
+    eyebrow: "Your day",
+    title: "How Parenfy fits into your day",
+    description: "One gentle journey from morning plan to bedtime story.",
+  },
+  supporting: {
+    eyebrow: "Supporting tools",
+    title: "Everything else, when you need it",
+    description: "Helpful extras that stay out of the way until you reach for them.",
+  },
+  testimonials: {
+    eyebrow: "Beta parents",
+    title: "Loved by early beta parents",
+    description: "Real feedback from families shaping Parenfy with us.",
+  },
+  pricing: {
+    eyebrow: "Pricing",
+    title: "Start free. Upgrade when you're ready.",
+    description: "No credit card required to begin your family journey.",
+  },
+  faq: {
+    eyebrow: "FAQ",
+    title: "Questions? We've got you.",
+  },
+} as const;
 
 export type JourneyStage = {
   emoji: string;
@@ -140,12 +154,11 @@ export type JourneyStage = {
 };
 
 export const DAILY_JOURNEY_V2: JourneyStage[] = [
-  { emoji: "☀️", period: "Morning", title: "Today's Plan", feature: "Toy Brain", icon: Sun },
-  { emoji: "🎮", period: "Play", title: "Toy Brain", feature: "Activities", icon: Gamepad2 },
-  { emoji: "🌤", period: "Afternoon", title: "Learning Activities", feature: "Skills", icon: Brain },
-  { emoji: "🍽", period: "Dinner", title: "Meal Suggestions", feature: "Recipes", icon: UtensilsCrossed },
-  { emoji: "📋", period: "Evening", title: "Adventure Routine", feature: "Poster", icon: Printer },
-  { emoji: "🌙", period: "Bedtime", title: "Family Voice Story", feature: "Listen", icon: Moon },
+  { emoji: "☀️", period: "Morning", title: "Today's Plan", feature: "Your daily guide", icon: Sun },
+  { emoji: "🎮", period: "Play", title: "Toy Brain", feature: "Snap & discover", icon: Gamepad2 },
+  { emoji: "🌤", period: "Learning", title: "Activities", feature: "Skills & growth", icon: Brain },
+  { emoji: "📋", period: "Evening", title: "Adventure Routine", feature: "Mission poster", icon: Printer },
+  { emoji: "🌙", period: "Bedtime", title: "Family Voice Story", feature: "Stories they love", icon: Moon },
 ];
 
 export type SupportingFeature = { icon: LucideIcon; label: string; href: string };
@@ -154,11 +167,31 @@ export const SUPPORTING_FEATURES: SupportingFeature[] = [
   { icon: Sparkles, label: "Today's Plan", href: "/today" },
   { icon: Bot, label: "MumBot Parenting Copilot", href: "/mumbot" },
   { icon: Gamepad2, label: "Activity Library", href: "/activities" },
-  { icon: ChefHat, label: "Recipes", href: "/today" },
-  { icon: Trophy, label: "Milestones", href: "/memory" },
-  { icon: Calendar, label: "Weekly Growth Reports", href: "/weekly-report" },
+  { icon: ChefHat, label: "Meal Planner", href: "/today" },
+  { icon: TrendingUp, label: "Growth Reports", href: "/weekly-report" },
   { icon: Users, label: "Multiple Child Profiles", href: "/profile" },
 ];
+
+export const TESTIMONIALS_V2 = [
+  {
+    stars: 5,
+    quote: "The printable routine poster completely changed bedtime. My son actually asks for his dinosaur missions now.",
+    name: "Emma",
+    role: "Mum of 3 · Beta parent",
+  },
+  {
+    stars: 5,
+    quote: "I finally know what to do with all our toys. Toy Brain turned a rainy afternoon into the best play session we've had.",
+    name: "David",
+    role: "Dad · Beta parent",
+  },
+  {
+    stars: 5,
+    quote: "Hearing Grandma's voice read tonight's story — my daughter asks for another one every single night.",
+    name: "Aisha",
+    role: "Mum · Premium",
+  },
+] as const;
 
 export const COMPARISON_V2 = {
   generic: [
@@ -180,40 +213,6 @@ export const COMPARISON_V2 = {
     "Daily parenting companion",
   ],
 } as const;
-
-export const TESTIMONIALS_V2 = [
-  {
-    stars: 5,
-    quote: "The printable routine poster completely changed bedtime.",
-    name: "Emma",
-    role: "Mum of 3 · Beta parent",
-  },
-  {
-    stars: 5,
-    quote: "I finally know what to do with all our toys.",
-    name: "David",
-    role: "Dad · Beta parent",
-  },
-  {
-    stars: 5,
-    quote: "My daughter wants another story every night.",
-    name: "Aisha",
-    role: "Mum · Premium",
-  },
-] as const;
-
-export type ScreenshotItem = {
-  id: string;
-  title: string;
-  theme: "warm" | "play" | "adventure" | "bedtime";
-};
-
-export const SCREENSHOTS: ScreenshotItem[] = [
-  { id: "today", title: "Today's Plan", theme: "warm" },
-  { id: "toy", title: "Toy Brain", theme: "play" },
-  { id: "adventure", title: "Adventure Poster", theme: "adventure" },
-  { id: "story", title: "Family Voice Story", theme: "bedtime" },
-];
 
 export const PRICING_V2 = {
   free: {
@@ -270,9 +269,9 @@ export const FAQ_V2 = [
 ] as const;
 
 export const FINAL_CTA = {
-  headline: "Create More Magical Moments Every Day.",
-  description: "Join thousands of parents building happier family routines.",
-  cta: "Create Free Account",
+  headline: "Create Your Free Account",
+  description: "Join thousands of parents building happier family routines — starting today.",
+  cta: "Create Your Free Account",
 } as const;
 
 export const THEME_STYLES = {
@@ -280,15 +279,18 @@ export const THEME_STYLES = {
     bg: "from-orange-50 via-amber-50/80 to-background dark:from-orange-950/30 dark:via-background dark:to-background",
     accent: "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200",
     ring: "ring-orange-200/60 dark:ring-orange-800/40",
+    glow: "shadow-orange-200/40 dark:shadow-orange-900/20",
   },
   sage: {
     bg: "from-emerald-50 via-teal-50/60 to-background dark:from-emerald-950/25 dark:via-background dark:to-background",
     accent: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
     ring: "ring-emerald-200/60 dark:ring-emerald-800/40",
+    glow: "shadow-emerald-200/40 dark:shadow-emerald-900/20",
   },
   sky: {
     bg: "from-sky-50 via-indigo-50/50 to-background dark:from-indigo-950/30 dark:via-background dark:to-background",
     accent: "bg-sky-100 text-sky-900 dark:bg-indigo-950/50 dark:text-indigo-200",
     ring: "ring-sky-200/60 dark:ring-indigo-800/40",
+    glow: "shadow-sky-200/40 dark:shadow-indigo-900/20",
   },
 } as const;

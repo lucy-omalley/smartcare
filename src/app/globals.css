@@ -135,12 +135,39 @@
   .landing-delay-5 { animation-delay: 0.36s; }
   .landing-delay-6 { animation-delay: 0.44s; }
 
+  @keyframes landing-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  .landing-float {
+    animation: landing-float 4s ease-in-out infinite;
+  }
+
+  .landing-v2 {
+    --landing-radius: 2rem;
+  }
+
+  .landing-v2 main {
+    scroll-behavior: smooth;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .landing-fade-up,
-    .landing-pulse-soft {
+    .landing-pulse-soft,
+    .landing-float {
       animation: none;
       opacity: 1;
       transform: none;
+    }
+
+    .landing-v2 main {
+      scroll-behavior: auto;
     }
   }
 }
