@@ -33,7 +33,7 @@ export function LandingNavV2() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
-          <LanguageSwitcher className="hidden sm:inline-flex" />
+          <LanguageSwitcher />
           <Link href="/auth/signin" className="hidden sm:block">
             <Button variant="ghost" size="sm" className="rounded-xl">
               {t("nav.signIn")}

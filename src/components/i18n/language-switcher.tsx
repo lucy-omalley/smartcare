@@ -4,7 +4,7 @@ import { useAtom } from "jotai";
 import { useSession } from "next-auth/react";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/config";
 import { localeAtom } from "@/lib/store/locale";
-import { saveLocalePreference } from "@/components/i18n/locale-provider";
+import { saveLocalePreference } from "@/lib/i18n/save-locale-preference";
 import { cn } from "@/lib/utils";
 
 interface LanguageSwitcherProps {

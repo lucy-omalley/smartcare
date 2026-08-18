@@ -252,7 +252,7 @@ function ProfileContent() {
           </div>
         </div>
 
-        {(editing || searchParams.get('settings') === '1') && <ProfileLanguageSettings />}
+        <ProfileLanguageSettings />
 
         {editing ? (
           <Card className="rounded-2xl">

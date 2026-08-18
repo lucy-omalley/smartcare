@@ -9,11 +9,21 @@ import {
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
+import { saveLocalePreference } from "@/lib/i18n/save-locale-preference";
 import { localeAtom, persistLocale } from "@/lib/store/locale";
-import { trackEvent } from "@/lib/analytics";
 
 interface LocaleProviderProps {
   children: React.ReactNode;
+}
+
+function readStoredLocale(): Locale | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    return stored ? normalizeLocale(stored) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
@@ -33,11 +43,10 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       return;
     }
 
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    const stored = readStoredLocale();
     if (stored) {
-      const normalized = normalizeLocale(stored);
-      setLocale(normalized);
-      persistLocale(normalized);
+      setLocale(stored);
+      persistLocale(stored);
       return;
     }
 
@@ -56,6 +65,19 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     fetch("/api/onboarding")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
+        // localStorage always wins — profile is only used when nothing is stored locally
+        const stored = readStoredLocale();
+        if (stored) {
+          setLocale(stored);
+          persistLocale(stored);
+          const profileLocale = data?.profile?.preferredLocale;
+          if (profileLocale && normalizeLocale(profileLocale) !== stored) {
+            void saveLocalePreference(stored, true);
+          }
+          syncedProfile.current = true;
+          return;
+        }
+
         const profileLocale = data?.profile?.preferredLocale;
         if (profileLocale) {
           const locale = normalizeLocale(profileLocale);
@@ -69,17 +91,11 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       });
   }, [status, setLocale]);
 
-  return <>{children}</>;
-}
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      syncedProfile.current = false;
+    }
+  }, [status]);
 
-export async function saveLocalePreference(locale: Locale, authenticated: boolean) {
-  persistLocale(locale);
-  if (authenticated) {
-    await fetch("/api/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preferredLocale: locale }),
-    }).catch(() => {});
-  }
-  trackEvent("language_selected", { locale, is_chinese: locale === "zh-CN" });
+  return <>{children}</>;
 }
