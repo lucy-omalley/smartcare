@@ -185,6 +185,7 @@ model User {
   childAge           String?
   childBirthday      String?
   childGender        String?
+  preferredLocale    String?  @default("en")
   childInterests     String[] @default([])
   favouriteToys      String[] @default([])
   favouriteThemes    String[] @default([])

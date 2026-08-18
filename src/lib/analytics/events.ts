@@ -3,6 +3,7 @@ export type AnalyticsEvent =
   // Landing & beta
   | "landing_page_viewed"
   | "beta_cta_clicked"
+  | "language_selected"
   // Authentication
   | "signup_started"
   | "signup_completed"

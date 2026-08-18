@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { FAQ_V2, SECTIONS } from "@/lib/landing/v2-content";
+import { useLandingContent } from "@/hooks/use-landing-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 
 export function FaqSectionV2() {
+  const { sections, faq } = useLandingContent();
+
   return (
     <LandingSection id="faq">
-      <SectionHeader eyebrow={SECTIONS.faq.eyebrow} title={SECTIONS.faq.title} />
+      <SectionHeader eyebrow={sections.faq.eyebrow} title={sections.faq.title} />
       <div className="max-w-2xl mx-auto space-y-3">
-        {FAQ_V2.map((item) => (
+        {faq.map((item) => (
           <details
             key={item.question}
             className="group rounded-2xl border bg-card px-5 py-4 open:shadow-sm transition-shadow"

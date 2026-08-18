@@ -14,10 +14,12 @@ import { POSTER_CATEGORY_OPTIONS } from '@/lib/posters/constants';
 import { POSTER_THEMES } from '@/lib/posters/themes';
 import { trackEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function AdventureJourneyHubPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
   const [adventures, setAdventures] = useState<AdventureJourneyView[]>([]);
   const [features, setFeatures] = useState<AdventureFeatures | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -78,11 +80,9 @@ export default function AdventureJourneyHubPage() {
         <header className="pt-2 space-y-2">
           <div className="flex items-center gap-2">
             <Map className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">AI Adventure Journey</h1>
+            <h1 className="text-2xl font-bold">{t('adventure.hubTitle')}</h1>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Turn daily routines into personalised story adventures. Your child completes missions — not checklists.
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t('adventure.hubSubtitle')}</p>
           {features && !features.isPremium && remaining !== null && (
             <Badge variant="secondary" className="rounded-full">
               {remaining} free adventure{remaining === 1 ? '' : 's'} left
@@ -92,7 +92,7 @@ export default function AdventureJourneyHubPage() {
 
         <Button asChild className="rounded-xl h-12 w-full">
           <Link href="/adventure-journey/create">
-            <Plus className="h-4 w-4 mr-2" /> Start new adventure
+            <Plus className="h-4 w-4 mr-2" /> {t('adventure.startNew')}
           </Link>
         </Button>
 

@@ -11,6 +11,10 @@ import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { trackClientError, trackEvent } from '@/lib/analytics';
 import { resolveSafePostAuthUrl } from '@/lib/auth/callback-url';
+import { AuthLanguageBar } from '@/components/i18n/auth-language-bar';
+import { useTranslation } from '@/hooks/use-translation';
+import { useAtomValue } from 'jotai';
+import { localeAtom } from '@/lib/store/locale';
 
 const RESET_SUCCESS_KEY = 'parenfy_password_reset_success';
 
@@ -34,6 +38,8 @@ type AuthProviders = {
 export default function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
+  const locale = useAtomValue(localeAtom);
   const { status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
@@ -121,7 +127,11 @@ export default function SignIn() {
         return;
       }
 
-      trackEvent('login_completed', { method: 'email' });
+      trackEvent('login_completed', {
+        method: 'email',
+        locale,
+        is_chinese: locale === 'zh-CN',
+      });
       const safePath = resolveSafePostAuthUrl(data.redirect ?? postAuthPath);
       window.location.href = `${window.location.origin}${safePath.startsWith('/') ? safePath : `/${safePath}`}`;
     } catch {
@@ -149,15 +159,16 @@ export default function SignIn() {
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-12">
+      <AuthLanguageBar />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">{t('auth.welcomeBack')}</CardTitle>
           <CardDescription className="text-center">
             {searchParams.get('verify') === '1'
-              ? 'Verify your email, then sign in to continue.'
+              ? t('auth.signInSubtitle')
               : searchParams.get('registered')
-                ? 'Your account has been created. Please sign in.'
-                : 'Sign in to your Parenfy Public Beta account'}
+                ? t('auth.signInSubtitle')
+                : t('auth.signInSubtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -178,7 +189,7 @@ export default function SignIn() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
               <Input
@@ -205,7 +216,7 @@ export default function SignIn() {
               className="w-full"
               disabled={isLoading || oauthLoading !== null}
             >
-              {isLoading ? 'Signing in...' : 'Sign in with Email'}
+              {isLoading ? t('auth.signingIn') : t('auth.signInEmail')}
             </Button>
           </form>
           {showOAuthSection && (
@@ -216,7 +227,7 @@ export default function SignIn() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
+                    {t('auth.orContinue')}
                   </span>
                 </div>
               </div>
@@ -277,9 +288,9 @@ export default function SignIn() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <div className="text-sm text-center text-muted-foreground w-full">
-            Don&apos;t have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link href="/auth/register" className="text-primary hover:underline">
-              Register
+              {t('auth.register')}
             </Link>
           </div>
           <p className="text-xs text-center text-muted-foreground">

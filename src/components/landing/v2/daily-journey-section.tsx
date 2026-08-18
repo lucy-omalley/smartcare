@@ -1,19 +1,21 @@
 "use client";
 
-import { DAILY_JOURNEY_V2, SECTIONS } from "@/lib/landing/v2-content";
+import { useLandingContent } from "@/hooks/use-landing-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 import { cn } from "@/lib/utils";
 
 export function DailyJourneySection() {
+  const { sections, journey } = useLandingContent();
+
   return (
     <LandingSection id="journey" className="bg-muted/10">
       <SectionHeader
-        eyebrow={SECTIONS.journey.eyebrow}
-        title={SECTIONS.journey.title}
-        description={SECTIONS.journey.description}
+        eyebrow={sections.journey.eyebrow}
+        title={sections.journey.title}
+        description={sections.journey.description}
       />
       <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {DAILY_JOURNEY_V2.map((stage, i) => {
+        {journey.map((stage, i) => {
           const Icon = stage.icon;
           return (
             <li

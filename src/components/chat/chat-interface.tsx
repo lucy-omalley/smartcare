@@ -13,22 +13,27 @@ import { generateWelcomeMessage } from '@/lib/mumbot-messages';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { trackEvent, trackClientError } from '@/lib/analytics';
+import { useTranslation } from '@/hooks/use-translation';
+import { useAtomValue } from 'jotai';
+import { localeAtom } from '@/lib/store/locale';
 
 interface SuggestedMemory {
   content: string;
   category: string;
 }
 
-const ACTION_CARDS = [
-  { id: 'meal', label: 'Meal idea', icon: UtensilsCrossed, prompt: 'Can you suggest a meal idea for my child today?' },
-  { id: 'story', label: 'Bedtime story', icon: BookOpen, prompt: 'Can you create a short bedtime story for my child?' },
-  { id: 'activity', label: 'Activity', icon: Puzzle, prompt: 'Can you suggest a fun activity for us today?' },
-  { id: 'connect', label: 'Community', icon: Users, href: '/connect' },
-  { id: 'checkin', label: 'Parent Check-in', icon: HeartHandshake, href: '/today' },
+const ACTION_CARD_KEYS = [
+  { id: 'meal', labelKey: 'mumbot.suggested.mealToday', promptKey: 'mumbot.suggested.mealToday', icon: UtensilsCrossed },
+  { id: 'story', labelKey: 'home.stories', promptKey: 'mumbot.suggested.playToday', icon: BookOpen },
+  { id: 'activity', labelKey: 'home.activities', promptKey: 'mumbot.suggested.playToday', icon: Puzzle },
+  { id: 'connect', labelKey: 'nav.connect', href: '/connect', icon: Users },
+  { id: 'checkin', labelKey: 'home.todaysJourney', href: '/today', icon: HeartHandshake },
 ] as const;
 
 export function ChatInterface() {
   const { data: session } = useSession();
+  const locale = useAtomValue(localeAtom);
+  const { t } = useTranslation();
   const [messages, setMessages] = useAtom(messagesAtom);
   const [isLoading, setIsLoading] = useState(false);
   const [showTypingIndicator, setShowTypingIndicator] = useState(false);
@@ -43,12 +48,12 @@ export function ChatInterface() {
     if (messages.length === 0) {
       setMessages([{
         id: 'welcome',
-        content: generateWelcomeMessage(session?.user?.name),
+        content: generateWelcomeMessage(session?.user?.name, locale),
         isUser: false,
         timestamp: new Date(),
       }]);
     }
-  }, [messages.length, setMessages, session?.user?.name]);
+  }, [messages.length, setMessages, session?.user?.name, locale]);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -232,11 +237,11 @@ export function ChatInterface() {
 
         {showActionCards && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {ACTION_CARDS.map(({ id, label, icon: Icon, ...rest }) =>
+            {ACTION_CARD_KEYS.map(({ id, labelKey, icon: Icon, ...rest }) =>
               'href' in rest ? (
                 <Link key={id} href={rest.href}>
                   <Button size="sm" variant="outline" className="rounded-full text-xs h-8">
-                    <Icon className="h-3.5 w-3.5 mr-1" /> {label}
+                    <Icon className="h-3.5 w-3.5 mr-1" /> {t(labelKey)}
                   </Button>
                 </Link>
               ) : (
@@ -247,10 +252,10 @@ export function ChatInterface() {
                   className="rounded-full text-xs h-8"
                   onClick={() => {
                     trackEvent('mumbot_followup_clicked', { action: id });
-                    void handleSendMessage(rest.prompt);
+                    void handleSendMessage(t(rest.promptKey));
                   }}
                 >
-                  <Icon className="h-3.5 w-3.5 mr-1" /> {label}
+                  <Icon className="h-3.5 w-3.5 mr-1" /> {t(labelKey)}
                 </Button>
               )
             )}

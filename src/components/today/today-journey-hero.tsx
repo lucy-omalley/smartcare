@@ -4,6 +4,7 @@ import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/use-translation';
 
 type JourneyItem = {
   emoji: string;
@@ -22,15 +23,6 @@ interface TodayJourneyHeroProps {
   className?: string;
 }
 
-function buildJourneyItems(brief: DailyBriefContent): JourneyItem[] {
-  return [
-    { emoji: '🎨', label: "Today's Activity", title: brief.play.title },
-    { emoji: '🍎', label: "Today's Meal", title: brief.recipe.subtitle },
-    { emoji: '🌱', label: "Today's Learning", title: brief.milestone?.domain ?? brief.languageSection?.domain ?? 'Language & skills' },
-    { emoji: '📖', label: "Tonight's Story", title: brief.bedtimeStory.title },
-  ];
-}
-
 export function TodayJourneyHero({
   greeting,
   firstName,
@@ -41,11 +33,25 @@ export function TodayJourneyHero({
   onStart,
   className,
 }: TodayJourneyHeroProps) {
-  const items = buildJourneyItems(brief);
-  const name = childName?.trim() || 'Your child';
+  const { t, locale } = useTranslation();
+
+  const items: JourneyItem[] = [
+    { emoji: '🎨', label: t('home.todaysActivity'), title: brief.play.title },
+    { emoji: '🍎', label: t('home.todaysMeal'), title: brief.recipe.subtitle },
+    {
+      emoji: '🌱',
+      label: t('home.todaysLearning'),
+      title: brief.milestone?.domain ?? brief.languageSection?.domain ?? t('activityCategories.language'),
+    },
+    { emoji: '📖', label: t('home.tonightsStory'), title: brief.bedtimeStory.title },
+  ];
+
+  const name = childName?.trim() || (locale === 'zh-CN' ? '孩子' : 'Your child');
   const teaser =
     highlight?.trim() ||
-    `${brief.bedtimeStory.title} is ready for tonight.`;
+    (locale === 'zh-CN'
+      ? `${brief.bedtimeStory.title} 已准备好`
+      : `${brief.bedtimeStory.title} is ready for tonight.`);
 
   return (
     <section
@@ -60,19 +66,26 @@ export function TodayJourneyHero({
       <div className="relative space-y-5">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground capitalize">{greeting}</p>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {firstName} 👋
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">{firstName} 👋</h1>
           <p className="text-sm text-foreground/80 leading-relaxed pt-1">
-            <span className="font-semibold">{name}</span> has{' '}
-            <span className="text-primary font-medium">{teaser}</span>
+            {locale === 'zh-CN' ? (
+              <>
+                <span className="font-semibold">{name}</span>
+                <span className="text-primary font-medium"> {teaser}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{name}</span> has{' '}
+                <span className="text-primary font-medium">{teaser}</span>
+              </>
+            )}
           </p>
         </div>
 
         <div className="rounded-2xl bg-background/70 dark:bg-background/50 backdrop-blur-sm border border-white/60 dark:border-border/60 p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Today&apos;s Journey
+            {t('home.todaysJourney')}
           </p>
           <ul className="space-y-2.5">
             {items.map((item) => (
@@ -91,7 +104,7 @@ export function TodayJourneyHero({
           </ul>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/50">
             <Clock className="h-3.5 w-3.5" aria-hidden />
-            <span>Estimated time · {estimatedMinutes} mins</span>
+            <span>{t('home.estimatedTime', { minutes: estimatedMinutes })}</span>
           </div>
         </div>
 
@@ -100,7 +113,7 @@ export function TodayJourneyHero({
           className="w-full rounded-2xl h-12 text-base shadow-md shadow-primary/20"
           onClick={onStart}
         >
-          Start Today&apos;s Journey
+          {t('home.startJourney')}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

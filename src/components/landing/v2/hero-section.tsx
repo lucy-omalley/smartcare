@@ -7,9 +7,21 @@ import { HERO } from "@/lib/landing/v2-content";
 import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
 import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { trackEvent } from "@/lib/analytics";
+import { useTranslation } from "@/hooks/use-translation";
 
 export function HeroSectionV2() {
+  const { t } = useTranslation();
   const track = (location: string) => trackEvent("beta_cta_clicked", { location });
+
+  const valueLines = [
+    t("landing.valueIntro"),
+    t("landing.valuePlan"),
+    t("landing.valuePlay"),
+    t("landing.valueRoutine"),
+    t("landing.valueVoice"),
+  ];
+
+  const trustBadges = [t("landing.trustAge"), t("landing.trustPrivacy")];
 
   return (
     <section className="relative min-h-[100dvh] flex flex-col scroll-mt-20 overflow-hidden">
@@ -22,13 +34,13 @@ export function HeroSectionV2() {
           <div className="space-y-8 text-center lg:text-left order-2 lg:order-1 landing-fade-up">
             <div className="space-y-5">
               <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold tracking-tight leading-[1.06] text-balance">
-                {HERO.headline}
+                {t("landing.headline")}
               </h1>
               <p className="text-lg sm:text-xl text-foreground/90 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
-                {HERO.subheadline}
+                {t("landing.subheadline")}
               </p>
               <ul className="space-y-1 text-base sm:text-lg text-muted-foreground max-w-md mx-auto lg:mx-0">
-                {HERO.valueLines.map((line) => (
+                {valueLines.map((line) => (
                   <li key={line} className="leading-relaxed">
                     {line}
                   </li>
@@ -44,7 +56,7 @@ export function HeroSectionV2() {
                     className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto shadow-xl shadow-primary/25"
                   >
                     <Sparkles className="h-4 w-4 mr-2" aria-hidden />
-                    {HERO.primaryCta}
+                    {t("landing.ctaStart")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -55,7 +67,7 @@ export function HeroSectionV2() {
                     className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto bg-background/70 backdrop-blur-sm"
                   >
                     <Play className="h-4 w-4 mr-2 fill-current" aria-hidden />
-                    {HERO.secondaryCta}
+                    {t("landing.ctaDemo")}
                   </Button>
                 </Link>
               </div>
@@ -67,10 +79,10 @@ export function HeroSectionV2() {
                       <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <span className="font-semibold text-foreground/90">{HERO.socialProof}</span>
+                  <span className="font-semibold text-foreground/90">{t("landing.socialProof")}</span>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                  {HERO.trustBadges.map((badge) => (
+                  {trustBadges.map((badge) => (
                     <span
                       key={badge}
                       className="text-xs font-medium px-3 py-1.5 rounded-full bg-background/80 border border-border/60 text-muted-foreground"
@@ -86,7 +98,7 @@ export function HeroSectionV2() {
           <div className="order-1 lg:order-2 flex justify-center lg:justify-end landing-fade-up landing-delay-2">
             <MarketingImage
               src={LANDING_MARKETING.hero}
-              alt="Parenfy app on phone with mother and child — Today's Journey, Toy Brain, and bedtime stories"
+              alt="Parenfy app on phone with mother and child"
               priority
               floating
               sizes="(max-width: 1024px) 92vw, 48vw"

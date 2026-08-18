@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Lightbulb, MessageSquare, ThumbsUp } from 'lucide-react';
+import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
 
 interface TodayBetaFeedbackRowProps {
@@ -9,13 +10,14 @@ interface TodayBetaFeedbackRowProps {
 }
 
 export function TodayBetaFeedbackRow({ className }: TodayBetaFeedbackRowProps) {
+  const { t } = useTranslation();
   const openFeedback = () => {
     window.dispatchEvent(new CustomEvent('parenfy:open-feedback'));
   };
 
   return (
     <section className={cn('space-y-3', className)}>
-      <h2 className="text-base font-bold px-0.5">Beta Feedback</h2>
+      <h2 className="text-base font-bold px-0.5">{t('feedback.title')}</h2>
       <div className="grid grid-cols-2 gap-2.5">
         <Link
           href="/feature-requests?action=suggest"
@@ -24,7 +26,7 @@ export function TodayBetaFeedbackRow({ className }: TodayBetaFeedbackRowProps) {
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950/40">
             <Lightbulb className="h-4 w-4 text-amber-700 dark:text-amber-300" aria-hidden />
           </div>
-          <span className="text-sm font-medium">Suggest Feature</span>
+          <span className="text-sm font-medium">{t('feedback.suggestFeature')}</span>
         </Link>
         <Link
           href="/feature-requests"
@@ -33,7 +35,7 @@ export function TodayBetaFeedbackRow({ className }: TodayBetaFeedbackRowProps) {
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
             <ThumbsUp className="h-4 w-4 text-primary" aria-hidden />
           </div>
-          <span className="text-sm font-medium">Vote Next Feature</span>
+          <span className="text-sm font-medium">{t('feedback.voteFeature')}</span>
         </Link>
       </div>
       <button
@@ -42,7 +44,7 @@ export function TodayBetaFeedbackRow({ className }: TodayBetaFeedbackRowProps) {
         className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 p-3 text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
       >
         <MessageSquare className="h-4 w-4" aria-hidden />
-        Share quick beta feedback
+        {t('feedback.shareQuick')}
       </button>
     </section>
   );

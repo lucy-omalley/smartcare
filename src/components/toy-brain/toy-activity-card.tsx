@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Heart, MapPin, Printer, Sparkles, Lock } from "lucide-react";
 import type { ToyPlayActivity } from "@/types/toy-brain";
-import { SKILL_BADGE_LABELS } from "@/lib/toy-brain/constants";
+import { useTranslation } from "@/hooks/use-translation";
+import { localizedSkillLabel } from "@/lib/i18n/skill-labels";
 import { cn } from "@/lib/utils";
 
 interface ToyActivityCardProps {
@@ -27,6 +28,7 @@ export function ToyActivityCard({
   onPrint,
   addingToToday,
 }: ToyActivityCardProps) {
+  const { locale } = useTranslation();
   return (
     <Card className="rounded-2xl overflow-hidden">
       <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 p-6 text-center">
@@ -60,7 +62,7 @@ export function ToyActivityCard({
         <div className="flex flex-wrap gap-1">
           {activity.skills.slice(0, 4).map((skill) => (
             <Badge key={skill} className="rounded-full text-[10px]" variant="secondary">
-              {SKILL_BADGE_LABELS[skill] ?? skill.replace(/_/g, " ")}
+              {localizedSkillLabel(skill, locale)}
             </Badge>
           ))}
         </div>

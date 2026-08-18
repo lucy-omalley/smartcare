@@ -53,6 +53,7 @@ import { TodayContinueSection } from '@/components/today/today-continue-section'
 import { saveContinueState } from '@/components/today/today-continue-state';
 import { TodayQuickAccess } from '@/components/today/today-quick-access';
 import { TodayBetaFeedbackRow } from '@/components/today/today-beta-feedback-row';
+import { useTranslation } from '@/hooks/use-translation';
 
 const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
 
@@ -98,6 +99,7 @@ interface TodayData {
 }
 
 export default function TodayPage() {
+  const { t } = useTranslation();
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -658,9 +660,9 @@ export default function TodayPage() {
         {!hasChildProfile && (
           <div className="visual-card p-3.5 flex items-center gap-3">
             <UserPlus className="h-5 w-5 text-primary shrink-0" />
-            <p className="text-sm flex-1">Create a child profile to personalise your Today Plan.</p>
+            <p className="text-sm flex-1">{t('home.addChildProfile')}</p>
             <Link href="/profile?edit=child">
-              <Button size="sm" className="rounded-full">Add</Button>
+              <Button size="sm" className="rounded-full">{t('home.add')}</Button>
             </Link>
           </div>
         )}
@@ -714,14 +716,14 @@ export default function TodayPage() {
             <TodayContinueSection onResume={(type) => openDetail(type)} />
 
             <section className="space-y-2.5">
-              <TodaySectionHeader emoji="✨" title="Today's Recommendations" />
+              <TodaySectionHeader emoji="✨" title={t('home.todaysRecommendations')} />
               <TodayPlanCard
                 key={`meal-${brief.recipe.subtitle}`}
                 emoji="🍎"
-                label="Meal"
+                label={t('today.meal')}
                 title={brief.recipe.subtitle}
                 preview={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 15)}
-                ctaLabel="View Meal"
+                ctaLabel={t('today.viewMeal')}
                 onOpen={() => {
                   trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
                   trackEvent('meal_opened', { title: brief.recipe.subtitle });
@@ -733,10 +735,10 @@ export default function TodayPage() {
               <TodayPlanCard
                 key={`activity-${brief.play.title}`}
                 emoji="🎨"
-                label="Activity"
+                label={t('today.activity')}
                 title={brief.play.title}
                 preview={truncateWords(brief.play.reason || brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
-                ctaLabel="Start Activity"
+                ctaLabel={t('today.startActivity')}
                 onOpen={() => {
                   trackEvent('activity_card_opened', { title: brief.play.title });
                   trackEvent('activity_opened', { title: brief.play.title });
@@ -748,7 +750,7 @@ export default function TodayPage() {
               <TodayPlanCard
                 key={`story-${brief.bedtimeStory.title}`}
                 emoji="📖"
-                label="Story"
+                label={t('today.story')}
                 title={brief.bedtimeStory.title}
                 preview={truncateWords(
                   hasStoryPreferences(data?.profile)
@@ -756,7 +758,7 @@ export default function TodayPage() {
                     : brief.bedtimeStory.reason || brief.bedtimeStory.moral || 'A bedtime tale for tonight.',
                   15
                 )}
-                ctaLabel="Read Story"
+                ctaLabel={t('today.readStory')}
                 onOpen={() => {
                   trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
                   trackEvent('story_opened', { title: brief.bedtimeStory.title });
@@ -768,10 +770,10 @@ export default function TodayPage() {
               {languageSection && (
                 <TodayPlanCard
                   emoji="💬"
-                  label="Language"
-                  title={languageSection.domain ?? 'Language & Speech'}
+                  label={t('today.language')}
+                  title={languageSection.domain ?? t('today.language')}
                   preview={truncateWords(languageSection.reason || languageSection.miniGame, 15)}
-                  ctaLabel="Try Words"
+                  ctaLabel={t('today.tryWords')}
                   onOpen={() => {
                     trackEvent('language_card_opened', { domain: languageSection.domain ?? 'Language' });
                     openDetail('language', languageSection.domain ?? 'Language');
@@ -813,16 +815,16 @@ export default function TodayPage() {
             <TodayBetaFeedbackRow />
 
             <section className="space-y-2.5">
-              <TodaySectionHeader emoji="🤖" title="Ask MumBot" />
+              <TodaySectionHeader emoji="🤖" title={t('today.askMumbot')} />
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Tell me more about today\'s activity.')}>
-                  About today&apos;s activity
+                  {t('today.aboutActivity')}
                 </Button>
                 <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Suggest another meal for today.')}>
-                  Another meal idea
+                  {t('today.anotherMeal')}
                 </Button>
                 <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Can you adapt today\'s story?')}>
-                  Adapt today&apos;s story
+                  {t('today.adaptStory')}
                 </Button>
                 {goals[0] && (
                   <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot(`Help me with ${goals[0]} based on today's plan.`)}>
@@ -839,7 +841,7 @@ export default function TodayPage() {
             </section>
 
             <section className="space-y-2.5">
-              <TodaySectionHeader emoji="👥" title="Connect" />
+              <TodaySectionHeader emoji="👥" title={t('today.connect')} />
               <TodayConnectCard
                 emoji="👥"
                 label="Available Today"

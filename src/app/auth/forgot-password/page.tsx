@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AuthLanguageBar } from '@/components/i18n/auth-language-bar';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,16 +34,16 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || t('common.tryAgain'));
         return;
       }
 
-      setMessage(data.message || 'If an account exists with that email, we sent a password reset link.');
+      setMessage(data.message || t('auth.resetSubtitle'));
       if (data.devResetUrl) {
         setDevResetUrl(data.devResetUrl);
       }
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t('common.tryAgain'));
     } finally {
       setIsLoading(false);
     }
@@ -48,12 +51,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-12">
+      <AuthLanguageBar />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Reset password</CardTitle>
-          <CardDescription className="text-center">
-            Enter your email and we&apos;ll send you a link to choose a new password.
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">{t('auth.resetPassword')}</CardTitle>
+          <CardDescription className="text-center">{t('auth.resetSubtitle')}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -85,26 +87,25 @@ export default function ForgotPasswordPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              Signed up with Google? Use{' '}
+              {t('auth.orContinue')}{' '}
               <Link href="/auth/signin" className="text-primary hover:underline">
-                Continue with Google
-              </Link>{' '}
-              on the sign-in page instead.
+                Google
+              </Link>
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             {!message ? (
               <Button type="submit" className="w-full rounded-xl" disabled={isLoading}>
-                {isLoading ? 'Sending…' : 'Send reset link'}
+                {isLoading ? t('auth.sending') : t('auth.sendReset')}
               </Button>
             ) : (
               <Button asChild className="w-full rounded-xl">
-                <Link href="/auth/signin">Back to sign in</Link>
+                <Link href="/auth/signin">{t('auth.backToSignIn')}</Link>
               </Button>
             )}
             {!message && (
               <Button asChild variant="ghost" className="w-full rounded-xl">
-                <Link href="/auth/signin">Back to sign in</Link>
+                <Link href="/auth/signin">{t('auth.backToSignIn')}</Link>
               </Button>
             )}
           </CardFooter>

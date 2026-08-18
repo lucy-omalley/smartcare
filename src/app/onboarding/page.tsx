@@ -19,11 +19,13 @@ import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
 import { markTodayPlanStale } from '@/lib/today-plan-stale';
+import { useTranslation } from '@/hooks/use-translation';
 
 const STEPS = ['welcome', 'child', 'goals', 'challenges', 'area', 'ready'] as const;
 type Step = (typeof STEPS)[number];
 
 export default function OnboardingPage() {
+  const { t } = useTranslation();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [step, setStep] = useState<Step>('welcome');
@@ -144,7 +146,7 @@ export default function OnboardingPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       </div>
     );
   }
@@ -169,18 +171,18 @@ export default function OnboardingPage() {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                 <Bot className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Welcome to Parenfy</CardTitle>
+              <CardTitle className="text-2xl">{t('onboarding.welcomeTitle')}</CardTitle>
               <CardDescription>
-                Your AI parenting companion. Know what to do next each day, and connect with other parents when you want support.
+                {t('onboarding.welcomeSubtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="name">Your first name</Label>
+                <Label htmlFor="name">{t('onboarding.yourName')}</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lucy" required className="mt-1" />
               </div>
               <Button className="w-full rounded-xl" size="lg" onClick={() => setStep('child')} disabled={!name.trim()}>
-                Get started <ArrowRight className="ml-2 h-4 w-4" />
+                {t('onboarding.getStarted')} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </>
@@ -189,12 +191,12 @@ export default function OnboardingPage() {
         {step === 'child' && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl">Child profile</CardTitle>
-              <CardDescription>Just the basics — MumBot can learn more over time.</CardDescription>
+              <CardTitle className="text-xl">{t('onboarding.childProfile')}</CardTitle>
+              <CardDescription>{t('onboarding.childProfileHint')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="nickname">Child&apos;s nickname</Label>
+                <Label htmlFor="nickname">{t('onboarding.childNickname')}</Label>
                 <Input id="nickname" value={childNickname} onChange={(e) => setChildNickname(e.target.value)} placeholder="Emma" className="mt-1" />
               </div>
               <div>
@@ -205,7 +207,7 @@ export default function OnboardingPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="interests">Interests (comma-separated)</Label>
+                <Label htmlFor="interests">{t('onboarding.interests')}</Label>
                 <Input id="interests" value={childInterests} onChange={(e) => setChildInterests(e.target.value)} placeholder="dinosaurs, puzzles, music" className="mt-1" />
               </div>
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
@@ -238,7 +240,7 @@ export default function OnboardingPage() {
                   onClick={() => setStep('goals')}
                   disabled={!childBirthday}
                 >
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('onboarding.continue')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -278,7 +280,7 @@ export default function OnboardingPage() {
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('child')}><ArrowLeft className="h-4 w-4" /></Button>
                 <Button className="flex-1 rounded-xl" onClick={() => setStep('challenges')} disabled={parentingGoals.length === 0}>
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('onboarding.continue')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -304,7 +306,7 @@ export default function OnboardingPage() {
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="rounded-xl" onClick={() => setStep('goals')}><ArrowLeft className="h-4 w-4" /></Button>
                 <Button className="flex-1 rounded-xl" onClick={() => setStep('area')}>
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('onboarding.continue')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -339,14 +341,14 @@ export default function OnboardingPage() {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                 <span className="text-3xl">🌞</span>
               </div>
-              <CardTitle className="text-xl">You&apos;re all set!</CardTitle>
+              <CardTitle className="text-xl">{t('onboarding.allSet')}</CardTitle>
               <CardDescription>
-                Your 30-day Premium beta trial starts now. Your personalised Today dashboard is ready.
+                {t('onboarding.allSetSubtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="w-full rounded-xl" size="lg" onClick={handleFinish} disabled={loading}>
-                {loading ? 'Opening...' : 'Open Today Dashboard'}
+                {loading ? t('onboarding.opening') : t('onboarding.openToday')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
