@@ -29,6 +29,12 @@ export async function POST(request: Request) {
       }
       mimeType = file.type || "image/jpeg";
       const buffer = Buffer.from(await file.arrayBuffer());
+      if (buffer.length > 3_000_000) {
+        return NextResponse.json(
+          { error: "Photo is too large. Please take a new photo — the app will compress it automatically." },
+          { status: 413 }
+        );
+      }
       photoData = `data:${mimeType};base64,${buffer.toString("base64")}`;
     } else {
       const body = await request.json();
@@ -37,6 +43,12 @@ export async function POST(request: Request) {
       useAi = body.useAi !== false;
       if (!photoData) {
         return NextResponse.json({ error: "Photo is required." }, { status: 400 });
+      }
+      if (photoData.length > 4_000_000) {
+        return NextResponse.json(
+          { error: "Photo is still too large after upload. Try a closer crop or lower-resolution photo." },
+          { status: 413 }
+        );
       }
     }
 
