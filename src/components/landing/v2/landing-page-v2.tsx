@@ -14,17 +14,9 @@ const SupportingFeaturesSection = dynamic(
   () => import("@/components/landing/v2/supporting-features-section").then((m) => m.SupportingFeaturesSection),
   { loading: () => <section className="min-h-[120px]" aria-hidden /> }
 );
-const WhyParenfySection = dynamic(
-  () => import("@/components/landing/v2/why-parenfy-section").then((m) => m.WhyParenfySection),
-  { loading: () => <section className="min-h-[200px]" aria-hidden /> }
-);
 const SocialProofSection = dynamic(
   () => import("@/components/landing/v2/social-proof-section").then((m) => m.SocialProofSection),
   { loading: () => <section className="min-h-[120px]" aria-hidden /> }
-);
-const ScreenshotsSection = dynamic(
-  () => import("@/components/landing/v2/screenshots-section").then((m) => m.ScreenshotsSection),
-  { loading: () => <section className="min-h-[280px]" aria-hidden /> }
 );
 const PricingSectionV2 = dynamic(
   () => import("@/components/landing/v2/pricing-section").then((m) => m.PricingSectionV2),
@@ -49,9 +41,7 @@ export function LandingPageV2() {
         <HeroExperiencesSection />
         <DailyJourneySection />
         <SupportingFeaturesSection />
-        <WhyParenfySection />
         <SocialProofSection />
-        <ScreenshotsSection />
         <PricingSectionV2 />
         <FaqSectionV2 />
         <FinalCtaSection />

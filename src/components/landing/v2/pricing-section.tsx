@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PRICING_V2 } from "@/lib/landing/v2-content";
+import { PRICING_V2, SECTIONS } from "@/lib/landing/v2-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -17,9 +17,9 @@ export function PricingSectionV2() {
   return (
     <LandingSection id="pricing" className="bg-muted/15">
       <SectionHeader
-        eyebrow="Pricing"
-        title="Start free. Grow with your family."
-        description="No credit card to explore. Upgrade when you're ready for voice, posters, and unlimited stories."
+        eyebrow={SECTIONS.pricing.eyebrow}
+        title={SECTIONS.pricing.title}
+        description={SECTIONS.pricing.description}
       />
       <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {tiers.map((tier) => (

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Sun, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { TabLoadingScreen } from '@/components/layout/tab-loading-screen';
 import { Button } from '@/components/ui/button';
@@ -47,9 +47,12 @@ import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 import { BetaPremiumWelcomeBanner } from '@/components/beta/beta-premium-welcome-banner';
 import { TodayWowDashboard } from '@/components/today/today-wow-dashboard';
 import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
-import { StorytimePromoCard } from '@/components/storytime/storytime-promo-card';
-import { AdventureJourneyPromoCard } from '@/components/adventure/adventure-journey-promo-card';
-import { ToyBrainPromoCard } from '@/components/toy-brain/toy-brain-promo-card';
+import { TodayJourneyHero } from '@/components/today/today-journey-hero';
+import { TodayHeroExperiencesRow } from '@/components/today/today-hero-experiences-row';
+import { TodayContinueSection } from '@/components/today/today-continue-section';
+import { saveContinueState } from '@/components/today/today-continue-state';
+import { TodayQuickAccess } from '@/components/today/today-quick-access';
+import { TodayBetaFeedbackRow } from '@/components/today/today-beta-feedback-row';
 
 const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
 
@@ -511,6 +514,11 @@ export default function TodayPage() {
     setActiveDetail(null);
   };
 
+  const openDetail = (type: Exclude<DetailType, null>, title?: string) => {
+    if (title) saveContinueState(type, title);
+    setActiveDetail(type);
+  };
+
   if (status === 'loading' || (planLoading && !data && !loadError)) {
     return (
       <TabLoadingScreen
@@ -531,6 +539,23 @@ export default function TodayPage() {
   const weeklyFocus = brief?.weeklyFocus;
   const milestone = brief?.milestone;
   const parentTip = brief?.parentTip;
+
+  const journeyHighlight = brief
+    ? todayFocus?.title
+      ? `${todayFocus.title} waiting today`
+      : brief.bedtimeStory.theme
+        ? `a ${brief.bedtimeStory.theme} adventure waiting today`
+        : brief.bedtimeStory.title
+          ? `${brief.bedtimeStory.title} waiting tonight`
+          : null
+    : null;
+
+  const startTodaysJourney = () => {
+    if (!brief) return;
+    trackEvent('activity_opened', { title: brief.play.title, source: 'journey_hero' });
+    openDetail('activity', brief.play.title);
+    trackEvent('activity_card_opened', { title: brief.play.title });
+  };
 
   const connectAvailableText =
     data?.connectAvailableCount === 0
@@ -601,54 +626,28 @@ export default function TodayPage() {
 
   return (
     <AppShell>
-      <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-5">
-        <header className="space-y-2">
-          <p className="text-base font-medium">
-            {greeting} {firstName} 👋
+      <div className="container max-w-lg mx-auto px-4 pt-4 pb-10 space-y-6">
+        {generatingPlan && (
+          <p className="text-xs text-muted-foreground px-0.5 animate-pulse">
+            Personalising your full plan…
           </p>
-          {hasChildProfile && childName && brief?.childAgeDisplay ? (
-            <p className="text-sm text-muted-foreground">Today for {childName} ({brief.childAgeDisplay})</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">What can I do with my child today?</p>
-          )}
-          {weeklyFocus && (
-            <TodayFocusBanner
-              label="This week's focus"
-              title={weeklyFocus.title}
-              reason={weeklyFocus.reason}
-              variant="weekly"
-            />
-          )}
-          {todayFocus && (
-            <TodayFocusBanner
-              label="Today's focus"
-              title={todayFocus.title}
-              reason={todayFocus.reason}
-              variant="today"
-            />
-          )}
-          {generatingPlan && (
-            <p className="text-xs text-muted-foreground px-0.5 animate-pulse">
-              Personalising your full plan…
-            </p>
-          )}
-          {planRefreshSlow && !generatingPlan && (
-            <p className="text-xs text-muted-foreground px-0.5">
-              Plan update is taking longer than usual. Showing the latest available plan —{' '}
-              <button
-                type="button"
-                className="underline text-primary"
-                onClick={() => {
-                  setPlanRefreshSlow(false);
-                  setGeneratingPlan(true);
-                  void loadToday({ silent: true, generate: true, profileRefresh: profileRefreshPollRef.current });
-                }}
-              >
-                retry
-              </button>
-            </p>
-          )}
-        </header>
+        )}
+        {planRefreshSlow && !generatingPlan && (
+          <p className="text-xs text-muted-foreground px-0.5">
+            Plan update is taking longer than usual. Showing the latest available plan —{' '}
+            <button
+              type="button"
+              className="underline text-primary"
+              onClick={() => {
+                setPlanRefreshSlow(false);
+                setGeneratingPlan(true);
+                void loadToday({ silent: true, generate: true, profileRefresh: profileRefreshPollRef.current });
+              }}
+            >
+              retry
+            </button>
+          </p>
+        )}
 
         <BetaPremiumWelcomeBanner />
 
@@ -680,8 +679,42 @@ export default function TodayPage() {
 
         {brief && isValidBriefContent(brief) && (
           <>
+            <TodayJourneyHero
+              greeting={greeting}
+              firstName={firstName}
+              childName={childName}
+              highlight={journeyHighlight}
+              brief={brief}
+              onStart={startTodaysJourney}
+            />
+
+            {(weeklyFocus || todayFocus) && (
+              <div className="space-y-2">
+                {weeklyFocus && (
+                  <TodayFocusBanner
+                    label="This week's focus"
+                    title={weeklyFocus.title}
+                    reason={weeklyFocus.reason}
+                    variant="weekly"
+                  />
+                )}
+                {todayFocus && (
+                  <TodayFocusBanner
+                    label="Today's focus"
+                    title={todayFocus.title}
+                    reason={todayFocus.reason}
+                    variant="today"
+                  />
+                )}
+              </div>
+            )}
+
+            <TodayHeroExperiencesRow childName={childName} />
+
+            <TodayContinueSection onResume={(type) => openDetail(type)} />
+
             <section className="space-y-2.5">
-              <TodaySectionHeader emoji="🌟" title="Today's Plan" />
+              <TodaySectionHeader emoji="✨" title="Today's Recommendations" />
               <TodayPlanCard
                 key={`meal-${brief.recipe.subtitle}`}
                 emoji="🍎"
@@ -692,7 +725,7 @@ export default function TodayPage() {
                 onOpen={() => {
                   trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
                   trackEvent('meal_opened', { title: brief.recipe.subtitle });
-                  setActiveDetail('meal');
+                  openDetail('meal', brief.recipe.subtitle);
                 }}
                 onRefresh={() => rotate('recipe')}
                 refreshing={rotating === 'recipe'}
@@ -707,7 +740,7 @@ export default function TodayPage() {
                 onOpen={() => {
                   trackEvent('activity_card_opened', { title: brief.play.title });
                   trackEvent('activity_opened', { title: brief.play.title });
-                  setActiveDetail('activity');
+                  openDetail('activity', brief.play.title);
                 }}
                 onRefresh={() => rotate('play')}
                 refreshing={rotating === 'play'}
@@ -727,14 +760,11 @@ export default function TodayPage() {
                 onOpen={() => {
                   trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
                   trackEvent('story_opened', { title: brief.bedtimeStory.title });
-                  setActiveDetail('story');
+                  openDetail('story', brief.bedtimeStory.title);
                 }}
                 onRefresh={() => rotate('story')}
                 refreshing={rotating === 'story'}
               />
-              <StorytimePromoCard childName={childName} compact />
-              <AdventureJourneyPromoCard childName={childName} compact />
-              <ToyBrainPromoCard childName={childName} compact />
               {languageSection && (
                 <TodayPlanCard
                   emoji="💬"
@@ -744,7 +774,7 @@ export default function TodayPage() {
                   ctaLabel="Try Words"
                   onOpen={() => {
                     trackEvent('language_card_opened', { domain: languageSection.domain ?? 'Language' });
-                    setActiveDetail('language');
+                    openDetail('language', languageSection.domain ?? 'Language');
                   }}
                   onRefresh={() => rotate('language')}
                   refreshing={rotating === 'language'}
@@ -759,7 +789,7 @@ export default function TodayPage() {
                   ctaLabel="View Tip"
                   onOpen={() => {
                     trackEvent('milestone_card_opened', { domain: milestone.domain });
-                    setActiveDetail('milestone');
+                    openDetail('milestone', milestone.domain);
                   }}
                 />
               )}
@@ -772,11 +802,15 @@ export default function TodayPage() {
                   ctaLabel="Read Tip"
                   onOpen={() => {
                     trackEvent('parent_tip_opened');
-                    setActiveDetail('parentTip');
+                    openDetail('parentTip', 'Coaching tip');
                   }}
                 />
               )}
             </section>
+
+            <TodayQuickAccess />
+
+            <TodayBetaFeedbackRow />
 
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="🤖" title="Ask MumBot" />
