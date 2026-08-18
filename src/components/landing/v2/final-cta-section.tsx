@@ -4,15 +4,16 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FINAL_CTA } from "@/lib/landing/v2-content";
-import { FamilyIllustration } from "@/components/landing/v2/ui/family-illustration";
+import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
+import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { LandingSection } from "@/components/landing/v2/ui/section-shell";
 import { trackEvent } from "@/lib/analytics";
 
 export function FinalCtaSection() {
   return (
     <LandingSection className="pb-24 md:pb-32">
-      <div className="relative rounded-[2.5rem] overflow-hidden border bg-gradient-to-br from-primary/15 via-amber-50/60 to-orange-50/40 dark:from-primary/25 dark:via-background dark:to-background shadow-2xl shadow-primary/10">
-        <div className="grid lg:grid-cols-2 gap-10 items-center p-10 md:p-14 lg:p-20">
+      <div className="relative rounded-[2.5rem] overflow-hidden border bg-gradient-to-br from-primary/15 via-amber-50/60 to-orange-50/40 dark:from-primary/25 dark:via-background shadow-2xl shadow-primary/10">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center p-8 md:p-12 lg:p-16">
           <div className="space-y-8 text-center lg:text-left order-2 lg:order-1">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-balance leading-[1.08]">
               {FINAL_CTA.headline}
@@ -29,7 +30,13 @@ export function FinalCtaSection() {
             </Link>
           </div>
           <div className="order-1 lg:order-2 flex justify-center">
-            <FamilyIllustration className="w-full max-w-md h-auto drop-shadow-xl" />
+            <MarketingImage
+              src={LANDING_MARKETING.hero}
+              alt="Parenfy family app — mother and child using Today's Journey"
+              sizes="(max-width: 1024px) 85vw, 40vw"
+              floating
+              className="max-w-md lg:max-w-lg"
+            />
           </div>
         </div>
       </div>

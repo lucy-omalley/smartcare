@@ -1,6 +1,5 @@
 import {
   Bot,
-  Brain,
   Calendar,
   ChefHat,
   Gamepad2,
@@ -10,35 +9,39 @@ import {
   Sun,
   TrendingUp,
   Users,
+  UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
 export const V2_NAV = [
-  { href: "#experiences", label: "Experiences" },
   { href: "#journey", label: "Your day" },
-  { href: "#testimonials", label: "Stories" },
+  { href: "#experiences", label: "Experiences" },
+  { href: "#testimonials", label: "Parents" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ] as const;
 
 export const HERO = {
   headline: "Your AI Family Companion",
-  subheadlineLines: [
-    "Helping busy parents create calmer mornings,",
-    "more meaningful play,",
-    "easier routines",
-    "and magical bedtimes.",
+  subheadline:
+    "Helping busy parents plan, play, build routines and create magical bedtime moments.",
+  valueLines: [
+    "One app that helps your family every day.",
+    "Personalised plans.",
+    "Creative play.",
+    "Adventure routines.",
+    "Stories in your own voice.",
   ],
   primaryCta: "Start Free",
   secondaryCta: "Watch Demo",
   demoTarget: "#experiences",
-  socialProof: "Loved by early beta parents.",
+  socialProof: "Loved by Beta Parents",
+  trustBadges: ["Designed for children aged 2–6", "Privacy First"] as const,
 } as const;
 
 export const TRUST_BADGES = [
   "Free to Start",
-  "Multiple Child Profiles",
-  "Designed for Children Aged 0–6",
+  "Designed for children aged 2–6",
   "Privacy First",
 ] as const;
 
@@ -50,7 +53,8 @@ export type HeroExperienceV2 = {
   headline: string;
   title: string;
   description: string;
-  flow: FlowStep[];
+  imageKey: "toyBrain" | "adventure" | "story";
+  imageAlt: string;
   cta: string;
   href: string;
   badge?: string;
@@ -64,14 +68,9 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
     title: "Toy Brain",
     headline: "Snap Any Toy.\nDiscover New Ways To Play.",
     description:
-      "Photograph any toy. Parenfy recognises it and creates personalised activities for your child's age and interests.",
-    flow: [
-      { label: "Phone takes photo", emoji: "📸" },
-      { label: "Toy recognised", emoji: "✨" },
-      { label: "5 personalised activities", emoji: "🎯" },
-      { label: "Learning skills", emoji: "📈" },
-      { label: "Add to Today's Plan", emoji: "☀️" },
-    ],
+      "Photograph any toy and get age-appropriate play ideas — using what you already own.",
+    imageKey: "toyBrain",
+    imageAlt: "Toy Brain app showing toy recognition and personalised play activities",
     cta: "Explore Toy Brain",
     href: "/toy-brain",
     theme: "coral",
@@ -79,16 +78,12 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
   {
     id: "adventure",
     emoji: "📋",
-    title: "Adventure Routine Planner",
+    title: "Adventure Planner",
     headline: "Turn Daily Routines Into Adventures.",
     description:
-      "Generate beautiful printable adventure posters. Make brushing teeth, bath time and bedtime feel like exciting missions.",
-    flow: [
-      { label: "Generate Adventure", emoji: "🦕" },
-      { label: "Print Poster", emoji: "🖨️" },
-      { label: "Child completes missions", emoji: "⭐" },
-      { label: "QR Story", emoji: "📱" },
-    ],
+      "Beautiful printable adventure posters that make brushing teeth, bath time and bedtime feel like missions.",
+    imageKey: "adventure",
+    imageAlt: "Adventure Routine Planner with printable poster and QR story",
     cta: "Create Adventure",
     href: "/adventure-journey",
     theme: "sage",
@@ -96,17 +91,13 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
   {
     id: "storytime",
     emoji: "🌙",
-    title: "Family Voice Storytime",
+    title: "Family Voice Story",
     headline: "Bedtime Stories In The Voices They Love.",
     description:
-      "Personalised bedtime stories narrated in your family's voice — stay emotionally connected even when you're away.",
-    flow: [
-      { label: "Choose narrator", emoji: "🎙️" },
-      { label: "Generate story", emoji: "✨" },
-      { label: "Play story", emoji: "▶️" },
-      { label: "Happy bedtime", emoji: "😴" },
-    ],
-    cta: "Listen To Sample",
+      "Personalised stories narrated in Mum, Dad, or Grandma's voice — even when you can't be there.",
+    imageKey: "story",
+    imageAlt: "Family Voice Storytime with voice library and bedtime story player",
+    cta: "Try Story",
     href: "/stories",
     badge: "Premium",
     theme: "sky",
@@ -114,30 +105,30 @@ export const HERO_EXPERIENCES_V2: HeroExperienceV2[] = [
 ];
 
 export const SECTIONS = {
-  experiences: {
-    eyebrow: "Three hero experiences",
-    title: "Built for real family days",
-    description: "Play, routines, and bedtime — each given equal room to shine.",
-  },
   journey: {
     eyebrow: "Your day",
-    title: "How Parenfy fits into your day",
-    description: "One gentle journey from morning plan to bedtime story.",
+    title: "Daily Family Journey",
+    description: "From morning plan to bedtime story — one calm flow through your day.",
   },
-  supporting: {
-    eyebrow: "Supporting tools",
-    title: "Everything else, when you need it",
-    description: "Helpful extras that stay out of the way until you reach for them.",
+  experiences: {
+    eyebrow: "Hero experiences",
+    title: "Three ways Parenfy helps every day",
+    description: "Play, routines, and bedtime — each built for real family moments.",
   },
   testimonials: {
-    eyebrow: "Beta parents",
-    title: "Loved by early beta parents",
-    description: "Real feedback from families shaping Parenfy with us.",
+    eyebrow: "Why parents love Parenfy",
+    title: "Why Parents Love Parenfy",
+    description: "Real feedback from beta families.",
+  },
+  supporting: {
+    eyebrow: "Everything else",
+    title: "Everything Else",
+    description: "Helpful tools that stay out of the way until you need them.",
   },
   pricing: {
     eyebrow: "Pricing",
     title: "Start free. Upgrade when you're ready.",
-    description: "No credit card required to begin your family journey.",
+    description: "No credit card required to begin.",
   },
   faq: {
     eyebrow: "FAQ",
@@ -151,26 +142,57 @@ export type JourneyStage = {
   title: string;
   feature: string;
   icon: LucideIcon;
+  gradient: string;
 };
 
 export const DAILY_JOURNEY_V2: JourneyStage[] = [
-  { emoji: "☀️", period: "Morning", title: "Today's Plan", feature: "Your daily guide", icon: Sun },
-  { emoji: "🎮", period: "Play", title: "Toy Brain", feature: "Snap & discover", icon: Gamepad2 },
-  { emoji: "🌤", period: "Learning", title: "Activities", feature: "Skills & growth", icon: Brain },
-  { emoji: "📋", period: "Evening", title: "Adventure Routine", feature: "Mission poster", icon: Printer },
-  { emoji: "🌙", period: "Bedtime", title: "Family Voice Story", feature: "Stories they love", icon: Moon },
+  {
+    emoji: "☀️",
+    period: "Morning",
+    title: "Today's Journey",
+    feature: "Your personalised daily plan",
+    icon: Sun,
+    gradient: "from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/20",
+  },
+  {
+    emoji: "🎮",
+    period: "Play",
+    title: "Toy Brain",
+    feature: "Snap a toy, discover play",
+    icon: Gamepad2,
+    gradient: "from-sky-50 to-cyan-50 dark:from-sky-950/40 dark:to-cyan-950/20",
+  },
+  {
+    emoji: "📋",
+    period: "Evening",
+    title: "Adventure Routine",
+    feature: "Routines as missions",
+    icon: Printer,
+    gradient: "from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/20",
+  },
+  {
+    emoji: "🌙",
+    period: "Night",
+    title: "Family Voice Story",
+    feature: "Stories in voices they love",
+    icon: Moon,
+    gradient: "from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/20",
+  },
 ];
 
 export type SupportingFeature = { icon: LucideIcon; label: string; href: string };
 
 export const SUPPORTING_FEATURES: SupportingFeature[] = [
   { icon: Sparkles, label: "Today's Plan", href: "/today" },
-  { icon: Bot, label: "MumBot Parenting Copilot", href: "/mumbot" },
-  { icon: Gamepad2, label: "Activity Library", href: "/activities" },
-  { icon: ChefHat, label: "Meal Planner", href: "/today" },
+  { icon: Bot, label: "MumBot", href: "/mumbot" },
+  { icon: Gamepad2, label: "Activities", href: "/activities" },
+  { icon: UtensilsCrossed, label: "Recipes", href: "/saved" },
   { icon: TrendingUp, label: "Growth Reports", href: "/weekly-report" },
   { icon: Users, label: "Multiple Child Profiles", href: "/profile" },
+  { icon: ChefHat, label: "Meal Planner", href: "/today" },
 ];
+
+export type TestimonialHighlight = "Routine Poster" | "Toy Brain" | "Today's Journey";
 
 export const TESTIMONIALS_V2 = [
   {
@@ -178,18 +200,21 @@ export const TESTIMONIALS_V2 = [
     quote: "The printable routine poster completely changed bedtime. My son actually asks for his dinosaur missions now.",
     name: "Emma",
     role: "Mum of 3 · Beta parent",
+    highlight: "Routine Poster" as TestimonialHighlight,
   },
   {
     stars: 5,
     quote: "I finally know what to do with all our toys. Toy Brain turned a rainy afternoon into the best play session we've had.",
     name: "David",
     role: "Dad · Beta parent",
+    highlight: "Toy Brain" as TestimonialHighlight,
   },
   {
     stars: 5,
-    quote: "Hearing Grandma's voice read tonight's story — my daughter asks for another one every single night.",
-    name: "Aisha",
-    role: "Mum · Premium",
+    quote: "Opening Today's Journey each morning tells me exactly what to do — meal, activity, and tonight's story. It's become our family rhythm.",
+    name: "Lucy",
+    role: "Mum · Beta parent",
+    highlight: "Today's Journey" as TestimonialHighlight,
   },
 ] as const;
 
@@ -239,7 +264,7 @@ export const FAQ_V2 = [
   {
     question: "What age is Parenfy for?",
     answer:
-      "Parenfy is designed for families with children aged 0–6, though many parents use activities and stories flexibly for slightly older siblings too.",
+      "Parenfy is designed for families with children aged 2–6, though many parents use activities and stories flexibly for slightly older siblings too.",
   },
   {
     question: "Can I add multiple children?",
@@ -269,9 +294,9 @@ export const FAQ_V2 = [
 ] as const;
 
 export const FINAL_CTA = {
-  headline: "Create Your Free Account",
+  headline: "Create More Magical Family Moments",
   description: "Join thousands of parents building happier family routines — starting today.",
-  cta: "Create Your Free Account",
+  cta: "Create Free Account",
 } as const;
 
 export const THEME_STYLES = {
@@ -294,3 +319,9 @@ export const THEME_STYLES = {
     glow: "shadow-sky-200/40 dark:shadow-indigo-900/20",
   },
 } as const;
+
+export const TESTIMONIAL_HIGHLIGHT_STYLES: Record<TestimonialHighlight, string> = {
+  "Routine Poster": "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
+  "Toy Brain": "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200",
+  "Today's Journey": "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
+};

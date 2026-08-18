@@ -5,14 +5,21 @@ import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HERO_EXPERIENCES_V2, SECTIONS, THEME_STYLES } from "@/lib/landing/v2-content";
-import { FlowSteps } from "@/components/landing/v2/ui/flow-steps";
+import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
+import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
+const IMAGE_MAP = {
+  toyBrain: LANDING_MARKETING.toyBrain,
+  adventure: LANDING_MARKETING.adventure,
+  story: LANDING_MARKETING.story,
+} as const;
+
 export function HeroExperiencesSection() {
   return (
-    <LandingSection id="experiences" className="py-0 md:py-0 lg:py-0">
+    <LandingSection id="experiences" className="py-0 md:py-0">
       <SectionHeader
         eyebrow={SECTIONS.experiences.eyebrow}
         title={SECTIONS.experiences.title}
@@ -23,27 +30,28 @@ export function HeroExperiencesSection() {
         {HERO_EXPERIENCES_V2.map((exp, index) => {
           const theme = THEME_STYLES[exp.theme];
           const reversed = index % 2 === 1;
+          const imageSrc = IMAGE_MAP[exp.imageKey];
+
           return (
             <article
               key={exp.id}
               className={cn(
-                "min-h-[100dvh] flex items-center py-16 md:py-20 snap-start",
-                "rounded-none md:rounded-[2.5rem] md:mb-8 last:md:mb-0",
-                "bg-gradient-to-br border-y md:border shadow-lg",
+                "min-h-[85dvh] md:min-h-[90dvh] flex items-center py-14 md:py-20",
+                "border-y md:border-x-0 md:rounded-[2.5rem] md:mb-10 last:md:mb-0",
+                "bg-gradient-to-br shadow-lg ring-1",
                 theme.bg,
                 theme.ring,
-                theme.glow,
-                "ring-1"
+                theme.glow
               )}
             >
               <div className="container px-4 md:px-6 max-w-6xl mx-auto w-full">
                 <div
                   className={cn(
-                    "grid lg:grid-cols-2 gap-12 lg:gap-20 items-center",
+                    "grid lg:grid-cols-2 gap-10 lg:gap-16 items-center",
                     reversed && "lg:[direction:rtl]"
                   )}
                 >
-                  <div className={cn("space-y-8", reversed && "lg:[direction:ltr]")}>
+                  <div className={cn("space-y-6 md:space-y-8", reversed && "lg:[direction:ltr]")}>
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-4xl" aria-hidden>
                         {exp.emoji}
@@ -78,8 +86,16 @@ export function HeroExperiencesSection() {
                       </Button>
                     </Link>
                   </div>
-                  <div className={cn("flex justify-center py-4", reversed && "lg:[direction:ltr]")}>
-                    <FlowSteps steps={exp.flow} className="scale-105 md:scale-110" />
+                  <div className={cn("flex justify-center", reversed && "lg:[direction:ltr]")}>
+                    <div className="w-full max-w-md lg:max-w-lg rounded-[1.75rem] overflow-hidden border bg-background/50 shadow-xl">
+                      <MarketingImage
+                        src={imageSrc}
+                        alt={exp.imageAlt}
+                        sizes="(max-width: 1024px) 90vw, 40vw"
+                        className="landing-fade-up"
+                        imageClassName="rounded-none object-cover w-full"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

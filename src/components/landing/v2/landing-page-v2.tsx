@@ -4,18 +4,21 @@ import dynamic from "next/dynamic";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { LandingNavV2 } from "@/components/landing/v2/landing-nav";
 import { HeroSectionV2 } from "@/components/landing/v2/hero-section";
-import { HeroExperiencesSection } from "@/components/landing/v2/hero-experiences-section";
 
 const DailyJourneySection = dynamic(
   () => import("@/components/landing/v2/daily-journey-section").then((m) => m.DailyJourneySection),
   { loading: () => <section className="min-h-[200px]" aria-hidden /> }
 );
-const SupportingFeaturesSection = dynamic(
-  () => import("@/components/landing/v2/supporting-features-section").then((m) => m.SupportingFeaturesSection),
-  { loading: () => <section className="min-h-[120px]" aria-hidden /> }
+const HeroExperiencesSection = dynamic(
+  () => import("@/components/landing/v2/hero-experiences-section").then((m) => m.HeroExperiencesSection),
+  { loading: () => <section className="min-h-[280px]" aria-hidden /> }
 );
 const SocialProofSection = dynamic(
   () => import("@/components/landing/v2/social-proof-section").then((m) => m.SocialProofSection),
+  { loading: () => <section className="min-h-[120px]" aria-hidden /> }
+);
+const SupportingFeaturesSection = dynamic(
+  () => import("@/components/landing/v2/supporting-features-section").then((m) => m.SupportingFeaturesSection),
   { loading: () => <section className="min-h-[120px]" aria-hidden /> }
 );
 const PricingSectionV2 = dynamic(
@@ -38,10 +41,10 @@ export function LandingPageV2() {
       <LandingNavV2 />
       <main className="flex-1">
         <HeroSectionV2 />
-        <HeroExperiencesSection />
         <DailyJourneySection />
-        <SupportingFeaturesSection />
+        <HeroExperiencesSection />
         <SocialProofSection />
+        <SupportingFeaturesSection />
         <PricingSectionV2 />
         <FaqSectionV2 />
         <FinalCtaSection />

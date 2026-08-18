@@ -4,40 +4,44 @@ import Link from "next/link";
 import { ArrowRight, Play, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HERO } from "@/lib/landing/v2-content";
-import { FamilyIllustration } from "@/components/landing/v2/ui/family-illustration";
-import { LandingSection } from "@/components/landing/v2/ui/section-shell";
+import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
+import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { trackEvent } from "@/lib/analytics";
 
 export function HeroSectionV2() {
   const track = (location: string) => trackEvent("beta_cta_clicked", { location });
 
   return (
-    <LandingSection className="pt-10 md:pt-16 pb-16 md:pb-24 overflow-hidden">
-      <div className="relative">
-        <div
-          className="absolute inset-0 -z-10 bg-gradient-to-b from-amber-50/90 via-orange-50/30 to-background dark:from-amber-950/25 dark:via-background rounded-[3rem] blur-3xl opacity-90"
-          aria-hidden
-        />
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div className="space-y-10 text-center lg:text-left order-2 lg:order-1">
-            <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.06] text-balance">
+    <section className="relative min-h-[100dvh] flex flex-col scroll-mt-20 overflow-hidden">
+      <div
+        className="absolute inset-0 -z-10 bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-background dark:from-amber-950/30 dark:via-background"
+        aria-hidden
+      />
+      <div className="container flex-1 flex flex-col justify-center px-4 md:px-6 max-w-6xl mx-auto w-full py-16 md:py-20 lg:py-24">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 xl:gap-20 items-center">
+          <div className="space-y-8 text-center lg:text-left order-2 lg:order-1 landing-fade-up">
+            <div className="space-y-5">
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold tracking-tight leading-[1.06] text-balance">
                 {HERO.headline}
               </h1>
-              <p className="text-lg sm:text-xl lg:text-2xl text-foreground/90 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
-                {HERO.subheadlineLines.map((line, i) => (
-                  <span key={line} className="block">
-                    {line}
-                  </span>
-                ))}
+              <p className="text-lg sm:text-xl text-foreground/90 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
+                {HERO.subheadline}
               </p>
+              <ul className="space-y-1 text-base sm:text-lg text-muted-foreground max-w-md mx-auto lg:mx-0">
+                {HERO.valueLines.map((line) => (
+                  <li key={line} className="leading-relaxed">
+                    {line}
+                  </li>
+                ))}
+              </ul>
             </div>
+
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                 <Link href="/auth/register" onClick={() => track("v2_hero_start_free")}>
                   <Button
                     size="lg"
-                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto shadow-xl shadow-primary/25 hover:shadow-primary/35 transition-shadow"
+                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto shadow-xl shadow-primary/25"
                   >
                     <Sparkles className="h-4 w-4 mr-2" aria-hidden />
                     {HERO.primaryCta}
@@ -48,34 +52,50 @@ export function HeroSectionV2() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto bg-background/70 backdrop-blur-sm border-border/80"
+                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto bg-background/70 backdrop-blur-sm"
                   >
                     <Play className="h-4 w-4 mr-2 fill-current" aria-hidden />
                     {HERO.secondaryCta}
                   </Button>
                 </Link>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-2 justify-center lg:justify-start text-sm text-muted-foreground">
-                <div className="flex gap-0.5" aria-hidden>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+
+              <div className="flex flex-col gap-3 items-center lg:items-start">
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="flex gap-0.5" aria-hidden>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <span className="font-semibold text-foreground/90">{HERO.socialProof}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  {HERO.trustBadges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="text-xs font-medium px-3 py-1.5 rounded-full bg-background/80 border border-border/60 text-muted-foreground"
+                    >
+                      {badge}
+                    </span>
                   ))}
                 </div>
-                <span className="font-medium text-foreground/80">{HERO.socialProof}</span>
               </div>
             </div>
           </div>
-          <div className="order-1 lg:order-2 flex justify-center landing-fade-up">
-            <div className="relative w-full max-w-lg lg:max-w-none">
-              <div
-                className="absolute -inset-6 bg-gradient-to-tr from-primary/25 via-amber-200/40 to-orange-100/20 rounded-[3rem] blur-3xl"
-                aria-hidden
-              />
-              <FamilyIllustration className="relative w-full h-auto drop-shadow-2xl rounded-[2rem] landing-float" />
-            </div>
+
+          <div className="order-1 lg:order-2 flex justify-center lg:justify-end landing-fade-up landing-delay-2">
+            <MarketingImage
+              src={LANDING_MARKETING.hero}
+              alt="Parenfy app on phone with mother and child — Today's Journey, Toy Brain, and bedtime stories"
+              priority
+              floating
+              sizes="(max-width: 1024px) 92vw, 48vw"
+              className="max-w-xl lg:max-w-none w-full"
+              imageClassName="rounded-[1.75rem] object-contain"
+            />
           </div>
         </div>
       </div>
-    </LandingSection>
+    </section>
   );
 }
