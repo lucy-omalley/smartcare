@@ -1,26 +1,40 @@
+import {
+  emailTags,
+  getEmailFromAddress,
+  getEmailReplyTo,
+  getVerificationFromAddress,
+  type EmailKind,
+} from "@/lib/email/config";
+import { buildPasswordResetEmail, buildVerificationEmail } from "@/lib/email/templates";
+
 type SendEmailParams = {
   to: string;
   subject: string;
   html: string;
   text: string;
+  from?: string;
+  kind: EmailKind;
 };
 
 export type SendEmailResult = {
   sent: boolean;
   devMode?: boolean;
   error?: string;
+  messageId?: string;
 };
 
 /** Send transactional email via Resend HTTP API (no extra npm package). */
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.EMAIL_FROM?.trim() || "Parenfy <hello@parenfy.com>";
+  const from = params.from ?? getEmailFromAddress();
+  const replyTo = getEmailReplyTo();
 
   if (!apiKey) {
     if (process.env.NODE_ENV === "development") {
       console.info("[email] RESEND_API_KEY not set — skipping send:", params.subject, "→", params.to);
       return { sent: false, devMode: true };
     }
+    console.error("[email] RESEND_API_KEY missing in production");
     return { sent: false, error: "Email service not configured" };
   }
 
@@ -33,20 +47,37 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       },
       body: JSON.stringify({
         from,
+        reply_to: replyTo,
         to: [params.to],
         subject: params.subject,
         html: params.html,
         text: params.text,
+        tags: emailTags(params.kind),
+        headers: {
+          "X-Entity-Ref-ID": params.kind,
+        },
       }),
     });
 
+    const bodyText = await response.text();
     if (!response.ok) {
-      const body = await response.text();
-      console.error("[email] Resend error:", response.status, body);
+      console.error("[email] Resend error:", response.status, bodyText);
       return { sent: false, error: "Failed to send email" };
     }
 
-    return { sent: true };
+    let messageId: string | undefined;
+    try {
+      const parsed = JSON.parse(bodyText) as { id?: string };
+      messageId = parsed.id;
+    } catch {
+      /* ignore */
+    }
+
+    if (messageId) {
+      console.info("[email] Sent", params.kind, "→", params.to, "id:", messageId);
+    }
+
+    return { sent: true, messageId };
   } catch (error) {
     console.error("[email] Send failed:", error);
     return { sent: false, error: "Failed to send email" };
@@ -57,40 +88,27 @@ export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string
 ): Promise<SendEmailResult> {
-  const subject = "Reset your Parenfy password";
-  const text = `Reset your Parenfy password\n\nClick this link to choose a new password (expires in 1 hour):\n${resetUrl}\n\nIf you did not request this, you can ignore this email.\n\n— Parenfy`;
-  const html = `
-    <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-      <h1 style="font-size: 20px; margin-bottom: 16px;">Reset your password</h1>
-      <p style="color: #444; line-height: 1.5;">We received a request to reset your Parenfy password. Click the button below — this link expires in 1 hour.</p>
-      <p style="margin: 24px 0;">
-        <a href="${resetUrl}" style="background: #0f766e; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; display: inline-block;">Reset password</a>
-      </p>
-      <p style="color: #666; font-size: 14px; line-height: 1.5;">If you did not request this, you can safely ignore this email.</p>
-      <p style="color: #999; font-size: 12px; margin-top: 32px;">Parenfy — Your AI Parenting Companion</p>
-    </div>
-  `.trim();
-
-  return sendEmail({ to, subject, html, text });
+  const { html, text } = buildPasswordResetEmail(resetUrl);
+  return sendEmail({
+    to,
+    subject: "Reset your Parenfy password",
+    html,
+    text,
+    kind: "password_reset",
+  });
 }
 
 export async function sendEmailVerificationEmail(
   to: string,
   verifyUrl: string
 ): Promise<SendEmailResult> {
-  const subject = "Verify your Parenfy email";
-  const text = `Welcome to Parenfy\n\nPlease verify your email address by opening this link (expires in 24 hours):\n${verifyUrl}\n\nIf you did not create an account, you can ignore this email.\n\n— Parenfy`;
-  const html = `
-    <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-      <h1 style="font-size: 20px; margin-bottom: 16px;">Verify your email</h1>
-      <p style="color: #444; line-height: 1.5;">Thanks for joining the Parenfy public beta. Confirm your email to unlock Today&apos;s Plan, MumBot, and the rest of the app.</p>
-      <p style="margin: 24px 0;">
-        <a href="${verifyUrl}" style="background: #0f766e; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; display: inline-block;">Verify email</a>
-      </p>
-      <p style="color: #666; font-size: 14px; line-height: 1.5;">This link expires in 24 hours. If you did not sign up, you can ignore this email.</p>
-      <p style="color: #999; font-size: 12px; margin-top: 32px;">Parenfy — Your AI Parenting Companion</p>
-    </div>
-  `.trim();
-
-  return sendEmail({ to, subject, html, text });
+  const { html, text } = buildVerificationEmail(verifyUrl);
+  return sendEmail({
+    to,
+    subject: "Confirm your Parenfy email address",
+    html,
+    text,
+    from: getVerificationFromAddress(),
+    kind: "verification",
+  });
 }
