@@ -10,10 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { ToyScanFlow } from '@/components/toy-brain/toy-scan-flow';
 import type { ToyBrainFeatures } from '@/types/toy-brain';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function ToyBrainScanPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
   const [features, setFeatures] = useState<ToyBrainFeatures | null>(null);
 
   useEffect(() => {
@@ -29,15 +31,13 @@ export default function ToyBrainScanPage() {
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
             <Link href="/toy-brain"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
-          <h1 className="text-xl font-bold">Scan a toy</h1>
+          <h1 className="text-xl font-bold">{t('toyBrain.scanTitle')}</h1>
         </div>
 
         <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Photograph any toy</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              We&apos;ll identify it and generate personalised play ideas for your child.
-            </p>
+            <CardTitle className="text-base">{t('toyBrain.name')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('toyBrain.scanSubtitle')}</p>
           </CardHeader>
           <CardContent>
             {features ? (

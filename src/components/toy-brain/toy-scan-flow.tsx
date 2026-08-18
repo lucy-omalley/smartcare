@@ -13,6 +13,7 @@ import type { ToyCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { compressImageForUpload } from "@/lib/client/compress-image";
 import { parseApiJson } from "@/lib/parse-api-json";
+import { useTranslation } from "@/hooks/use-translation";
 
 interface ToyScanFlowProps {
   features: ToyBrainFeatures;
@@ -20,6 +21,7 @@ interface ToyScanFlowProps {
 
 export function ToyScanFlow({ features }: ToyScanFlowProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -165,7 +167,7 @@ export function ToyScanFlow({ features }: ToyScanFlowProps) {
         onClick={() => cameraInputRef.current?.click()}
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Camera className="h-4 w-4 mr-2" />}
-        Take photo
+        {t('toyBrain.takePhoto')}
       </Button>
 
       <Button
@@ -174,11 +176,11 @@ export function ToyScanFlow({ features }: ToyScanFlowProps) {
         disabled={loading}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Upload className="h-4 w-4 mr-2" /> Upload photo
+        <Upload className="h-4 w-4 mr-2" /> {t('toyBrain.uploadPhoto')}
       </Button>
 
       <Button variant="ghost" className="rounded-xl w-full text-sm" onClick={() => setManualMode(true)}>
-        <Search className="h-4 w-4 mr-2" /> Search manually
+        <Search className="h-4 w-4 mr-2" /> {t('toyBrain.searchManual')}
       </Button>
 
       {!features.isPremium && features.scansRemaining !== null && (

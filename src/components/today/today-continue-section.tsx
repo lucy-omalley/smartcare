@@ -10,6 +10,7 @@ import {
   type ContinueState,
 } from '@/components/today/today-continue-state';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface TodayContinueSectionProps {
   onResume: (type: ContinueDetailType) => void;
@@ -17,6 +18,7 @@ interface TodayContinueSectionProps {
 }
 
 export function TodayContinueSection({ onResume, className }: TodayContinueSectionProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<ContinueState | null>(null);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function TodayContinueSection({ onResume, className }: TodayContinueSecti
 
   return (
     <section className={cn('space-y-2.5', className)}>
-      <h2 className="text-base font-bold px-0.5">Continue Where You Left Off</h2>
+      <h2 className="text-base font-bold px-0.5">{t('home.continue')}</h2>
       <button
         type="button"
         onClick={() => onResume(state.type)}

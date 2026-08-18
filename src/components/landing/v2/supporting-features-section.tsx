@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { SECTIONS, SUPPORTING_FEATURES } from "@/lib/landing/v2-content";
+import { useLandingContent } from "@/hooks/use-landing-content";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 
 export function SupportingFeaturesSection() {
+  const { sections, supporting } = useLandingContent();
+
   return (
     <LandingSection className="py-12 md:py-16 bg-muted/5">
       <SectionHeader
-        eyebrow={SECTIONS.supporting.eyebrow}
-        title={SECTIONS.supporting.title}
-        description={SECTIONS.supporting.description}
+        eyebrow={sections.supporting.eyebrow}
+        title={sections.supporting.title}
+        description={sections.supporting.description}
         className="mb-8 md:mb-10"
       />
       <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 md:gap-3 max-w-3xl mx-auto opacity-90">
-        {SUPPORTING_FEATURES.map(({ icon: Icon, label, href }) => (
+        {supporting.map(({ icon: Icon, label, href }) => (
           <li key={label}>
             <Link
               href={href}

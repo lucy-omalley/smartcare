@@ -15,9 +15,15 @@ import {
   isCaptchaEnabledClient,
 } from '@/components/auth/recaptcha-widget';
 import { TurnstileWidget, isTurnstileEnabledClient } from '@/components/auth/turnstile-widget';
+import { AuthLanguageBar } from '@/components/i18n/auth-language-bar';
+import { useTranslation } from '@/hooks/use-translation';
+import { useAtomValue } from 'jotai';
+import { localeAtom } from '@/lib/store/locale';
 
 export default function Register() {
   const router = useRouter();
+  const locale = useAtomValue(localeAtom);
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -66,6 +72,7 @@ export default function Register() {
           password,
           name,
           referralSource: getStoredReferralSource(),
+          preferredLocale: locale,
           recaptchaToken: useRecaptcha ? captchaToken : undefined,
           turnstileToken: useTurnstile ? captchaToken : undefined,
           honeypot,
@@ -78,7 +85,7 @@ export default function Register() {
         throw new Error(data.error || data.message || 'Registration failed');
       }
 
-      trackEvent('signup_completed', { method: 'email' });
+      trackEvent('signup_completed', { method: 'email', locale, is_chinese: locale === 'zh-CN' });
       router.push('/auth/signin?registered=1&verify=1');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
@@ -90,12 +97,11 @@ export default function Register() {
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-12">
+      <AuthLanguageBar />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Join the Public Beta</CardTitle>
-          <CardDescription className="text-center">
-            Create your Parenfy account. Parenfy is still improving — your feedback helps shape the product.
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">{t('auth.joinBeta')}</CardTitle>
+          <CardDescription className="text-center">{t('auth.joinSubtitle')}</CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
@@ -169,12 +175,12 @@ export default function Register() {
               className="w-full"
               disabled={isLoading || (captchaRequired && !captchaToken)}
             >
-              {isLoading ? 'Creating account...' : 'Join the Public Beta'}
+              {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
-              Already have an account?{' '}
+              {t('auth.haveAccount')}{' '}
               <Link href="/auth/signin" className="text-primary hover:underline">
-                Sign in
+                {t('auth.signIn')}
               </Link>
             </div>
             <p className="text-xs text-center text-muted-foreground">

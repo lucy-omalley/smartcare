@@ -14,6 +14,7 @@ import { clientIpFromRequest } from "@/lib/upstash";
 import { looksLikeHumanName } from "@/lib/registration-guard";
 import { createAndSendVerificationEmail } from "@/lib/auth/email-verification";
 import { grantBetaTrial } from "@/lib/beta-trial";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       turnstileToken?: string;
       honeypot?: string;
       formLoadedAt?: number;
+      preferredLocale?: string;
     };
 
     const captcha = await verifyRegistrationCaptcha(body, ip);
@@ -135,6 +137,7 @@ export async function POST(req: Request) {
         name: trimmedName,
         password: hashedPassword,
         referralSource: normalizeReferralSource(body.referralSource),
+        preferredLocale: normalizeLocale(body.preferredLocale),
         signupPlatform: "web",
       },
     });
@@ -144,8 +147,15 @@ export async function POST(req: Request) {
     await grantBetaTrial(user.id);
 
     await Promise.allSettled([
-      persistAnalyticsEvent("signup_completed", user.id, { method: "email" }),
-      captureServerEvent(user.id, "signup_completed", { method: "email" }),
+      persistAnalyticsEvent("signup_completed", user.id, {
+        method: "email",
+        locale: normalizeLocale(body.preferredLocale),
+        is_chinese: normalizeLocale(body.preferredLocale) === "zh-CN",
+      }),
+      captureServerEvent(user.id, "signup_completed", {
+        method: "email",
+        locale: normalizeLocale(body.preferredLocale),
+      }),
     ]);
 
     const verification = await createAndSendVerificationEmail(user.id, user.email);

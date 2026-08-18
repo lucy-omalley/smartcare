@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
 import { TabLoadingScreen } from '@/components/layout/tab-loading-screen';
+import { ProfileLanguageSettings } from '@/components/i18n/profile-language-settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -250,6 +251,8 @@ function ProfileContent() {
             <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
           </div>
         </div>
+
+        {(editing || searchParams.get('settings') === '1') && <ProfileLanguageSettings />}
 
         {editing ? (
           <Card className="rounded-2xl">

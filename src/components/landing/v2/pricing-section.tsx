@@ -3,23 +3,26 @@
 import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PRICING_V2, SECTIONS } from "@/lib/landing/v2-content";
+import { useLandingContent } from "@/hooks/use-landing-content";
+import { useTranslation } from "@/hooks/use-translation";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
 export function PricingSectionV2() {
+  const { sections, pricing } = useLandingContent();
+  const { t } = useTranslation();
   const tiers = [
-    { ...PRICING_V2.free, highlighted: false },
-    { ...PRICING_V2.premium, highlighted: true },
+    { ...pricing.free, highlighted: false },
+    { ...pricing.premium, highlighted: true },
   ];
 
   return (
     <LandingSection id="pricing" className="bg-muted/15">
       <SectionHeader
-        eyebrow={SECTIONS.pricing.eyebrow}
-        title={SECTIONS.pricing.title}
-        description={SECTIONS.pricing.description}
+        eyebrow={sections.pricing.eyebrow}
+        title={sections.pricing.title}
+        description={sections.pricing.description}
       />
       <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {tiers.map((tier) => (
@@ -32,7 +35,7 @@ export function PricingSectionV2() {
           >
             <div>
               {tier.highlighted && (
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Recommended</p>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">{t('pricing.recommended')}</p>
               )}
               <h3 className="text-2xl font-bold">{tier.name}</h3>
             </div>

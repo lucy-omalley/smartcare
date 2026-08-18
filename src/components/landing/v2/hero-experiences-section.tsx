@@ -4,10 +4,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HERO_EXPERIENCES_V2, SECTIONS, THEME_STYLES } from "@/lib/landing/v2-content";
+import { THEME_STYLES } from "@/lib/landing/v2-content";
 import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
 import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { LandingSection, SectionHeader } from "@/components/landing/v2/ui/section-shell";
+import { useLandingContent } from "@/hooks/use-landing-content";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
@@ -18,16 +19,18 @@ const IMAGE_MAP = {
 } as const;
 
 export function HeroExperiencesSection() {
+  const { sections, experiences } = useLandingContent();
+
   return (
     <LandingSection id="experiences" className="py-0 md:py-0">
       <SectionHeader
-        eyebrow={SECTIONS.experiences.eyebrow}
-        title={SECTIONS.experiences.title}
-        description={SECTIONS.experiences.description}
+        eyebrow={sections.experiences.eyebrow}
+        title={sections.experiences.title}
+        description={sections.experiences.description}
         className="pt-16 md:pt-20 pb-8 md:pb-12"
       />
       <div className="space-y-0">
-        {HERO_EXPERIENCES_V2.map((exp, index) => {
+        {experiences.map((exp, index) => {
           const theme = THEME_STYLES[exp.theme];
           const reversed = index % 2 === 1;
           const imageSrc = IMAGE_MAP[exp.imageKey];

@@ -38,6 +38,7 @@ const profileSelect = {
   storyLearningTheme: true,
   storyMoralPreference: true,
   favouriteToys: true,
+  preferredLocale: true,
 } as const;
 
 export async function GET() {
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
     storyLearningTheme,
     storyMoralPreference,
     favouriteToys,
+    preferredLocale,
   } = body;
 
   const goals = parentingGoals ?? (parentingGoal ? [parentingGoal] : undefined);
@@ -134,6 +136,9 @@ export async function POST(request: Request) {
       ...(storyLearningTheme !== undefined && { storyLearningTheme: storyLearningTheme?.trim() || null }),
       ...(storyMoralPreference !== undefined && { storyMoralPreference: storyMoralPreference?.trim() || null }),
       ...(favouriteToys !== undefined && { favouriteToys: favouriteToys ?? [] }),
+      ...(preferredLocale !== undefined && {
+        preferredLocale: preferredLocale === "zh-CN" ? "zh-CN" : "en",
+      }),
       onboardingComplete: onboardingComplete ?? true,
     },
     select: profileSelect,

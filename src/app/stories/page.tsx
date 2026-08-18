@@ -12,6 +12,7 @@ import { BookOpen, Mic, Sparkles, Library, Crown, ArrowRight } from 'lucide-reac
 import { trackEvent } from '@/lib/analytics';
 import { VoiceUsageSummary } from '@/components/storytime/voice-usage-summary';
 import type { VoiceUsageSnapshot } from '@/types/voice-usage';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface StorytimeFeatures {
   isPremium: boolean;
@@ -23,6 +24,7 @@ interface StorytimeFeatures {
 export default function StoriesHubPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
   const [features, setFeatures] = useState<StorytimeFeatures | null>(null);
 
   useEffect(() => {
@@ -43,8 +45,8 @@ export default function StoriesHubPage() {
     {
       href: '/stories/voice',
       emoji: '🎙️',
-      title: 'Record your voice',
-      desc: 'Mum, Dad, Grandma — stories in your voice',
+      title: t('stories.recordVoice'),
+      desc: t('stories.subtitle'),
       icon: Mic,
       premium: true,
       highlight: true,
@@ -52,16 +54,16 @@ export default function StoriesHubPage() {
     {
       href: '/stories/create',
       emoji: '✨',
-      title: 'Create a story',
-      desc: 'Personalized bedtime tale for your child',
+      title: t('stories.createStory'),
+      desc: t('stories.generate'),
       icon: Sparkles,
       premium: false,
     },
     {
       href: '/stories/history',
       emoji: '📚',
-      title: 'Story library',
-      desc: 'Replay, favourite, and search past stories',
+      title: t('stories.storyLibrary'),
+      desc: t('stories.play'),
       icon: Library,
       premium: false,
     },
@@ -73,11 +75,9 @@ export default function StoriesHubPage() {
         <header className="pt-2 space-y-2">
           <div className="flex items-center gap-2">
             <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Family Voice Storytime</h1>
+            <h1 className="text-2xl font-bold">{t('stories.name')}</h1>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Bedtime stories in your voice — a magical connection for your child, even when you&apos;re not in the room.
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{t('stories.headline')}</p>
           {features && !features.isPremium && features.storiesRemainingThisMonth !== null && (
             <Badge variant="secondary" className="rounded-full">
               {features.storiesRemainingThisMonth} free stories left this month
