@@ -1,26 +1,5 @@
-"use client";
-
-import { ThemeProvider } from "next-themes";
-import { Provider as JotaiProvider } from "jotai";
-import { LocaleProvider } from "@/components/i18n/locale-provider";
-
-interface RootProviderProps {
-  children: React.ReactNode;
-}
-
-export function RootProvider({ children }: RootProviderProps) {
-  return (
-    <JotaiProvider>
-      <LocaleProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </LocaleProvider>
-    </JotaiProvider>
-  );
-} 
+/**
+ * @deprecated Use JotaiProvider + LocaleProvider from `@/app/providers` instead.
+ * Kept for reference; the app wires locale via `src/app/providers.tsx`.
+ */
+export { Providers as RootProvider } from "@/app/providers";

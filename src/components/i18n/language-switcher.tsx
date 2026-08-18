@@ -3,7 +3,7 @@
 import { useAtom } from "jotai";
 import { useSession } from "next-auth/react";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/config";
-import { localeAtom } from "@/lib/store/locale";
+import { localeAtom, persistLocale } from "@/lib/store/locale";
 import { saveLocalePreference } from "@/lib/i18n/save-locale-preference";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export function LanguageSwitcher({ className, variant = "compact" }: LanguageSwi
   const select = (next: Locale) => {
     if (next === locale) return;
     setLocale(next);
+    persistLocale(next);
     void saveLocalePreference(next, status === "authenticated");
   };
 
