@@ -11,6 +11,8 @@ import type { ToyBrainFeatures } from "@/types/toy-brain";
 import { TOY_CATEGORY_OPTIONS } from "@/lib/toy-brain/constants";
 import type { ToyCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { compressImageForUpload } from "@/lib/client/compress-image";
+import { parseApiJson } from "@/lib/parse-api-json";
 
 interface ToyScanFlowProps {
   features: ToyBrainFeatures;
@@ -34,24 +36,23 @@ export function ToyScanFlow({ features }: ToyScanFlowProps) {
 
     setLoading(true);
     try {
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const { dataUrl, mimeType } = await compressImageForUpload(file);
       setPreview(dataUrl);
 
-      const form = new FormData();
-      form.append("photo", file);
-      form.append("useAi", features.aiPersonalization ? "true" : "false");
-
-      const res = await fetch("/api/toy-brain/scan", { method: "POST", body: form });
-      const data = await res.json();
+      const res = await fetch("/api/toy-brain/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoData: dataUrl,
+          mimeType,
+          useAi: features.aiPersonalization,
+        }),
+      });
+      const data = await parseApiJson<{ toy?: { id: string; name: string }; error?: string }>(res);
       if (!res.ok) throw new Error(data.error ?? "Scan failed");
 
-      toast.success(`We think this is ${data.toy.name}!`);
-      router.push(`/toy-brain/${data.toy.id}?confirm=1`);
+      toast.success(`We think this is ${data.toy!.name}!`);
+      router.push(`/toy-brain/${data.toy!.id}?confirm=1`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not scan toy");
       setPreview(null);
@@ -81,10 +82,10 @@ export function ToyScanFlow({ features }: ToyScanFlowProps) {
           useAi: features.aiPersonalization,
         }),
       });
-      const data = await res.json();
+      const data = await parseApiJson<{ toy?: { id: string }; error?: string }>(res);
       if (!res.ok) throw new Error(data.error ?? "Could not add toy");
       toast.success("Play ideas ready!");
-      router.push(`/toy-brain/${data.toy.id}`);
+      router.push(`/toy-brain/${data.toy!.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add toy");
     } finally {
