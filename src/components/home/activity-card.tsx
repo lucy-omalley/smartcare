@@ -66,7 +66,6 @@ export function ActivityCard({ activities }: ActivityCardProps) {
             <div className="flex flex-wrap gap-2">
               <Badge className="rounded-full bg-emerald-100 text-emerald-900 hover:bg-emerald-100 border-0">Free</Badge>
               <Badge variant="outline" className="rounded-full text-xs">{ACTIVITY_CATEGORIES[a.category]}</Badge>
-              <Badge variant="secondary" className="rounded-full text-xs">All ages</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
               {format(new Date(a.date), 'EEE d MMM')} · {a.location}

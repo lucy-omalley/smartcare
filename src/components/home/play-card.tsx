@@ -50,9 +50,6 @@ export function PlayCard({ play, onRegenerate, loading, imagesLoading }: PlayCar
         <div className="flex flex-wrap gap-2">
           <Badge className="rounded-full bg-violet-100 text-violet-900 hover:bg-violet-100 border-0">{play.durationMinutes} min</Badge>
           <Badge variant="outline" className="rounded-full capitalize">{play.indoorOutdoor}</Badge>
-          {play.ageRecommendation && (
-            <Badge variant="secondary" className="rounded-full">{play.ageRecommendation}</Badge>
-          )}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {play.skillsDeveloped.map((skill) => (

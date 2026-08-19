@@ -36,12 +36,11 @@ export const HERO = {
   secondaryCta: "Watch Demo",
   demoTarget: "#experiences",
   socialProof: "Loved by Beta Parents",
-  trustBadges: ["Designed for children aged 2–6", "Privacy First"] as const,
+  trustBadges: ["Privacy First"] as const,
 } as const;
 
 export const TRUST_BADGES = [
   "Free to Start",
-  "Designed for children aged 2–6",
   "Privacy First",
 ] as const;
 
@@ -262,9 +261,9 @@ export const PRICING_V2 = {
 
 export const FAQ_V2 = [
   {
-    question: "What age is Parenfy for?",
+    question: "Who is Parenfy for?",
     answer:
-      "Parenfy is designed for families with children aged 2–6, though many parents use activities and stories flexibly for slightly older siblings too.",
+      "Parenfy personalises plans, play, and stories around your child's profile. Many families use activities and stories flexibly for siblings too.",
   },
   {
     question: "Can I add multiple children?",

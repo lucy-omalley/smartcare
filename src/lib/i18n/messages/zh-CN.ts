@@ -43,7 +43,6 @@ export const zhCN: MessageTree = {
     valueRoutine: "冰箱里的食材能做什么饭？",
     valueVoice: "",
     socialProof: "Beta家长好评",
-    trustAge: "适合 2–6 岁儿童",
     trustPrivacy: "隐私优先",
     ctaStart: "免费创建计划",
     ctaDemo: "观看演示",
