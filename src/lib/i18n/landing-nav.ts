@@ -5,6 +5,7 @@ import { useTranslation } from "@/hooks/use-translation";
 
 const NAV_KEYS: Record<string, string> = {
   "#journey": "nav.yourDay",
+  "#growth": "nav.growth",
   "#experiences": "nav.experiences",
   "#testimonials": "nav.parents",
   "#pricing": "nav.pricing",

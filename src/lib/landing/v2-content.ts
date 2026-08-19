@@ -6,6 +6,7 @@ import {
   Moon,
   Printer,
   Sparkles,
+  Sprout,
   Sun,
   TrendingUp,
   Users,
@@ -15,6 +16,7 @@ import {
 
 export const V2_NAV = [
   { href: "#journey", label: "Your day" },
+  { href: "#growth", label: "Growth" },
   { href: "#experiences", label: "Experiences" },
   { href: "#testimonials", label: "Parents" },
   { href: "#pricing", label: "Pricing" },
@@ -109,6 +111,12 @@ export const SECTIONS = {
     title: "Daily Family Journey",
     description: "From morning plan to bedtime story — one calm flow through your day.",
   },
+  growth: {
+    eyebrow: "Growth Journey",
+    title: "Your personal child development coach",
+    description:
+      "From birth to primary school — know how your child is doing, what to practise this week, and what fun activity to try today.",
+  },
   experiences: {
     eyebrow: "Hero experiences",
     title: "Three ways Parenfy helps every day",
@@ -133,6 +141,59 @@ export const SECTIONS = {
     eyebrow: "FAQ",
     title: "Questions? We've got you.",
   },
+} as const;
+
+export type GrowthJourneyFeature = {
+  emoji: string;
+  title: string;
+  description: string;
+};
+
+export const GROWTH_JOURNEY_MARKETING = {
+  features: [
+    {
+      emoji: "🎯",
+      title: "This week's mission",
+      description: "A clear weekly focus with progress you earn by completing real activities.",
+    },
+    {
+      emoji: "🌱",
+      title: "Today's mission",
+      description: "One playful activity matched to your child's age, interests, and learning goals.",
+    },
+    {
+      emoji: "😊",
+      title: "Skills dashboard",
+      description: "Beautiful skill cards that grow as you play — never judgement, always encouragement.",
+    },
+    {
+      emoji: "🗺",
+      title: "Personalised roadmap",
+      description: "See where your child is on their journey from baby to primary school.",
+    },
+    {
+      emoji: "✨",
+      title: "AI development coach",
+      description: "Short, actionable insights — what to try, why now, and how you can help.",
+    },
+  ] satisfies GrowthJourneyFeature[],
+  mock: {
+    childName: "Shea",
+    ageDisplay: "3 years 8 months",
+    stageLabel: "Preschool Explorer",
+    growthTheme: "Emotional Regulation",
+    weeklyProgress: 40,
+    weeklyMission: "Helping Shea recognise and express emotions confidently.",
+    todaysMission: "Emotion Train Adventure",
+    missionMinutes: 10,
+    skills: [
+      { emoji: "😊", label: "Emotional Regulation", progress: 40 },
+      { emoji: "🗣", label: "Communication", progress: 25 },
+      { emoji: "🤝", label: "Social Skills", progress: 15 },
+    ],
+  },
+  cta: "Start Your Growth Journey",
+  ctaSecondary: "See how it works",
 } as const;
 
 export type JourneyStage = {
@@ -183,10 +244,11 @@ export type SupportingFeature = { icon: LucideIcon; label: string; href: string 
 
 export const SUPPORTING_FEATURES: SupportingFeature[] = [
   { icon: Sparkles, label: "Today's Plan", href: "/today" },
+  { icon: Sprout, label: "Growth Journey", href: "#growth" },
   { icon: Bot, label: "MumBot", href: "/mumbot" },
   { icon: Gamepad2, label: "Activities", href: "/activities" },
   { icon: UtensilsCrossed, label: "Recipes", href: "/saved" },
-  { icon: TrendingUp, label: "Growth Reports", href: "/weekly-report" },
+  { icon: TrendingUp, label: "Weekly Reports", href: "/weekly-report" },
   { icon: Users, label: "Multiple Child Profiles", href: "/profile" },
   { icon: ChefHat, label: "Meal Planner", href: "/today" },
 ];
@@ -230,10 +292,10 @@ export const COMPARISON_V2 = {
   parenfy: [
     "Personalised for your child",
     "Structured daily journey",
+    "Growth Journey coach (0–8 years)",
     "Toy Brain",
     "Adventure Posters",
     "Family Voice Storytime",
-    "Growth tracking",
     "Daily parenting companion",
   ],
 } as const;
@@ -252,6 +314,7 @@ export const PRICING_V2 = {
       "Unlimited Stories",
       "Family Voice Storytime",
       "Toy Brain",
+      "Growth Journey",
       "Weekly Reports",
       "Future Features",
     ],
@@ -260,6 +323,11 @@ export const PRICING_V2 = {
 } as const;
 
 export const FAQ_V2 = [
+  {
+    question: "What is Growth Journey?",
+    answer:
+      "Growth Journey is Parenfy's personal child development coach for ages 0–8. It shows your weekly mission, today's activity, skill progress, milestones, and gentle coaching — all based on activities you actually complete, not generic AI reports.",
+  },
   {
     question: "Who is Parenfy for?",
     answer:

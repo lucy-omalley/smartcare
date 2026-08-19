@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import {
   getDailyJourney,
   getFaq,
+  getGrowthJourneyMarketing,
   getHeroExperiences,
   getLandingSections,
   getPricing,
@@ -26,6 +27,7 @@ export function useLandingContent() {
       testimonials: getTestimonials(locale),
       pricing: getPricing(locale),
       faq: getFaq(locale),
+      growthJourney: getGrowthJourneyMarketing(locale),
     }),
     [locale]
   );

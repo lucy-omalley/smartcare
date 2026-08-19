@@ -2,6 +2,7 @@ import type { Locale } from "@/lib/i18n/config";
 import {
   DAILY_JOURNEY_V2,
   FAQ_V2,
+  GROWTH_JOURNEY_MARKETING,
   HERO_EXPERIENCES_V2,
   PRICING_V2,
   SECTIONS,
@@ -17,6 +18,11 @@ const ZH_SECTIONS = {
     eyebrow: "每日流程",
     title: "一天的家庭陪伴",
     description: "从早晨计划到睡前故事，轻松完成每一天。",
+  },
+  growth: {
+    eyebrow: "成长旅程",
+    title: "专属的儿童成长教练",
+    description: "从出生到小学 — 了解孩子近况、本周练习重点，以及今天可以玩的趣味活动。",
   },
   experiences: {
     eyebrow: "核心功能",
@@ -79,9 +85,39 @@ const ZH_HERO_EXPERIENCES: HeroExperienceV2[] = HERO_EXPERIENCES_V2.map((exp, i)
 });
 
 const ZH_SUPPORTING: SupportingFeature[] = SUPPORTING_FEATURES.map((item, i) => {
-  const labels = ["今日计划", "育儿小助手", "亲子活动", "食谱", "成长报告", "多孩子档案", "餐食计划"];
+  const labels = ["今日计划", "成长旅程", "育儿小助手", "亲子活动", "食谱", "每周报告", "多孩子档案", "餐食计划"];
   return { ...item, label: labels[i] ?? item.label };
 });
+
+const ZH_GROWTH_JOURNEY = {
+  ...GROWTH_JOURNEY_MARKETING,
+  features: GROWTH_JOURNEY_MARKETING.features.map((feature, i) => {
+    const zh = [
+      { title: "本周任务", description: "清晰的每周成长主题 — 完成真实活动即可累积进度。" },
+      { title: "今日任务", description: "一项适合孩子年龄、兴趣和目标的趣味活动。" },
+      { title: "技能看板", description: "随着亲子游戏逐步成长 — 鼓励为主，从不评判。" },
+      { title: "个性化路线图", description: "从婴儿到小学，看见孩子所处的成长阶段。" },
+      { title: "AI 成长教练", description: "简短可执行的建议 — 做什么、为什么、如何陪伴。" },
+    ][i];
+    return { ...feature, ...zh };
+  }),
+  mock: {
+    ...GROWTH_JOURNEY_MARKETING.mock,
+    childName: "小Shea",
+    ageDisplay: "3岁8个月",
+    stageLabel: "学前探索者",
+    growthTheme: "情绪调节",
+    weeklyMission: "帮助 Shea 识别并自信地表达情绪。",
+    todaysMission: "情绪小火车冒险",
+    skills: [
+      { emoji: "😊", label: "情绪调节", progress: 40 },
+      { emoji: "🗣", label: "语言表达", progress: 25 },
+      { emoji: "🤝", label: "社交技能", progress: 15 },
+    ],
+  },
+  cta: "开启成长旅程",
+  ctaSecondary: "了解如何使用",
+} as const;
 
 const HIGHLIGHT_ZH: Record<string, string> = {
   "Routine Poster": "冒险任务",
@@ -119,12 +155,17 @@ const ZH_PRICING = {
   premium: {
     name: "高级版",
     highlighted: true,
-    features: ["冒险任务海报", "无限故事", "家庭声音故事", "玩具玩法", "每周报告", "未来新功能"],
+    features: ["冒险任务海报", "无限故事", "家庭声音故事", "玩具玩法", "成长旅程", "每周报告", "未来新功能"],
     cta: "免费体验",
   },
 } as const;
 
 const ZH_FAQ = [
+  {
+    question: "什么是成长旅程？",
+    answer:
+      "成长旅程是 Parenfy 为 0–8 岁孩子打造的专属成长教练。它会展示本周任务、今日活动、技能进度和里程碑 — 全部基于您实际完成的亲子活动，而不是泛泛的 AI 报告。",
+  },
   {
     question: "Parenfy 适合谁？",
     answer: "Parenfy 会根据您孩子的档案个性化计划、游戏和故事。许多家庭也会灵活地让兄弟姐妹一起使用。",
@@ -177,4 +218,8 @@ export function getPricing(locale: Locale) {
 
 export function getFaq(locale: Locale) {
   return locale === "zh-CN" ? ZH_FAQ : FAQ_V2;
+}
+
+export function getGrowthJourneyMarketing(locale: Locale) {
+  return locale === "zh-CN" ? ZH_GROWTH_JOURNEY : GROWTH_JOURNEY_MARKETING;
 }
