@@ -13,6 +13,27 @@ export type AdventureCategory =
 
 export type IndoorOutdoor = "indoor" | "outdoor" | "either";
 
+export type AdventureDateWindow = "any" | "today" | "tomorrow" | "week" | "month";
+
+export type DublinCityCouncilEventType =
+  | "kids-family-fun"
+  | "library-event"
+  | "summer-dublin"
+  | "free-event"
+  | "community-event";
+
+/** Provider-aware booking target — resolved to a concrete URL at runtime */
+export interface AdventureBookingLink {
+  kind: "direct" | "dublin-city-council" | "eventbrite";
+  url?: string;
+  /** DCC event path slug, e.g. dublin-city-council-dublin-city-fleadh */
+  eventSlug?: string;
+  eventType?: DublinCityCouncilEventType;
+  dateWindow?: AdventureDateWindow;
+  searchQuery?: string;
+  label?: string;
+}
+
 export interface FamilyAdventure {
   id: string;
   providerId: string;
@@ -31,7 +52,10 @@ export interface FamilyAdventure {
   category: AdventureCategory;
   indoorOutdoor: IndoorOutdoor;
   imageEmoji: string;
+  bookingLink?: AdventureBookingLink;
   bookingUrl?: string;
+  bookingLabel?: string;
+  eventDateLabel?: string;
   openingHours?: string;
   whatToBring: string[];
   parking?: string;
