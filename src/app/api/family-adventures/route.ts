@@ -26,10 +26,15 @@ export async function GET(request: Request) {
     };
 
     const view = await getFamilyAdventuresView(session.user.id, filters);
-    await persistAnalyticsEvent("family_adventures_viewed", session.user.id);
+    try {
+      await persistAnalyticsEvent("family_adventures_viewed", session.user.id);
+    } catch (analyticsError) {
+      console.warn("Family adventures analytics skipped:", analyticsError);
+    }
     return NextResponse.json({ view });
   } catch (error) {
     console.error("Family adventures error:", error);
-    return NextResponse.json({ error: "Failed to load adventures" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to load adventures";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
