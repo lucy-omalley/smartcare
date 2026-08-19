@@ -3,8 +3,13 @@ import { startOfDay, subDays } from "date-fns";
 import { getFounderMetrics } from "@/lib/services/founder-metrics";
 import { getProductFunnel, findBiggestFunnelDropOff } from "@/lib/analytics-platform/funnel";
 import { getFounderAiAnalytics, getTodayPlansAndChats } from "@/lib/analytics-platform/ai-analytics";
+import { getGrowthJourneyFounderMetrics } from "@/lib/analytics-platform/growth-journey-insights";
+import { getFamilyAdventuresFounderMetrics } from "@/lib/analytics-platform/family-adventures-insights";
 import { REFERRAL_SOURCE_LABELS } from "@/lib/analytics-platform/referral";
 import type { ReferralSource } from "@prisma/client";
+
+export type { GrowthJourneyFounderMetrics } from "@/lib/analytics-platform/growth-journey-insights";
+export type { FamilyAdventuresFounderMetrics } from "@/lib/analytics-platform/family-adventures-insights";
 
 export type FounderAlert = {
   level: "info" | "warning" | "critical";
@@ -142,14 +147,17 @@ export async function generateFounderInsights(): Promise<{
 
 /** Founder homepage — unified operational metrics */
 export async function getFounderOverview() {
-  const [base, funnel, ai, insights, referralGroups, plansToday] = await Promise.all([
-    getFounderMetrics(),
-    getProductFunnel(subDays(startOfDay(new Date()), 30)),
-    getFounderAiAnalytics(),
-    generateFounderInsights(),
-    prisma.user.groupBy({ by: ["referralSource"], _count: { id: true } }),
-    getTodayPlansAndChats(),
-  ]);
+  const [base, funnel, ai, insights, referralGroups, plansToday, growthJourney, familyAdventures] =
+    await Promise.all([
+      getFounderMetrics(),
+      getProductFunnel(subDays(startOfDay(new Date()), 30)),
+      getFounderAiAnalytics(),
+      generateFounderInsights(),
+      prisma.user.groupBy({ by: ["referralSource"], _count: { id: true } }),
+      getTodayPlansAndChats(),
+      getGrowthJourneyFounderMetrics(),
+      getFamilyAdventuresFounderMetrics(),
+    ]);
 
   const paidUsers = await prisma.user.count({
     where: { planTier: { in: ["PREMIUM", "FAMILY"] } },
@@ -197,6 +205,8 @@ export async function getFounderOverview() {
       mostPopular: base.summary.mostUsedFeature,
       leastUsed,
     },
+    growthJourney,
+    familyAdventures,
   };
 }
 
