@@ -126,8 +126,8 @@ const ZH_PRICING = {
 
 const ZH_FAQ = [
   {
-    question: "Parenfy 适合多大的孩子？",
-    answer: "主要面向 0–6 岁儿童家庭，稍大的兄弟姐妹也可以灵活使用活动和故事。",
+    question: "Parenfy 适合谁？",
+    answer: "Parenfy 会根据您孩子的档案个性化计划、游戏和故事。许多家庭也会灵活地让兄弟姐妹一起使用。",
   },
   {
     question: "可以添加多个孩子吗？",

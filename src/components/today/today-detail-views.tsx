@@ -526,9 +526,6 @@ export function ActivityDetailView({
         <h3 className="text-lg font-bold">{play.title}</h3>
         <div className="flex flex-wrap gap-2 mt-2">
           <Badge variant="secondary" className="rounded-full">{play.durationMinutes} min</Badge>
-          {play.ageRecommendation && (
-            <Badge variant="outline" className="rounded-full">{play.ageRecommendation}</Badge>
-          )}
         </div>
       </div>
       <div>

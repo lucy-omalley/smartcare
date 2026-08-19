@@ -228,9 +228,6 @@ function ToyDetailContent({ id }: { id: string }) {
       <div className="space-y-1 print:hidden">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="rounded-full">{meta.emoji} {meta.label}</Badge>
-          {toy.recommendedAge && (
-            <Badge variant="outline" className="rounded-full">Ages {toy.recommendedAge}</Badge>
-          )}
           <Badge variant="outline" className="rounded-full">{toy.activities.length} play ideas</Badge>
         </div>
         {toy.description && (

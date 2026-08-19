@@ -19,7 +19,7 @@ export function HeroSectionV2() {
     t("landing.valueRoutine"),
   ].filter(Boolean);
 
-  const trustBadges = [t("landing.trustAge"), t("landing.trustPrivacy")];
+  const trustBadges = [t("landing.trustPrivacy")];
 
   return (
     <section className="relative min-h-[100dvh] flex flex-col scroll-mt-20 overflow-hidden">

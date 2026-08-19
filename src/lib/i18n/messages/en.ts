@@ -47,7 +47,6 @@ export const en = {
     valueRoutine: "What can I cook with what's already in my fridge?",
     valueVoice: "",
     socialProof: "Loved by Beta Parents",
-    trustAge: "Designed for children aged 2–6",
     trustPrivacy: "Privacy First",
     ctaStart: "Create Free Plan",
     ctaDemo: "Watch Demo",
