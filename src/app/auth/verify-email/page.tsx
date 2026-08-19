@@ -59,7 +59,7 @@ export default function VerifyEmailPage() {
         setMessage(`Dev mode: open verification link — ${data.devVerifyUrl}`);
         return;
       }
-      setMessage("Verification email sent. Check your inbox.");
+      setMessage("Verification email sent. Check your inbox and spam/junk folder.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not resend email");
     } finally {
@@ -84,7 +84,7 @@ export default function VerifyEmailPage() {
           {email ? <p>Signed in as <span className="font-medium text-foreground">{email}</span></p> : null}
           {!verified && (
             <p>
-              Check spam if you don&apos;t see it. Links expire in 24 hours.
+              Check your inbox and spam/junk folder (垃圾箱). The sender is Parenfy. Links expire in 24 hours.
             </p>
           )}
           {message ? <p className="text-green-600 dark:text-green-400">{message}</p> : null}
