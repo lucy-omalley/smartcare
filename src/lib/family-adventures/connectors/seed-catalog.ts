@@ -133,7 +133,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "library",
     indoorOutdoor: "indoor",
     imageEmoji: "📚",
-    bookingUrl: "https://www.dublincity.ie",
+    bookingUrl: "https://www.dublincity.ie/leabharlanna/using-your-library/children",
     openingHours: "Check local library schedule",
     whatToBring: ["Library card optional"],
     parking: "Ilac Centre car park",
@@ -206,7 +206,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
   {
     title: "Dublin City Council — Family Fun Day",
     description:
-      "Community family events with crafts, music, and local activities. Check upcoming dates near you.",
+      "Free community family events with crafts, music, and local activities across Dublin city centre. Browse upcoming dates on the council events calendar.",
     location: "Various venues, Dublin",
     area: "Dublin",
     priceLabel: "Free",
@@ -218,7 +218,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "community",
     indoorOutdoor: "either",
     imageEmoji: "🎪",
-    bookingUrl: "https://www.dublincity.ie",
+    bookingUrl: "https://www.dublincity.ie/events",
     openingHours: "Weekends, seasonal",
     whatToBring: ["Weather-appropriate clothing"],
     parking: "Varies by venue",
