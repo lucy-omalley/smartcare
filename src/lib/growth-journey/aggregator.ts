@@ -5,12 +5,16 @@ import { prisma } from "@/lib/db";
 import { parseChildAgeMonths } from "@/lib/child-development";
 import { resolveChildAgeDisplay } from "@/lib/child-age";
 import { getTodayPageData } from "@/lib/services/today-page";
-import type { BriefProfile } from "@/lib/daily-brief-context";
 import {
   buildRoadmap,
   resolveLifeStage,
   SKILL_CATALOG,
 } from "@/lib/growth-journey/stages";
+import {
+  buildGrowthActivitySnapshot,
+  fetchGrowthActivityRecords,
+  computeSkillProgress,
+} from "@/lib/growth-journey/metrics";
 import type {
   GrowthCelebration,
   GrowthInterest,
@@ -20,23 +24,10 @@ import type {
   GrowthTimelineEntry,
 } from "@/lib/growth-journey/types";
 
-function clamp(n: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, Math.round(n)));
-}
-
-function skillProgress(
-  skillKeywords: string[],
-  developmentText: string[],
-  playSkills: string[],
-  weeklyActivityCount: number,
-  seed: number
-): number {
-  const haystack = [...developmentText, ...playSkills].join(" ").toLowerCase();
-  const match = skillKeywords.some((k) => haystack.includes(k));
-  const base = 35 + (seed % 25);
-  const activityBoost = Math.min(weeklyActivityCount * 8, 32);
-  const matchBoost = match ? 15 : 0;
-  return clamp(base + activityBoost + matchBoost);
+function schoolReadinessStatus(score: number): "explore" | "growing" | "strong" {
+  if (score >= 70) return "strong";
+  if (score >= 45) return "growing";
+  return "explore";
 }
 
 function interestStars(name: string, profileTags: string[], usageCount: number): number {
@@ -50,16 +41,10 @@ function interestStars(name: string, profileTags: string[], usageCount: number):
   return 2;
 }
 
-function schoolReadinessStatus(score: number): "explore" | "growing" | "strong" {
-  if (score >= 70) return "strong";
-  if (score >= 45) return "growing";
-  return "explore";
-}
-
 export async function getGrowthJourneyView(userId: string): Promise<GrowthJourneyView> {
   const weekAgo = subDays(new Date(), 7);
 
-  const [todayData, user, milestones, memories, weeklyEvents] = await Promise.all([
+  const [todayData, user, milestones, memories, activityRecords] = await Promise.all([
     getTodayPageData(userId),
     prisma.user.findUnique({
       where: { id: userId },
@@ -88,22 +73,7 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
       take: 12,
       select: { id: true, content: true, category: true, createdAt: true },
     }),
-    prisma.analyticsEvent.findMany({
-      where: {
-        userId,
-        createdAt: { gte: weekAgo },
-        event: {
-          in: [
-            "activity_started",
-            "activity_completed",
-            "story_started",
-            "story_completed",
-            "learning_plan_generated",
-          ],
-        },
-      },
-      select: { event: true, createdAt: true },
-    }),
+    fetchGrowthActivityRecords(userId, weekAgo),
   ]);
 
   if (!user) throw new Error("User not found");
@@ -120,27 +90,46 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
     brief.development[0]?.domain ??
     "Curiosity & Confidence";
 
-  const weeklyActivityCount = weeklyEvents.filter((e) =>
-    ["activity_started", "activity_completed", "story_completed"].includes(e.event)
-  ).length;
-  const activitiesTarget = 5;
-  const activitiesCompleted = Math.min(weeklyActivityCount, activitiesTarget);
-  const weeklyProgressPercent = clamp((activitiesCompleted / activitiesTarget) * 100);
-
   const developmentDomains = brief.development.map((d) => `${d.domain} ${d.insight}`);
   const playSkills = brief.play.skillsDeveloped ?? [];
+  const briefSignals = [
+    growthTheme,
+    ...developmentDomains,
+    ...playSkills,
+    brief.weeklyFocus?.reason ?? "",
+    brief.todayFocus?.title ?? "",
+    brief.play.title,
+  ].filter(Boolean);
 
-  const skills = SKILL_CATALOG.map((s, i) => ({
+  const activitySnapshot = buildGrowthActivitySnapshot({
+    ...activityRecords,
+    skillCatalog: SKILL_CATALOG,
+    briefSignals,
+  });
+
+  const {
+    weeklyCompletedMissions: activitiesCompleted,
+    weeklyProgressPercent,
+    activitiesTarget,
+    streakDays,
+    hasActivityHistory,
+    completedMissions,
+    skillProgressById,
+  } = activitySnapshot;
+
+  const skills = SKILL_CATALOG.map((s) => ({
     id: s.id,
     emoji: s.emoji,
     label: s.label,
-    progress: skillProgress(s.keywords, developmentDomains, playSkills, weeklyActivityCount, userId.length + i * 7),
+    progress: skillProgressById[s.id] ?? 0,
     encouragement:
-      s.id === "emotional"
-        ? "Naming feelings together builds calm."
-        : s.id === "communication"
-          ? "Every chat counts as practice."
-          : "Small steps — big growth.",
+      skillProgressById[s.id] > 0
+        ? s.id === "emotional"
+          ? "Naming feelings together builds calm."
+          : s.id === "communication"
+            ? "Every chat counts as practice."
+            : "Small steps — big growth."
+        : "Complete a mission to start tracking this skill.",
   }));
 
   const ageFilteredMilestones = milestones.filter(
@@ -176,32 +165,27 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
     ),
   }));
 
-  const fallbackTimeline: GrowthTimelineEntry[] = [
-    {
-      id: "today-play",
-      label: `Today's activity: ${brief.play.title}`,
-      when: "Today",
-      emoji: "🎨",
-    },
-  ];
-  if (brief.milestone) {
-    fallbackTimeline.push({
-      id: "milestone",
-      label: brief.milestone.milestone,
-      when: "This week",
-      emoji: "🌱",
-    });
-  }
+  const timelineFromMemories: GrowthTimelineEntry[] = memories.slice(0, 6).map((m) => ({
+    id: m.id,
+    label: m.content.slice(0, 120),
+    when: formatDistanceToNow(m.createdAt, { addSuffix: true }),
+    emoji: m.category === "MILESTONE" ? "🌱" : m.category === "LEARNING" ? "📚" : "✨",
+    sortAt: m.createdAt.getTime(),
+  }));
 
-  const timeline: GrowthTimelineEntry[] =
-    memories.length > 0
-      ? memories.slice(0, 6).map((m) => ({
-          id: m.id,
-          label: m.content.slice(0, 120),
-          when: formatDistanceToNow(m.createdAt, { addSuffix: true }),
-          emoji: m.category === "MILESTONE" ? "🌱" : m.category === "LEARNING" ? "📚" : "✨",
-        }))
-      : fallbackTimeline;
+  const timelineFromMissions: GrowthTimelineEntry[] = completedMissions.slice(0, 4).map((mission) => ({
+    id: `mission-${mission.id}`,
+    label: mission.label,
+    when: formatDistanceToNow(mission.completedAt, { addSuffix: true }),
+    emoji: mission.source === "story" ? "📖" : mission.source === "language" ? "🗣" : "🎨",
+    sortAt: mission.completedAt.getTime(),
+  }));
+
+  type TimelineWithSort = GrowthTimelineEntry & { sortAt: number };
+  const timeline = ([...timelineFromMissions, ...timelineFromMemories] as TimelineWithSort[])
+    .sort((a, b) => b.sortAt - a.sortAt)
+    .slice(0, 6)
+    .map(({ sortAt: _sortAt, ...entry }) => entry);
 
   const celebrations: GrowthCelebration[] = [];
   if (activitiesCompleted >= 3) {
@@ -210,12 +194,18 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
       emoji: "🎉",
       message: `${childName} completed ${activitiesCompleted} learning missions this week!`,
     });
-  }
-  if (weeklyProgressPercent >= 60) {
+  } else if (activitiesCompleted === 1) {
     celebrations.push({
-      id: "progress",
-      emoji: "⭐",
-      message: "Wonderful weekly progress — keep going!",
+      id: "first-mission",
+      emoji: "🌟",
+      message: `${childName} started their first learning mission — wonderful beginning!`,
+    });
+  }
+  if (streakDays >= 3) {
+    celebrations.push({
+      id: "streak",
+      emoji: "🔥",
+      message: `${streakDays}-day learning streak — keep it up!`,
     });
   }
 
@@ -226,13 +216,17 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
   ].filter(Boolean) as string[];
 
   const topInterest = [...interests].sort((a, b) => b.stars - a.stars)[0]?.name ?? "play";
-  const coachInsight = brief.development[0]?.insight
-    ? `${childName} has shown lovely progress in ${brief.development[0].domain.toLowerCase()} recently.`
-    : `${childName} is exploring the world with curiosity — a wonderful sign of healthy development.`;
 
-  const coachAction =
-    brief.development[0]?.tryToday ??
-    `Because ${childName} enjoys ${topInterest.toLowerCase()}, try today's play mission together.`;
+  const coachInsight = hasActivityHistory
+    ? brief.development[0]?.insight
+      ? `${childName} has shown lovely progress in ${brief.development[0].domain.toLowerCase()} recently.`
+      : `${childName} is exploring the world with curiosity — a wonderful sign of healthy development.`
+    : `${childName}'s growth journey is just beginning. Complete today's mission to start building your personalised timeline.`;
+
+  const coachAction = hasActivityHistory
+    ? (brief.development[0]?.tryToday ??
+      `Because ${childName} enjoys ${topInterest.toLowerCase()}, try today's play mission together.`)
+    : `Start with "${brief.play.title}" — a gentle ${brief.play.durationMinutes}-minute mission to kick off the week.`;
 
   const parentTip =
     brief.parentTip?.content ??
@@ -249,8 +243,8 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
       { id: "social", label: "Social", keywords: ["social", "friend", "share"] },
       { id: "confidence", label: "Confidence", keywords: ["confiden", "try", "brave"] },
     ];
-    schoolReadiness = domains.map((d, i) => {
-      const score = skillProgress(d.keywords, developmentDomains, playSkills, weeklyActivityCount, i * 11);
+    schoolReadiness = domains.map((d) => {
+      const score = computeSkillProgress(d.keywords, completedMissions, briefSignals);
       return { id: d.id, label: d.label, status: schoolReadinessStatus(score) };
     });
   }
@@ -269,15 +263,11 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
     },
   ];
 
-  const streakDays = Math.min(
-    7,
-    new Set(weeklyEvents.map((e) => e.createdAt.toDateString())).size || (weeklyActivityCount > 0 ? 1 : 0)
-  );
-
   const parentFirstName = user.name?.split(" ")[0] ?? "there";
-  const monthlyLetter = user.weeklyFocusReason
-    ? `Dear ${parentFirstName},\n\nThis month ${childName} has been growing beautifully — especially around ${growthTheme.toLowerCase()}. ${coachInsight} Next we'll gently build on ${brief.development[1]?.domain?.toLowerCase() ?? "play and connection"}.\n\nWith warmth,\nParenfy`
-    : null;
+  const monthlyLetter =
+    hasActivityHistory && user.weeklyFocusReason
+      ? `Dear ${parentFirstName},\n\nThis month ${childName} has been growing beautifully — especially around ${growthTheme.toLowerCase()}. ${coachInsight} Next we'll gently build on ${brief.development[1]?.domain?.toLowerCase() ?? "play and connection"}.\n\nWith warmth,\nParenfy`
+      : null;
 
   return {
     childName,
@@ -286,6 +276,7 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
     stageLabel,
     growthTheme,
     weeklyProgressPercent,
+    hasActivityHistory,
     weeklyMission: {
       title: growthTheme,
       summary:
@@ -312,7 +303,9 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
             ? "Moderate"
             : "Stretch",
       ageNote: ageDisplay,
-      reason: `Because ${childName} loves ${topInterest.toLowerCase()}, we recommend this mission today.`,
+      reason: hasActivityHistory
+        ? `Because ${childName} loves ${topInterest.toLowerCase()}, we recommend this mission today.`
+        : `A perfect first mission for ${childName} — playful, gentle, and easy to start today.`,
       activityHref: "/today",
     },
     skills,

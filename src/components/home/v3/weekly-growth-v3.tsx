@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import type { DailyBriefContent } from '@/types/daily-brief';
@@ -15,6 +16,13 @@ type Props = {
   onOpenParentTip?: () => void;
   onOpenActivity?: () => void;
   className?: string;
+};
+
+type GrowthStats = {
+  weeklyProgressPercent: number;
+  activitiesCompleted: number;
+  activitiesTarget: number;
+  hasActivityHistory: boolean;
 };
 
 function ProgressBar({ value, className }: { value: number; className?: string }) {
@@ -48,6 +56,22 @@ export function WeeklyGrowthV3({
   className,
 }: Props) {
   const { t } = useTranslation();
+  const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/growth/stats', { cache: 'no-store' })
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.stats) {
+          setGrowthStats(json.stats as GrowthStats);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [brief.play.title]);
 
   const weeklyTheme =
     brief.weeklyFocus?.title ?? brief.todayFocus?.title ?? brief.development[0]?.domain ?? t('homeV3.exploreGrowth');
@@ -60,17 +84,8 @@ export function WeeklyGrowthV3({
   const activitySkills = brief.play.skillsDeveloped.slice(0, 2);
   const activityMinutes = brief.play.durationMinutes;
 
-  const weeklyProgress = Math.min(
-    85,
-    Math.max(
-      35,
-      40 +
-        (brief.development.length > 0 ? 10 : 0) +
-        (brief.milestone ? 10 : 0) +
-        (brief.parentTip ? 5 : 0) +
-        activitySkills.length * 5
-    )
-  );
+  const weeklyProgress = growthStats?.weeklyProgressPercent ?? 0;
+  const hasActivityHistory = growthStats?.hasActivityHistory ?? false;
 
   const openGrowthJourney = () => {
     trackEvent('growth_journey_viewed', { source: 'today_weekly_growth' });
@@ -113,12 +128,21 @@ export function WeeklyGrowthV3({
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] font-medium text-muted-foreground">
                 <span>{t('homeV3.weeklyProgress')}</span>
-                <span>{weeklyProgress}%</span>
+                <span>
+                  {hasActivityHistory
+                    ? `${weeklyProgress}%`
+                    : t('homeV3.justGettingStarted')}
+                </span>
               </div>
               <ProgressBar value={weeklyProgress} />
+              {growthStats ? (
+                <p className="text-[10px] text-muted-foreground">
+                  {growthStats.activitiesCompleted}/{growthStats.activitiesTarget} {t('homeV3.missionsThisWeek')}
+                </p>
+              ) : null}
             </div>
             <span className="inline-flex items-center text-xs font-semibold text-primary">
-              {t('homeV3.continueMission')}
+              {hasActivityHistory ? t('homeV3.continueMission') : t('homeV3.startMission')}
               <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </span>
           </div>

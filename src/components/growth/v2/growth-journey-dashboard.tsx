@@ -66,13 +66,26 @@ export function GrowthJourneyDashboard({ data }: Props) {
         <div className="space-y-2 mb-5">
           <div className="flex justify-between text-xs font-medium">
             <span>Weekly progress</span>
-            <span>{data.weeklyProgressPercent}%</span>
+            <span>
+              {data.hasActivityHistory
+                ? `${data.weeklyProgressPercent}%`
+                : "Just getting started"}
+            </span>
           </div>
           <ProgressBar value={data.weeklyProgressPercent} />
+          {!data.hasActivityHistory ? (
+            <p className="text-xs text-muted-foreground">
+              Complete your first mission on Today to begin tracking progress.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {data.weeklyMission.activitiesCompleted}/{data.weeklyMission.activitiesTarget} missions this week
+            </p>
+          )}
         </div>
         <Button asChild size="lg" className="w-full rounded-2xl h-12 shadow-md" onClick={startMission}>
           <Link href={data.todaysMission.activityHref}>
-            Continue Today&apos;s Mission
+            {data.hasActivityHistory ? "Continue Today's Mission" : "Start Today's Mission"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -164,7 +177,11 @@ export function GrowthJourneyDashboard({ data }: Props) {
               <SkillRing progress={skill.progress} emoji={skill.emoji} />
               <div className="min-w-0">
                 <p className="text-xs font-semibold leading-tight">{skill.label}</p>
-                <p className="text-lg font-bold text-primary">{skill.progress}%</p>
+                {skill.progress > 0 ? (
+                  <p className="text-lg font-bold text-primary">{skill.progress}%</p>
+                ) : (
+                  <p className="text-xs font-medium text-muted-foreground mt-1">Ready to begin</p>
+                )}
               </div>
             </div>
           ))}
@@ -309,15 +326,21 @@ export function GrowthJourneyDashboard({ data }: Props) {
       {/* Timeline */}
       <section className="space-y-3">
         <h2 className="text-lg font-bold px-0.5">Memory Timeline</h2>
-        <div className="space-y-0 border-l-2 border-primary/20 ml-3 pl-5">
-          {data.timeline.map((entry) => (
-            <div key={entry.id} className="relative pb-5 last:pb-0">
-              <span className="absolute -left-[1.65rem] top-0 text-lg">{entry.emoji}</span>
-              <p className="text-xs text-muted-foreground">{entry.when}</p>
-              <p className="text-sm leading-snug mt-0.5">{entry.label}</p>
-            </div>
-          ))}
-        </div>
+        {data.timeline.length > 0 ? (
+          <div className="space-y-0 border-l-2 border-primary/20 ml-3 pl-5">
+            {data.timeline.map((entry) => (
+              <div key={entry.id} className="relative pb-5 last:pb-0">
+                <span className="absolute -left-[1.65rem] top-0 text-lg">{entry.emoji}</span>
+                <p className="text-xs text-muted-foreground">{entry.when}</p>
+                <p className="text-sm leading-snug mt-0.5">{entry.label}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[1.35rem] border border-dashed bg-muted/20 p-5 text-sm text-muted-foreground text-center">
+            Your timeline will fill up as you complete missions and save memories.
+          </div>
+        )}
         <Button asChild variant="outline" size="sm" className="rounded-full">
           <Link href="/memory">View all memories</Link>
         </Button>

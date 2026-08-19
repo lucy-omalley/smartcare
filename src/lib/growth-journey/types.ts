@@ -95,6 +95,7 @@ export interface GrowthJourneyView {
   stageLabel: string;
   growthTheme: string;
   weeklyProgressPercent: number;
+  hasActivityHistory: boolean;
   weeklyMission: GrowthMission;
   todaysMission: GrowthTodaysMission;
   skills: GrowthSkillCard[];
