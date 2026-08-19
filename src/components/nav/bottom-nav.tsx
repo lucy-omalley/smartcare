@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sun, MessageCircle, Users, User, MoreHorizontal } from "lucide-react";
+import { Home, Gamepad2, Map, TrendingUp, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/use-translation";
 
 const navItems = [
-  { href: "/today", labelKey: "nav.today", icon: Sun },
-  { href: "/mumbot", labelKey: "nav.mumbot", icon: MessageCircle },
-  { href: "/connect", labelKey: "nav.connect", icon: Users },
-  { href: "/profile", labelKey: "nav.profile", icon: User },
-  { href: "/more", labelKey: "nav.more", icon: MoreHorizontal },
+  { href: "/today", labelKey: "nav.home", icon: Home, match: ["/today", "/home"] },
+  { href: "/toy-brain", labelKey: "nav.play", icon: Gamepad2, match: ["/toy-brain"] },
+  { href: "/adventure-journey", labelKey: "nav.journey", icon: Map, match: ["/adventure-journey", "/posters"] },
+  { href: "/learning-plan", labelKey: "nav.growth", icon: TrendingUp, match: ["/learning-plan", "/weekly-report", "/memory"] },
+  { href: "/profile", labelKey: "nav.profile", icon: User, match: ["/profile"] },
 ] as const;
 
 export function BottomNav() {
@@ -21,20 +21,17 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-safe">
       <div className="container flex h-16 items-center justify-around max-w-lg mx-auto">
-        {navItems.map(({ href, labelKey, icon: Icon }) => {
-          const isActive =
-            pathname === href ||
-            pathname.startsWith(href + "/") ||
-            (href === "/today" && pathname === "/home");
+        {navItems.map(({ href, labelKey, icon: Icon, match }) => {
+          const isActive = match.some(
+            (m) => pathname === m || pathname.startsWith(m + "/")
+          );
           return (
             <Link
               key={href}
               href={href}
               className={cn(
                 "flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors min-w-[56px]",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive && "fill-primary/20")} />
