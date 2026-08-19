@@ -615,6 +615,8 @@ export default function TodayPage() {
         play={brief.play}
         onSave={() => patchBrief('save-activity')}
         onBack={closeDetail}
+        onTryAnother={() => rotate('play')}
+        tryingAnother={rotating === 'play'}
       />
     ) : activeDetail === 'language' && brief && languageSection ? (
       <LanguageDetailView part="footer" language={languageSection} onBack={closeDetail} />
@@ -760,6 +762,8 @@ export default function TodayPage() {
             onResumePlan={(type) => openDetail(type)}
             onAskMumbot={askMumbot}
             onCheckIn={submitCheckIn}
+            onTryAnother={(section) => rotate(section)}
+            rotating={rotating}
           />
         )}
       </div>
@@ -774,7 +778,7 @@ export default function TodayPage() {
             open={activeDetail !== null}
             title={detailTitles.story}
             onClose={closeDetail}
-            footer={<StoryDetailFooter />}
+            footer={<StoryDetailFooter onTryAnother={() => rotate('story')} tryingAnother={rotating === 'story'} />}
           >
             <StoryDetailContent
               childAgeDisplay={brief.childAgeDisplay}
@@ -794,7 +798,7 @@ export default function TodayPage() {
             open={activeDetail !== null}
             title={detailTitles.meal}
             onClose={closeDetail}
-            footer={<MealDetailFooter />}
+            footer={<MealDetailFooter onTryAnother={() => rotate('recipe')} tryingAnother={rotating === 'recipe'} />}
           >
             <MealDetailContent />
           </TodayBottomSheet>

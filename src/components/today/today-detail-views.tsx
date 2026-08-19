@@ -22,6 +22,8 @@ import { StoryListenButton } from '@/components/story/story-listen-button';
 import { ExpandableStepList } from '@/components/today/expandable-step-list';
 import Link from 'next/link';
 import { hasStoryPreferences, storyPreferenceLabels, type StoryPreferences } from '@/lib/story-preferences';
+import { useTranslation } from '@/hooks/use-translation';
+import { cn } from '@/lib/utils';
 
 const MEAL_STYLE_OPTIONS = ['Soup', 'Pasta', 'Rice bowl', 'Salad', 'Stir-fry', 'Sandwich', 'Casserole', 'Smoothie'] as const;
 
@@ -449,11 +451,30 @@ export function MealDetailContent() {
   );
 }
 
-export function MealDetailFooter() {
+export function MealDetailFooter({
+  onTryAnother,
+  tryingAnother,
+}: {
+  onTryAnother?: () => void;
+  tryingAnother?: boolean;
+} = {}) {
+  const { t } = useTranslation();
   const { onSave, onBack, saving, setSaving } = useMealDetailContext();
 
   return (
-    <div className="flex gap-2">
+    <div className="space-y-2">
+      {onTryAnother && (
+        <Button
+          variant="outline"
+          className="w-full rounded-full touch-target"
+          disabled={tryingAnother}
+          onClick={onTryAnother}
+        >
+          <RefreshCw className={cn('h-4 w-4 mr-1', tryingAnother && 'animate-spin')} />
+          {t('today.tryAnother')}
+        </Button>
+      )}
+      <div className="flex gap-2">
       <Button
         className="flex-1 rounded-full touch-target"
         disabled={saving}
@@ -475,6 +496,7 @@ export function MealDetailFooter() {
       <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
         Back to Today
       </Button>
+      </div>
     </div>
   );
 }
@@ -483,17 +505,34 @@ export function ActivityDetailView({
   play,
   onSave,
   onBack,
+  onTryAnother,
+  tryingAnother,
   part = 'content',
 }: {
   play: DailyBriefPlay;
   onSave: () => Promise<void>;
   onBack: () => void;
+  onTryAnother?: () => void;
+  tryingAnother?: boolean;
   part?: DetailPart;
 }) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const footer = (
-    <div className="flex gap-2">
+    <div className="space-y-2">
+      {onTryAnother && (
+        <Button
+          variant="outline"
+          className="w-full rounded-full touch-target"
+          disabled={tryingAnother}
+          onClick={onTryAnother}
+        >
+          <RefreshCw className={cn('h-4 w-4 mr-1', tryingAnother && 'animate-spin')} />
+          {t('today.tryAnother')}
+        </Button>
+      )}
+      <div className="flex gap-2">
       <Button
         className="flex-1 rounded-full touch-target"
         disabled={saving}
@@ -515,6 +554,7 @@ export function ActivityDetailView({
       <Button variant="outline" className="rounded-full touch-target shrink-0" onClick={onBack}>
         Back to Today
       </Button>
+      </div>
     </div>
   );
 
@@ -745,7 +785,14 @@ export function StoryDetailContent({
   );
 }
 
-export function StoryDetailFooter() {
+export function StoryDetailFooter({
+  onTryAnother,
+  tryingAnother,
+}: {
+  onTryAnother?: () => void;
+  tryingAnother?: boolean;
+} = {}) {
+  const { t } = useTranslation();
   const {
     story,
     onSave,
@@ -799,6 +846,17 @@ export function StoryDetailFooter() {
           />
         </div>
       </div>
+      {onTryAnother && (
+        <Button
+          variant="outline"
+          className="w-full rounded-full touch-target"
+          disabled={tryingAnother}
+          onClick={onTryAnother}
+        >
+          <RefreshCw className={cn('h-4 w-4 mr-1', tryingAnother && 'animate-spin')} />
+          {t('today.tryAnother')}
+        </Button>
+      )}
       <div className="flex gap-2">
         <Button
           className="flex-1 rounded-full touch-target"

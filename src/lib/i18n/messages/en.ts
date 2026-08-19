@@ -299,6 +299,7 @@ export const en = {
     startActivity: "Start Activity",
     readStory: "Read Story",
     tryWords: "Try Words",
+    tryAnother: "Try another",
     aboutActivity: "About today's activity",
     anotherMeal: "Another meal idea",
     adaptStory: "Adapt today's story",

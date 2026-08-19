@@ -45,6 +45,8 @@ export type HomeV3Props = {
   onResumePlan: (type: ContinueDetailType) => void;
   onAskMumbot: (prompt: string) => void;
   onCheckIn: (payload: { feeling: string; win: string; challenge: string }) => Promise<{ encouragement?: string }>;
+  onTryAnother?: (section: 'recipe' | 'play' | 'story' | 'language') => void;
+  rotating?: 'recipe' | 'play' | 'story' | 'language' | null;
 };
 
 export function HomeV3Dashboard({
@@ -65,6 +67,8 @@ export function HomeV3Dashboard({
   onResumePlan,
   onAskMumbot,
   onCheckIn,
+  onTryAnother,
+  rotating,
 }: HomeV3Props) {
   const { t } = useTranslation();
 
@@ -77,6 +81,8 @@ export function HomeV3Dashboard({
       subtitle: truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 12),
       cta: t('today.viewMeal'),
       onOpen: onOpenMeal,
+      onRefresh: onTryAnother ? () => onTryAnother('recipe') : undefined,
+      refreshing: rotating === 'recipe',
     },
     {
       id: 'activity',
@@ -86,6 +92,8 @@ export function HomeV3Dashboard({
       subtitle: truncateWords(brief.play.reason || t('homeV3.activityWeather'), 12),
       cta: t('homeV3.explore'),
       onOpen: onOpenActivity,
+      onRefresh: onTryAnother ? () => onTryAnother('play') : undefined,
+      refreshing: rotating === 'play',
     },
     {
       id: 'story',
@@ -100,6 +108,8 @@ export function HomeV3Dashboard({
       ),
       cta: t('homeV3.read'),
       onOpen: onOpenStory,
+      onRefresh: onTryAnother ? () => onTryAnother('story') : undefined,
+      refreshing: rotating === 'story',
     },
     {
       id: 'language',
@@ -109,6 +119,8 @@ export function HomeV3Dashboard({
       subtitle: truncateWords(languageSection?.miniGame || languageSection?.reason || '—', 12),
       cta: t('homeV3.start'),
       onOpen: onOpenLanguage,
+      onRefresh: onTryAnother ? () => onTryAnother('language') : undefined,
+      refreshing: rotating === 'language',
     },
   ];
 
