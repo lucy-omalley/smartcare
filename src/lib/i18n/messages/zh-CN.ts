@@ -165,6 +165,8 @@ export const zhCN: MessageTree = {
     todaysGrowthActivity: "今日成长活动",
     startMission: "开始任务",
     growthEncouragement: "{name} 在稳步成长——每一步都值得庆祝。",
+    justGettingStarted: "刚刚开始",
+    missionsThisWeek: "本周任务",
     weeklyGoal: "本周目标",
     skillsPractised: "练习技能",
     milestones: "里程碑",

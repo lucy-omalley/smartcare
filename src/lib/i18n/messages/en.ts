@@ -169,6 +169,8 @@ export const en = {
     todaysGrowthActivity: "Today's growth activity",
     startMission: "Start mission",
     growthEncouragement: "{name} is growing beautifully — one small step at a time.",
+    justGettingStarted: "Just getting started",
+    missionsThisWeek: "missions this week",
     weeklyGoal: "Weekly Goal",
     skillsPractised: "Skills Practised",
     milestones: "Milestones",
