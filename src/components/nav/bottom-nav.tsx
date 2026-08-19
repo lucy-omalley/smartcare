@@ -10,7 +10,7 @@ const navItems = [
   { href: "/today", labelKey: "nav.home", icon: Home, match: ["/today", "/home"] },
   { href: "/toy-brain", labelKey: "nav.play", icon: Gamepad2, match: ["/toy-brain"] },
   { href: "/adventure-journey", labelKey: "nav.journey", icon: Map, match: ["/adventure-journey", "/posters"] },
-  { href: "/learning-plan", labelKey: "nav.growth", icon: TrendingUp, match: ["/learning-plan", "/weekly-report", "/memory"] },
+  { href: "/growth", labelKey: "nav.growth", icon: TrendingUp, match: ["/growth", "/learning-plan", "/weekly-report", "/memory"] },
   { href: "/profile", labelKey: "nav.profile", icon: User, match: ["/profile"] },
 ] as const;
 

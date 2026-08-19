@@ -82,6 +82,8 @@ export const config = {
     '/toy-brain/:path*',
     '/posters/:path*',
     '/learning-plan/:path*',
+    '/growth/:path*',
+    '/weekly-report/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',
     '/chat/:path*',
