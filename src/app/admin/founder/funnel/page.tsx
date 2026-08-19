@@ -48,8 +48,13 @@ export default function FounderFunnelPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h2 className="text-xl font-bold">Product Funnel</h2>
-        <p className="text-xs text-muted-foreground">Last 30 days · conversion at each stage</p>
+        <h2 className="text-xl font-bold">Growth Funnel</h2>
+        <p className="text-xs text-muted-foreground">
+          Last 30 days · landing to premium ·{" "}
+          <a href="/admin/founder/growth" className="text-primary underline-offset-2 hover:underline">
+            full dashboard
+          </a>
+        </p>
       </header>
 
       {worstStage ? (

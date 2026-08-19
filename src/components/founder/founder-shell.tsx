@@ -17,10 +17,12 @@ import {
   LayoutGrid,
   Printer,
   Brain,
+  BarChart3,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin/founder", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/admin/founder/growth", label: "Growth", icon: BarChart3 },
   { href: "/admin/founder/users", label: "Users", icon: Users },
   { href: "/admin/founder/funnel", label: "Funnel", icon: Filter },
   { href: "/admin/founder/storytime", label: "Storytime", icon: BookOpen },
@@ -43,7 +45,7 @@ export function FounderShell({ children }: { children: React.ReactNode }) {
         <div className="container max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-lg font-bold">Founder Control Centre</h1>
-            <p className="text-xs text-muted-foreground">Parenfy analytics & user intelligence</p>
+            <p className="text-xs text-muted-foreground">Growth intelligence & user analytics</p>
           </div>
           <nav className="flex flex-wrap gap-1">
             {NAV.map(({ href, label, icon: Icon, exact }) => {

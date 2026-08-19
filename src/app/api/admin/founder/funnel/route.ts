@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProductFunnel } from "@/lib/analytics-platform/funnel";
+import { getGrowthFunnel } from "@/lib/analytics-platform/growth-intelligence";
 import { founderGuard } from "@/lib/founder-api";
 import { subDays, startOfDay } from "date-fns";
 
@@ -8,7 +8,7 @@ export async function GET() {
   if (auth instanceof NextResponse) return auth;
 
   try {
-    const funnel = await getProductFunnel(subDays(startOfDay(new Date()), 30));
+    const funnel = await getGrowthFunnel(subDays(startOfDay(new Date()), 30));
     return NextResponse.json({ funnel });
   } catch (error) {
     console.error("Founder funnel error:", error);
