@@ -94,6 +94,88 @@ export default function FounderDashboardPage() {
         <MetricCard label="Top referral" value={data.acquisition.topReferral} />
         <MetricCard label="Onboarding rate" value={`${s.onboardingRate}%`} />
         <MetricCard label="Least used feature" value={data.features.leastUsed} />
+        <MetricCard
+          label="Growth Journey views (30d)"
+          value={data.growthJourney.pageViews30d}
+        />
+        <MetricCard
+          label="Family Adventures views (30d)"
+          value={data.familyAdventures.dashboardViews30d}
+        />
+      </section>
+
+      <section className="grid md:grid-cols-2 gap-4">
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Growth Journey</CardTitle>
+            <p className="text-xs text-muted-foreground">Personal child development coach — last 30 days where noted</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <MetricCard label="Page views (30d)" value={data.growthJourney.pageViews30d} />
+              <MetricCard label="Unique users (30d)" value={data.growthJourney.uniqueUsers30d} />
+              <MetricCard label="Missions started (30d)" value={data.growthJourney.missionsStarted30d} />
+              <MetricCard label="Activity completions (30d)" value={data.growthJourney.activityCompletions30d} />
+              <MetricCard label="Today widget taps (30d)" value={data.growthJourney.todayWidgetViews30d} />
+              <MetricCard label="Users completing activities (30d)" value={data.growthJourney.usersWithCompletions30d} />
+              <MetricCard label="Roadmap opens (30d)" value={data.growthJourney.roadmapOpens30d} />
+              <MetricCard label="Skill views (30d)" value={data.growthJourney.skillViews30d} />
+            </div>
+            <DailyBarChart
+              data={data.growthJourney.dailyViews}
+              xKey="day"
+              yKey="count"
+            />
+            {data.growthJourney.topMissions.length > 0 ? (
+              <ul className="text-xs space-y-1.5">
+                {data.growthJourney.topMissions.map((m) => (
+                  <li key={m.title} className="flex justify-between gap-2 border-b py-1">
+                    <span className="truncate">{m.title}</span>
+                    <span className="text-muted-foreground shrink-0">{m.count}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">No mission starts tracked yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">AI Family Adventures</CardTitle>
+            <p className="text-xs text-muted-foreground">Weekend outing recommendations — last 30 days where noted</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <MetricCard label="Dashboard views (30d)" value={data.familyAdventures.dashboardViews30d} />
+              <MetricCard label="Unique users (30d)" value={data.familyAdventures.uniqueUsers30d} />
+              <MetricCard label="Today hero clicks (30d)" value={data.familyAdventures.heroClicks30d} />
+              <MetricCard label="Detail views (30d)" value={data.familyAdventures.detailViews30d} />
+              <MetricCard label="Saved (total)" value={data.familyAdventures.savedTotal} />
+              <MetricCard label="Booking clicks (30d)" value={data.familyAdventures.bookingClicks30d} />
+              <MetricCard label="Attended (30d)" value={data.familyAdventures.attended30d} />
+              <MetricCard label="Map opens (30d)" value={data.familyAdventures.mapOpens30d} />
+            </div>
+            <DailyBarChart
+              data={data.familyAdventures.dailyViews}
+              xKey="day"
+              yKey="count"
+            />
+            {data.familyAdventures.topAdventures.length > 0 ? (
+              <ul className="text-xs space-y-1.5">
+                {data.familyAdventures.topAdventures.map((a) => (
+                  <li key={a.title} className="flex justify-between gap-2 border-b py-1">
+                    <span className="truncate">{a.title}</span>
+                    <span className="text-muted-foreground shrink-0">{a.count}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">No adventure engagement tracked yet.</p>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       {data.insights.recommendations.length > 0 ? (
