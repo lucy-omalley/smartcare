@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyEmailToken } from "@/lib/auth/email-verification";
+import { prisma } from "@/lib/db";
+import {
+  attachSessionCookie,
+  createSessionToken,
+  isNextAuthSecretConfigured,
+} from "@/lib/auth/session-cookie";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -22,5 +28,40 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.redirect(new URL("/auth/verify-email?verified=1", request.url));
+  const user = await prisma.user.findUnique({
+    where: { id: result.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      onboardingComplete: true,
+    },
+  });
+
+  if (!user?.email) {
+    return NextResponse.redirect(new URL("/auth/verify-email?verified=1", request.url));
+  }
+
+  const nextPath = user.onboardingComplete ? "/today" : "/onboarding";
+  const redirectUrl = new URL(`${nextPath}?verified=1`, request.url);
+
+  if (!isNextAuthSecretConfigured()) {
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const sessionToken = await createSessionToken({
+    id: user.id,
+    email: user.email,
+    name: user.name ?? "",
+    image: user.image,
+    emailVerified: true,
+  });
+
+  if (!sessionToken) {
+    return NextResponse.redirect(new URL("/auth/verify-email?verified=1", request.url));
+  }
+
+  const response = NextResponse.redirect(redirectUrl);
+  return attachSessionCookie(response, sessionToken);
 }

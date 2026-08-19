@@ -125,6 +125,14 @@ export async function generateFounderInsights(): Promise<{
   if (dropOff?.id === "child_profile" || dropOff?.id === "onboarding") {
     recommendations.push("Simplify onboarding — reduce required profile fields.");
   }
+  if (dropOff?.id === "email_verified") {
+    recommendations.push(
+      "Reduce email verification friction — auto-login after signup, one-click verify link, and reminder emails at 1h / 24h."
+    );
+    recommendations.push(
+      "Export unverified signups from Growth → Follow-up and manually nudge users who never clicked the link."
+    );
+  }
   if (ai.today.cacheHitPct < 0.7) {
     recommendations.push("Improve semantic cache coverage for personalization prompts.");
   }

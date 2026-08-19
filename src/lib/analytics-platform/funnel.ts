@@ -34,7 +34,7 @@ export async function getProductFunnel(since?: Date): Promise<FunnelStage[]> {
     distinctUsers("landing_page_viewed", dateFilter),
     distinctUsers("signup_started", dateFilter),
     distinctUsers("signup_completed", dateFilter),
-    distinctUsers("email_verified", dateFilter),
+    countEmailVerifiedUsers(since),
     distinctUsers("onboarding_completed", dateFilter),
     prisma.user.count({ where: { childBirthday: { not: null }, ...(since ? { createdAt: { gte: since } } : {}) } }),
     distinctUsers("today_plan_viewed", dateFilter),
@@ -95,6 +95,29 @@ async function distinctUsers(
     select: { userId: true },
   });
   return rows.length;
+}
+
+/** Users with verified email — merges analytics events and DB flag (covers OAuth). */
+async function countEmailVerifiedUsers(since?: Date): Promise<number> {
+  const dateFilter = since ? { createdAt: { gte: since } } : {};
+  const [eventUsers, dbUsers] = await Promise.all([
+    prisma.analyticsEvent.findMany({
+      where: { event: "email_verified", userId: { not: null }, ...dateFilter },
+      distinct: ["userId"],
+      select: { userId: true },
+    }),
+    prisma.user.findMany({
+      where: {
+        emailVerified: { not: null },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
+      select: { id: true },
+    }),
+  ]);
+  return new Set([
+    ...eventUsers.map((r) => r.userId!),
+    ...dbUsers.map((u) => u.id),
+  ]).size;
 }
 
 export function findBiggestFunnelDropOff(stages: FunnelStage[]): FunnelStage | null {

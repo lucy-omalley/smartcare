@@ -52,10 +52,27 @@ export async function authorizeOAuthSignIn(
 }
 
 export async function markEmailVerifiedForOAuth(userId: string): Promise<void> {
+  const existing = await withDbRetry(() =>
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    })
+  );
+  if (existing?.emailVerified) return;
+
   await withDbRetry(() =>
     prisma.user.update({
       where: { id: userId },
       data: { emailVerified: new Date() },
     })
   );
+
+  await Promise.allSettled([
+    import("@/lib/analytics/persist").then(({ persistAnalyticsEvent }) =>
+      persistAnalyticsEvent("email_verified", userId, { method: "oauth" })
+    ),
+    import("@/lib/analytics/posthog-server").then(({ captureServerEvent }) =>
+      captureServerEvent(userId, "email_verified", { method: "oauth" })
+    ),
+  ]);
 }

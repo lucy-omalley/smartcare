@@ -85,6 +85,14 @@ export default function Register() {
         throw new Error(data.error || data.message || 'Registration failed');
       }
 
+      const data = (await response.json()) as {
+        error?: string;
+        message?: string;
+        verificationEmailSent?: boolean;
+        devVerifyUrl?: string;
+        redirect?: string;
+      };
+
       const utm = getStoredUtmParams();
       trackEvent('signup_completed', {
         method: 'email',
@@ -94,7 +102,15 @@ export default function Register() {
         utm_medium: utm.medium,
         utm_campaign: utm.campaign,
       });
-      router.push('/auth/signin?registered=1&verify=1');
+
+      if (data.verificationEmailSent === false && !data.devVerifyUrl) {
+        setError(
+          'Account created, but the verification email could not be sent. You can resend from the next screen.'
+        );
+      }
+
+      const nextPath = data.redirect ?? '/auth/verify-email';
+      window.location.href = `${window.location.origin}${nextPath.startsWith('/') ? nextPath : `/${nextPath}`}`;
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
       setCaptchaToken(null);
