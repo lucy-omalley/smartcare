@@ -137,7 +137,7 @@ export default function OnboardingPage() {
     if (parentingGoals.length) trackEvent('parenting_goals_selected', { count: parentingGoals.length });
     if (currentChallenges.length) trackEvent('current_challenges_selected', { count: currentChallenges.length });
     if (broadArea || location) trackEvent('connect_area_selected');
-    router.push('/today?welcome=1');
+    router.push('/today?first=1');
   };
 
   const stepIndex = STEPS.indexOf(step);

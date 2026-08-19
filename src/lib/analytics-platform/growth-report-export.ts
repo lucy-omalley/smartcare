@@ -31,6 +31,23 @@ export function growthReportToCsv(data: GrowthIntelligenceDashboard): string {
   ];
 
   const ns = data.northStar;
+  const pulse = data.activationPulse;
+  lines.push(
+    ...section("Activation pulse (today)", [
+      ...table(
+        ["metric", "value"],
+        [
+          ["Activation rate today %", pulse.activationRateToday],
+          ["Returning users today", pulse.returningUsersToday],
+          ["Best hero feature", data.hero.bestPerforming],
+          ["Top acquisition source", data.referral.topSource],
+          ["Avg time to WOW (min)", pulse.avgTimeToWowMinutes ?? ""],
+          ["WOW target (min)", pulse.wowTargetMinutes],
+        ]
+      ),
+    ])
+  );
+
   lines.push(
     ...section("North Star — Activated Users", [
       ...table(

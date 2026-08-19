@@ -11,10 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, Plus, Sparkles, ArrowRight, Trash2, Loader2, Heart } from 'lucide-react';
 import type { ToyBrainFeatures, ToyProfileView } from '@/types/toy-brain';
 import { TOY_CATEGORY_GROUPS, categoryMeta } from '@/lib/toy-brain/constants';
+import { HeroEmptyState } from '@/components/activation/hero-empty-state';
+import { useTranslation } from '@/hooks/use-translation';
 import { trackEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 
 export default function ToyBrainHubPage() {
+  const { t } = useTranslation();
   const { status } = useSession();
   const router = useRouter();
   const [toys, setToys] = useState<ToyProfileView[]>([]);
@@ -121,15 +124,13 @@ export default function ToyBrainHubPage() {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">My Toy Box</h2>
           {filtered.length === 0 ? (
-            <Card className="rounded-2xl">
-              <CardContent className="p-6 text-center text-sm text-muted-foreground space-y-3">
-                <Sparkles className="h-8 w-8 mx-auto text-primary/60" />
-                <p>No toys yet. Scan your first toy to get play ideas in seconds.</p>
-                <Button asChild className="rounded-xl">
-                  <Link href="/toy-brain/scan">Scan a toy</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <HeroEmptyState
+              emoji="🧸"
+              title={t('activation.emptyToyTitle')}
+              message={t('activation.emptyToyMessage')}
+              cta={t('features.toyBrainCta')}
+              href="/toy-brain/scan"
+            />
           ) : (
             filtered.map((t) => {
               const meta = categoryMeta(t.category);

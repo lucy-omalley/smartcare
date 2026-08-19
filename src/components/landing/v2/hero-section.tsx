@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Play, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HERO } from "@/lib/landing/v2-content";
 import { LANDING_MARKETING } from "@/lib/landing/marketing-images";
 import { MarketingImage } from "@/components/landing/v2/ui/marketing-image";
 import { trackEvent } from "@/lib/analytics";
@@ -13,13 +12,12 @@ export function HeroSectionV2() {
   const { t } = useTranslation();
   const track = (location: string) => trackEvent("beta_cta_clicked", { location });
 
-  const valueLines = [
+  const questions = [
     t("landing.valueIntro"),
     t("landing.valuePlan"),
     t("landing.valuePlay"),
     t("landing.valueRoutine"),
-    t("landing.valueVoice"),
-  ];
+  ].filter(Boolean);
 
   const trustBadges = [t("landing.trustAge"), t("landing.trustPrivacy")];
 
@@ -39,58 +37,36 @@ export function HeroSectionV2() {
               <p className="text-lg sm:text-xl text-foreground/90 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
                 {t("landing.subheadline")}
               </p>
-              <ul className="space-y-1 text-base sm:text-lg text-muted-foreground max-w-md mx-auto lg:mx-0">
-                {valueLines.map((line) => (
-                  <li key={line} className="leading-relaxed">
-                    {line}
+              <ul className="space-y-2 text-base sm:text-lg text-muted-foreground max-w-md mx-auto lg:mx-0 text-left">
+                {questions.map((line) => (
+                  <li key={line} className="leading-relaxed flex gap-2">
+                    <span className="text-primary shrink-0">•</span>
+                    <span>{line}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="space-y-5">
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <Link href="/auth/register" onClick={() => track("v2_hero_start_free")}>
-                  <Button
-                    size="lg"
-                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto shadow-xl shadow-primary/25"
+            <div className="space-y-4">
+              <Link href="/auth/register" onClick={() => track("v2_hero_create_free_plan")}>
+                <Button
+                  size="lg"
+                  className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto shadow-xl shadow-primary/25"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" aria-hidden />
+                  {t("landing.ctaStart")}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                {trustBadges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="text-xs font-medium px-3 py-1.5 rounded-full bg-background/80 border border-border/60 text-muted-foreground"
                   >
-                    <Sparkles className="h-4 w-4 mr-2" aria-hidden />
-                    {t("landing.ctaStart")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href={HERO.demoTarget} onClick={() => track("v2_hero_demo")}>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-2xl h-14 px-10 text-base w-full sm:w-auto bg-background/70 backdrop-blur-sm"
-                  >
-                    <Play className="h-4 w-4 mr-2 fill-current" aria-hidden />
-                    {t("landing.ctaDemo")}
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="flex flex-col gap-3 items-center lg:items-start">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="flex gap-0.5" aria-hidden>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <span className="font-semibold text-foreground/90">{t("landing.socialProof")}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                  {trustBadges.map((badge) => (
-                    <span
-                      key={badge}
-                      className="text-xs font-medium px-3 py-1.5 rounded-full bg-background/80 border border-border/60 text-muted-foreground"
-                    >
-                      {badge}
-                    </span>
-                  ))}
-                </div>
+                    {badge}
+                  </span>
+                ))}
               </div>
             </div>
           </div>

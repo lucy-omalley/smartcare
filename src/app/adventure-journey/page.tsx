@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Plus, Sparkles, Map, Trash2, Loader2 } from 'lucide-react';
 import type { AdventureJourneyView, AdventureFeatures } from '@/types/adventure-journey';
 import { POSTER_CATEGORY_OPTIONS } from '@/lib/posters/constants';
+import { HeroEmptyState } from '@/components/activation/hero-empty-state';
 import { POSTER_THEMES } from '@/lib/posters/themes';
 import { trackEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
@@ -119,15 +120,13 @@ export default function AdventureJourneyHubPage() {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Your adventures</h2>
           {filtered.length === 0 ? (
-            <Card className="rounded-2xl">
-              <CardContent className="p-6 text-center text-sm text-muted-foreground space-y-3">
-                <Sparkles className="h-8 w-8 mx-auto text-primary/60" />
-                <p>No adventures yet. Create a bedtime or morning story journey in under a minute.</p>
-                <Button asChild className="rounded-xl">
-                  <Link href="/adventure-journey/create">Create first adventure</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <HeroEmptyState
+              emoji="📋"
+              title={t('activation.emptyAdventureTitle')}
+              message={t('activation.emptyAdventureMessage')}
+              cta={t('adventure.createFirst')}
+              href="/adventure-journey/create"
+            />
           ) : (
             filtered.map((a) => {
               const theme = POSTER_THEMES[a.theme];
