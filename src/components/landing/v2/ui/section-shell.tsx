@@ -13,7 +13,7 @@ export function LandingSection({
   containerClassName?: string;
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-20 py-16 md:py-24 lg:py-28", className)}>
+    <section id={id} className={cn("scroll-mt-28 md:scroll-mt-24 lg:scroll-mt-20 py-16 md:py-24 lg:py-28", className)}>
       <div className={cn("container px-4 md:px-6 max-w-6xl mx-auto", containerClassName)}>
         {children}
       </div>
