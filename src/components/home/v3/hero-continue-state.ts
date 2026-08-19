@@ -1,6 +1,6 @@
 'use client';
 
-export type HeroContinueKind = 'adventure' | 'story' | 'toy' | 'journey';
+export type HeroContinueKind = 'adventure' | 'story' | 'toy' | 'journey' | 'family-adventures';
 
 export type HeroContinueItem = {
   kind: HeroContinueKind;
@@ -17,6 +17,7 @@ const META: Record<HeroContinueKind, { emoji: string; label: string }> = {
   story: { emoji: '🌙', label: 'Continue Story' },
   toy: { emoji: '🧸', label: 'Continue Toy Brain' },
   journey: { emoji: '⭐', label: "Continue Today's Journey" },
+  'family-adventures': { emoji: '🌈', label: 'Continue Family Adventures' },
 };
 
 export function saveHeroContinue(kind: HeroContinueKind, title: string, href: string) {

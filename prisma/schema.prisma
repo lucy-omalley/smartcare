@@ -248,6 +248,7 @@ model User {
   dailyBriefs         DailyBrief[]
   savedRecipes        SavedRecipe[]
   savedStories        SavedStory[]
+  savedFamilyAdventures SavedFamilyAdventure[]
   rotateLibrary       UserRotateLibrary?
   usageQuota          UserUsageQuota?
   aiUsageLogs         AIUsageLog[]
@@ -503,6 +504,18 @@ model SavedStory {
   createdAt       DateTime @default(now())
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+model SavedFamilyAdventure {
+  id          String   @id @default(cuid())
+  userId      String
+  adventureId String
+  remindAt    DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, adventureId])
   @@index([userId])
 }
 

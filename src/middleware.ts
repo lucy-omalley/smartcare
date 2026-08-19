@@ -83,6 +83,7 @@ export const config = {
     '/posters/:path*',
     '/learning-plan/:path*',
     '/growth/:path*',
+    '/family-adventures/:path*',
     '/weekly-report/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',

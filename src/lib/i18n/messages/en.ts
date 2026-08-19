@@ -189,6 +189,16 @@ export const en = {
     reportBug: "Report Bug",
     moreTools: "Connect, check-in & more",
   },
+  familyAdventures: {
+    title: "AI Family Adventures",
+    subtitle: "Discover personalised experiences near you.",
+    heroDefault: "Today looks perfect for a family adventure.",
+    waiting: "{count} personalised recommendations waiting",
+    exploreToday: "Explore Today",
+    topPicks: "Today's Top Picks",
+    collections: "Adventure Collections",
+    moreComing: "More providers coming soon — Eventbrite, councils, libraries, and local gems.",
+  },
   features: {
     toyBrain: "Toy Brain",
     toyBrainSubtitle: "Snap a toy — discover new ways to play",

@@ -185,6 +185,16 @@ export const zhCN: MessageTree = {
     reportBug: "报告问题",
     moreTools: "社区、签到与更多",
   },
+  familyAdventures: {
+    title: "AI 家庭冒险",
+    subtitle: "发现附近个性化亲子体验。",
+    heroDefault: "今天很适合来一次家庭冒险。",
+    waiting: "{count} 个个性化推荐等你探索",
+    exploreToday: "探索今日冒险",
+    topPicks: "今日精选",
+    collections: "冒险主题",
+    moreComing: "更多数据源即将接入 — Eventbrite、市政活动、图书馆和本地宝藏。",
+  },
   features: {
     toyBrain: "玩具玩法",
     toyBrainSubtitle: "拍玩具，发现更多玩法",

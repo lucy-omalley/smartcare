@@ -8,7 +8,7 @@ import { useTranslation } from '@/hooks/use-translation';
 import { trackEvent } from '@/lib/analytics';
 import { saveHeroContinue } from '@/components/home/v3/hero-continue-state';
 
-type ExperienceId = 'toy-brain' | 'adventure' | 'storytime';
+type ExperienceId = 'toy-brain' | 'adventure' | 'storytime' | 'family-adventures';
 
 type Experience = {
   id: ExperienceId;
@@ -22,7 +22,7 @@ type Experience = {
   border: string;
   decor: string;
   badge?: string;
-  continueKind: 'toy' | 'adventure' | 'story';
+  continueKind: 'toy' | 'adventure' | 'story' | 'family-adventures';
 };
 
 export function HeroExperiencesV3({ className }: { className?: string }) {
@@ -54,6 +54,19 @@ export function HeroExperiencesV3({ className }: { className?: string }) {
       border: 'border-emerald-200/70 dark:border-emerald-800/40',
       decor: '🗺️📄',
       continueKind: 'adventure',
+    },
+    {
+      id: 'family-adventures',
+      emoji: '🌈',
+      headline: t('familyAdventures.title'),
+      subtitle: t('familyAdventures.subtitle'),
+      cta: t('familyAdventures.exploreToday'),
+      href: '/family-adventures',
+      gradient: 'from-violet-100/90 via-fuchsia-50/80 to-white dark:from-violet-950/60 dark:to-fuchsia-950/30',
+      border: 'border-violet-200/70 dark:border-violet-800/40',
+      decor: '🗺️✨',
+      badge: 'NEW',
+      continueKind: 'family-adventures',
     },
     {
       id: 'storytime',
