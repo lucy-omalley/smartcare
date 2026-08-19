@@ -8,9 +8,6 @@ import { UserPlus } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { TabLoadingScreen } from '@/components/layout/tab-loading-screen';
 import { Button } from '@/components/ui/button';
-import { TodaySectionHeader, TodayConnectCard } from '@/components/today/today-cards';
-import { TodayFocusBanner } from '@/components/today/today-focus-banner';
-import { TodayPlanCard } from '@/components/today/today-plan-card';
 import { TodayBottomSheet } from '@/components/today/today-bottom-sheet';
 import {
   MealDetailProvider,
@@ -24,11 +21,9 @@ import {
 } from '@/components/today/today-detail-views';
 import type { DailyBriefContent } from '@/types/daily-brief';
 import { getTimeGreeting } from '@/lib/constants';
-import { truncateWords } from '@/lib/today-focus';
 import { languageFromDevelopment, isValidBriefContent, normalizeBriefContent } from '@/lib/today-plan-utils';
 import { sectionSnapshot, applyRotatedSection } from '@/lib/services/today-rotate';
 import { consumeTodayPlanStale } from '@/lib/today-plan-stale';
-import { hasStoryPreferences } from '@/lib/story-preferences';
 import { trackEvent, trackReturnVisit } from '@/lib/analytics';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -43,19 +38,13 @@ import {
   warmTodayRecipeIllustration,
   invalidateTodayRecipeIllustrationCache,
 } from '@/lib/recipe-illustration-prefetch';
-import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 import { BetaPremiumWelcomeBanner } from '@/components/beta/beta-premium-welcome-banner';
-import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
-import { TodayJourneyHero } from '@/components/today/today-journey-hero';
-import { TodayContinueSection } from '@/components/today/today-continue-section';
 import { FirstJourneyWelcome } from '@/components/activation/first-journey-welcome';
 import { ActivationWowMoment } from '@/components/activation/activation-wow-moment';
-import { RecommendedHeroCard } from '@/components/activation/recommended-hero-card';
-import { ReturningWelcomeBanner } from '@/components/activation/returning-welcome-banner';
 import { recommendHeroFeature } from '@/lib/activation/recommend-hero-feature';
+import { HomeV3Dashboard } from '@/components/home/v3/home-v3-dashboard';
+import { saveHeroContinue } from '@/components/home/v3/hero-continue-state';
 import { saveContinueState } from '@/components/today/today-continue-state';
-import { TodayQuickAccess } from '@/components/today/today-quick-access';
-import { TodayBetaFeedbackRow } from '@/components/today/today-beta-feedback-row';
 import { useTranslation } from '@/hooks/use-translation';
 
 const FIRST_SESSION_KEY = 'parenfy_activation_first_done';
@@ -111,7 +100,6 @@ export default function TodayPage() {
   const [activationPhase, setActivationPhase] = useState<ActivationPhase>('normal');
   const [hasToyProfile, setHasToyProfile] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -123,6 +111,16 @@ export default function TodayPage() {
   const lastRotateAtRef = useRef(0);
   const lastBriefUpdatedAtRef = useRef<string | null>(null);
   const profileRefreshPollRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      if (!sessionStorage.getItem('parenfy_session_start')) {
+        sessionStorage.setItem('parenfy_session_start', String(Date.now()));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     const first = searchParams.get('first') === '1';
@@ -571,26 +569,15 @@ export default function TodayPage() {
   const brief = data?.brief;
   const hasChildProfile = !!(childName || data?.profile?.childAge || data?.profile?.childBirthday);
   const greeting = getTimeGreeting();
-  const goals = data?.profile?.parentingGoals ?? [];
   const languageSection = brief ? (brief.languageSection ?? languageFromDevelopment(brief)) : null;
-  const todayFocus = brief?.todayFocus;
-  const weeklyFocus = brief?.weeklyFocus;
   const milestone = brief?.milestone;
   const parentTip = brief?.parentTip;
 
-  const journeyHighlight = brief
-    ? todayFocus?.title
-      ? `${todayFocus.title} waiting today`
-      : brief.bedtimeStory.theme
-        ? `a ${brief.bedtimeStory.theme} adventure waiting today`
-        : brief.bedtimeStory.title
-          ? `${brief.bedtimeStory.title} waiting tonight`
-          : null
-    : null;
-
   const startTodaysJourney = () => {
     if (!brief) return;
+    trackEvent('todays_journey_started');
     trackEvent('activity_opened', { title: brief.play.title, source: 'journey_hero' });
+    saveHeroContinue('journey', brief.play.title, '/today');
     openDetail('activity', brief.play.title);
     trackEvent('activity_card_opened', { title: brief.play.title });
     if (activationPhase === 'wow') {
@@ -611,17 +598,6 @@ export default function TodayPage() {
     childBirthday: data?.profile?.childBirthday,
     hasToyProfile,
   });
-
-  const connectAvailableText =
-    data?.connectAvailableCount === 0
-      ? 'No parents nearby yet — set your availability.'
-      : data?.connectAvailableCount === 1
-        ? '1 parent nearby is open to connect.'
-        : `${data?.connectAvailableCount} parents nearby are open to connect.`;
-
-  const upcomingText = data?.upcomingEvent
-    ? `1 ${data.upcomingEvent.title.toLowerCase()} · ${data.upcomingEvent.broadArea} · ${format(new Date(data.upcomingEvent.date), 'EEE')}.`
-    : 'No upcoming events — browse or create one.';
 
   const detailTitles: Record<Exclude<DetailType, null>, string> = {
     meal: 'Today\'s Meal',
@@ -723,14 +699,6 @@ export default function TodayPage() {
           />
         )}
 
-        {activationPhase === 'normal' && isReturning && brief && isValidBriefContent(brief) && (
-          <ReturningWelcomeBanner
-            firstName={firstName}
-            childName={childName}
-            onStartToday={startTodaysJourney}
-          />
-        )}
-
         {activationPhase === 'normal' && !hasChildProfile && (
           <div className="visual-card p-3.5 flex items-center gap-3">
             <UserPlus className="h-5 w-5 text-primary shrink-0" />
@@ -754,199 +722,45 @@ export default function TodayPage() {
         )}
 
         {activationPhase === 'normal' && brief && isValidBriefContent(brief) && (
-          <>
-            <TodayJourneyHero
-              greeting={greeting}
-              firstName={firstName}
-              childName={childName}
-              highlight={journeyHighlight}
-              brief={brief}
-              onStart={startTodaysJourney}
-            />
-
-            <TodayContinueSection onResume={(type) => openDetail(type)} />
-
-            <RecommendedHeroCard recommendation={heroRecommendation} />
-
-            <div className="space-y-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground w-full"
-                onClick={() => setShowMore((v) => !v)}
-              >
-                {showMore ? '− ' : '+ '}{t('activation.everythingElse')}
-              </Button>
-
-              {showMore && (
-                <>
-            {(weeklyFocus || todayFocus) && (
-              <div className="space-y-2">
-                {weeklyFocus && (
-                  <TodayFocusBanner
-                    label="This week's focus"
-                    title={weeklyFocus.title}
-                    reason={weeklyFocus.reason}
-                    variant="weekly"
-                  />
-                )}
-                {todayFocus && (
-                  <TodayFocusBanner
-                    label="Today's focus"
-                    title={todayFocus.title}
-                    reason={todayFocus.reason}
-                    variant="today"
-                  />
-                )}
-              </div>
-            )}
-
-            <section className="space-y-2.5">
-              <TodaySectionHeader emoji="✨" title={t('home.todaysRecommendations')} />
-              <TodayPlanCard
-                key={`meal-${brief.recipe.subtitle}`}
-                emoji="🍎"
-                label={t('today.meal')}
-                title={brief.recipe.subtitle}
-                preview={truncateWords(brief.recipe.whyThisMeal || brief.recipe.title, 15)}
-                ctaLabel={t('today.viewMeal')}
-                onOpen={() => {
-                  trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
-                  trackEvent('meal_opened', { title: brief.recipe.subtitle });
-                  openDetail('meal', brief.recipe.subtitle);
-                }}
-                onRefresh={() => rotate('recipe')}
-                refreshing={rotating === 'recipe'}
-              />
-              <TodayPlanCard
-                key={`activity-${brief.play.title}`}
-                emoji="🎨"
-                label={t('today.activity')}
-                title={brief.play.title}
-                preview={truncateWords(brief.play.reason || brief.play.instructions[0] || 'A fun age-appropriate activity.', 15)}
-                ctaLabel={t('today.startActivity')}
-                onOpen={() => {
-                  trackEvent('activity_card_opened', { title: brief.play.title });
-                  trackEvent('activity_opened', { title: brief.play.title });
-                  openDetail('activity', brief.play.title);
-                }}
-                onRefresh={() => rotate('play')}
-                refreshing={rotating === 'play'}
-              />
-              <TodayPlanCard
-                key={`story-${brief.bedtimeStory.title}`}
-                emoji="📖"
-                label={t('today.story')}
-                title={brief.bedtimeStory.title}
-                preview={truncateWords(
-                  hasStoryPreferences(data?.profile)
-                    ? `Personalized for ${childName || 'your child'}. ${brief.bedtimeStory.reason || brief.bedtimeStory.theme || brief.bedtimeStory.moral || 'A bedtime tale woven with their favourites.'}`
-                    : brief.bedtimeStory.reason || brief.bedtimeStory.moral || 'A bedtime tale for tonight.',
-                  15
-                )}
-                ctaLabel={t('today.readStory')}
-                onOpen={() => {
-                  trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
-                  trackEvent('story_opened', { title: brief.bedtimeStory.title });
-                  openDetail('story', brief.bedtimeStory.title);
-                }}
-                onRefresh={() => rotate('story')}
-                refreshing={rotating === 'story'}
-              />
-              {languageSection && (
-                <TodayPlanCard
-                  emoji="💬"
-                  label={t('today.language')}
-                  title={languageSection.domain ?? t('today.language')}
-                  preview={truncateWords(languageSection.reason || languageSection.miniGame, 15)}
-                  ctaLabel={t('today.tryWords')}
-                  onOpen={() => {
-                    trackEvent('language_card_opened', { domain: languageSection.domain ?? 'Language' });
-                    openDetail('language', languageSection.domain ?? 'Language');
-                  }}
-                  onRefresh={() => rotate('language')}
-                  refreshing={rotating === 'language'}
-                />
-              )}
-              {milestone && (
-                <TodayPlanCard
-                  emoji="🌱"
-                  label="Milestone"
-                  title={milestone.domain}
-                  preview={truncateWords(milestone.tip || milestone.milestone, 15)}
-                  ctaLabel="View Tip"
-                  onOpen={() => {
-                    trackEvent('milestone_card_opened', { domain: milestone.domain });
-                    openDetail('milestone', milestone.domain);
-                  }}
-                />
-              )}
-              {parentTip && (
-                <TodayPlanCard
-                  emoji="💡"
-                  label="Parent Tip"
-                  title="Coaching tip"
-                  preview={truncateWords(parentTip.content, 15)}
-                  ctaLabel="Read Tip"
-                  onOpen={() => {
-                    trackEvent('parent_tip_opened');
-                    openDetail('parentTip', 'Coaching tip');
-                  }}
-                />
-              )}
-            </section>
-
-            <TodayQuickAccess />
-
-            <TodayBetaFeedbackRow />
-
-            <section className="space-y-2.5">
-              <TodaySectionHeader emoji="🤖" title={t('today.askMumbot')} />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Tell me more about today\'s activity.')}>
-                  {t('today.aboutActivity')}
-                </Button>
-                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Suggest another meal for today.')}>
-                  {t('today.anotherMeal')}
-                </Button>
-                <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot('Can you adapt today\'s story?')}>
-                  {t('today.adaptStory')}
-                </Button>
-                {goals[0] && (
-                  <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => askMumbot(`Help me with ${goals[0]} based on today's plan.`)}>
-                    Help with {goals[0]}
-                  </Button>
-                )}
-              </div>
-            </section>
-
-            <TodayPlanFeedbackWidget />
-
-            <section className="space-y-2.5">
-              <ParentCheckInCard onSubmit={submitCheckIn} />
-            </section>
-
-            <section className="space-y-2.5">
-              <TodaySectionHeader emoji="👥" title={t('today.connect')} />
-              <TodayConnectCard
-                emoji="👥"
-                label="Available Today"
-                summary={connectAvailableText}
-                ctaLabel="View"
-                href="/connect"
-              />
-              <TodayConnectCard
-                emoji="📅"
-                label="Upcoming"
-                summary={upcomingText}
-                ctaLabel="Join"
-                href="/connect?tab=events"
-              />
-            </section>
-                </>
-              )}
-            </div>
-          </>
+          <HomeV3Dashboard
+            greeting={greeting}
+            firstName={firstName}
+            childName={childName}
+            brief={brief}
+            isReturning={isReturning}
+            profile={data?.profile ?? null}
+            languageSection={languageSection}
+            connectAvailableCount={data?.connectAvailableCount ?? 0}
+            upcomingEvent={data?.upcomingEvent ?? null}
+            onStartJourney={startTodaysJourney}
+            onOpenMeal={() => {
+              trackEvent('meal_card_opened', { title: brief.recipe.subtitle });
+              trackEvent('meal_viewed', { title: brief.recipe.subtitle });
+              trackEvent('meal_opened', { title: brief.recipe.subtitle });
+              openDetail('meal', brief.recipe.subtitle);
+            }}
+            onOpenActivity={() => {
+              trackEvent('activity_card_opened', { title: brief.play.title });
+              trackEvent('activity_viewed', { title: brief.play.title });
+              trackEvent('activity_opened', { title: brief.play.title });
+              openDetail('activity', brief.play.title);
+            }}
+            onOpenStory={() => {
+              trackEvent('story_card_opened', { title: brief.bedtimeStory.title });
+              trackEvent('story_viewed', { title: brief.bedtimeStory.title });
+              trackEvent('story_opened', { title: brief.bedtimeStory.title });
+              openDetail('story', brief.bedtimeStory.title);
+            }}
+            onOpenLanguage={() => {
+              if (!languageSection) return;
+              trackEvent('language_card_opened', { domain: languageSection.domain ?? 'Language' });
+              trackEvent('language_viewed', { domain: languageSection.domain ?? 'Language' });
+              openDetail('language', languageSection.domain ?? 'Language');
+            }}
+            onResumePlan={(type) => openDetail(type)}
+            onAskMumbot={askMumbot}
+            onCheckIn={submitCheckIn}
+          />
         )}
       </div>
 
