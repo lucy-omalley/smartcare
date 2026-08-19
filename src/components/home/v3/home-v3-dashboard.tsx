@@ -7,6 +7,7 @@ import { WelcomeHeroV3 } from '@/components/home/v3/welcome-hero-v3';
 import { HeroExperiencesV3 } from '@/components/home/v3/hero-experiences-v3';
 import { RecommendationsV3 } from '@/components/home/v3/recommendations-v3';
 import { ContinueSectionV3 } from '@/components/home/v3/continue-section-v3';
+import { FamilyAdventuresHeroCard } from '@/components/family-adventures/family-adventures-hero-card';
 import { WeeklyGrowthV3 } from '@/components/home/v3/weekly-growth-v3';
 import { MumbotCopilotV3 } from '@/components/home/v3/mumbot-copilot-v3';
 import { FeedbackV3 } from '@/components/home/v3/feedback-v3';
@@ -151,6 +152,8 @@ export function HomeV3Dashboard({
       />
 
       <HeroExperiencesV3 />
+
+      <FamilyAdventuresHeroCard />
 
       <RecommendationsV3 cards={recommendationCards} />
 

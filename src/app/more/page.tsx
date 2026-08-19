@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 const MORE_ITEMS = [
+  { href: '/family-adventures', label: 'AI Family Adventures', desc: 'Personalised nearby experiences for your child', icon: Puzzle },
   { href: '/learning-plan', label: 'Learning Plan', desc: 'Structured activities for your child', icon: Brain },
   { href: '/weekly-report', label: 'Weekly Growth Report', desc: 'Wins, progress, and next steps', icon: Trophy },
   { href: '/why-parenfy', label: 'Why Parenfy?', desc: 'How we differ from ChatGPT', icon: BookOpen },
