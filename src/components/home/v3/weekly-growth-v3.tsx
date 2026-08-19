@@ -19,25 +19,25 @@ export function WeeklyGrowthV3({ brief, className }: Props) {
       icon: Target,
       label: t('homeV3.weeklyGoal'),
       value: brief.weeklyFocus?.title ?? brief.todayFocus?.title ?? t('homeV3.exploreGrowth'),
-      href: '/learning-plan',
+      href: '/growth',
     },
     {
       icon: Brain,
       label: t('homeV3.skillsPractised'),
       value: brief.development[0]?.domain ?? brief.milestone?.domain ?? '—',
-      href: '/weekly-report',
+      href: '/growth',
     },
     {
       icon: Sprout,
       label: t('homeV3.milestones'),
       value: brief.milestone?.milestone?.slice(0, 40) ?? t('homeV3.viewProgress'),
-      href: '/weekly-report',
+      href: '/growth',
     },
     {
       icon: TrendingUp,
       label: t('homeV3.learningProgress'),
       value: brief.todayFocus?.title ?? brief.development[0]?.tryToday?.slice(0, 40) ?? '—',
-      href: '/learning-plan',
+      href: '/growth',
     },
   ];
 

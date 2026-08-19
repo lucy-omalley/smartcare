@@ -25,7 +25,7 @@ export const en = {
     home: "Home",
     play: "Play",
     journey: "Journey",
-    growth: "Growth",
+    growth: "Growth Journey",
     mumbot: "MumBot",
     connect: "Connect",
     profile: "Profile",
