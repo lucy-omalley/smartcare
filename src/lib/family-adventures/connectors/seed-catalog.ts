@@ -1,7 +1,13 @@
 import type { FamilyAdventure } from "@/lib/family-adventures/types";
 import type { AdventureConnector } from "@/lib/family-adventures/connectors/types";
+import { resolveBookingLabel, resolveBookingUrl } from "@/lib/family-adventures/booking-link";
 
-const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" | "travelMinutes">[] = [
+type AdventureSeed = Omit<
+  FamilyAdventure,
+  "id" | "providerId" | "distanceKm" | "travelMinutes" | "bookingUrl" | "bookingLabel"
+>;
+
+const BASE_ADVENTURES: AdventureSeed[] = [
   {
     title: "National Museum of Ireland — Natural History",
     description:
@@ -17,7 +23,10 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "museum",
     indoorOutdoor: "indoor",
     imageEmoji: "🦒",
-    bookingUrl: "https://www.museum.ie/en-IE/Museums/National-Museum-of-Ireland-Natural-History",
+    bookingLink: {
+      kind: "direct",
+      url: "https://www.museum.ie/en-IE/Museums/National-Museum-of-Ireland-Natural-History",
+    },
     openingHours: "Tue–Sun 10:00–17:00",
     whatToBring: ["Snacks", "Light jacket"],
     parking: "Street parking nearby",
@@ -46,7 +55,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "zoo",
     indoorOutdoor: "either",
     imageEmoji: "🦁",
-    bookingUrl: "https://www.dublinzoo.ie",
+    bookingLink: { kind: "direct", url: "https://www.dublinzoo.ie" },
     openingHours: "Daily 9:30–18:00",
     whatToBring: ["Water bottles", "Comfortable shoes", "Rain jacket"],
     parking: "On-site car park",
@@ -75,7 +84,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "indoor_play",
     indoorOutdoor: "indoor",
     imageEmoji: "🎭",
-    bookingUrl: "https://www.imaginosity.ie",
+    bookingLink: { kind: "direct", url: "https://www.imaginosity.ie" },
     openingHours: "Tue–Sun, session times vary",
     whatToBring: ["Socks for play areas"],
     parking: "Beacon South Quarter car park",
@@ -104,7 +113,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "farm",
     indoorOutdoor: "outdoor",
     imageEmoji: "🐑",
-    bookingUrl: "https://www.airfield.ie",
+    bookingLink: { kind: "direct", url: "https://www.airfield.ie" },
     openingHours: "Daily 9:30–17:00",
     whatToBring: ["Wellies if wet", "Picnic"],
     parking: "Free on-site",
@@ -133,7 +142,14 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "library",
     indoorOutdoor: "indoor",
     imageEmoji: "📚",
-    bookingUrl: "https://www.dublincity.ie/leabharlanna/using-your-library/children",
+    eventDateLabel: "Library events this week",
+    bookingLink: {
+      kind: "dublin-city-council",
+      eventType: "library-event",
+      dateWindow: "week",
+      searchQuery: "story",
+      label: "Library story events this week",
+    },
     openingHours: "Check local library schedule",
     whatToBring: ["Library card optional"],
     parking: "Ilac Centre car park",
@@ -204,9 +220,43 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     mapQuery: "St Anne's Park Raheny",
   },
   {
-    title: "Dublin City Council — Family Fun Day",
+    title: "Dublin City Fleadh — Family Festival",
     description:
-      "Free community family events with crafts, music, and local activities across Dublin city centre. Browse upcoming dates on the council events calendar.",
+      "Free traditional music festival across Dublin city centre — Céilís, storytelling, and family activities on Parliament Street and Capel Street.",
+    location: "Parliament Street & Capel Street, Dublin",
+    area: "Dublin City Centre",
+    priceLabel: "Free",
+    priceCents: 0,
+    ageMinMonths: 0,
+    ageMaxMonths: 96,
+    ageLabel: "All ages",
+    durationMinutes: 180,
+    category: "community",
+    indoorOutdoor: "outdoor",
+    imageEmoji: "🎻",
+    eventDateLabel: "Sat 22 – Sun 23 Aug · 12pm–6pm",
+    bookingLink: {
+      kind: "dublin-city-council",
+      eventSlug: "dublin-city-council-dublin-city-fleadh",
+      label: "View Dublin City Fleadh details",
+    },
+    openingHours: "Sat–Sun 12:00–18:00",
+    whatToBring: ["Weather-appropriate clothing", "Snacks"],
+    parking: "City centre — public transport recommended",
+    toilets: true,
+    babyFacilities: true,
+    wheelchairAccess: true,
+    rainSuitable: false,
+    learningSkills: ["Social skills", "Creativity", "Language"],
+    followUpActivity: "Learn a new Irish word from the festival",
+    interestTags: ["community", "festival", "free", "music"],
+    isFree: true,
+    mapQuery: "Parliament Street Dublin",
+  },
+  {
+    title: "Dublin City Council — Kids & Family Fun",
+    description:
+      "Browse free council-run family events happening across Dublin in the next week — crafts, play, and community fun.",
     location: "Various venues, Dublin",
     area: "Dublin",
     priceLabel: "Free",
@@ -218,7 +268,13 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "community",
     indoorOutdoor: "either",
     imageEmoji: "🎪",
-    bookingUrl: "https://www.dublincity.ie/events",
+    eventDateLabel: "Events in the next week",
+    bookingLink: {
+      kind: "dublin-city-council",
+      eventType: "kids-family-fun",
+      dateWindow: "week",
+      label: "Kids & Family Fun · next week",
+    },
     openingHours: "Weekends, seasonal",
     whatToBring: ["Weather-appropriate clothing"],
     parking: "Varies by venue",
@@ -246,7 +302,7 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "nature",
     indoorOutdoor: "either",
     imageEmoji: "🌿",
-    bookingUrl: "https://www.botanicgardens.ie",
+    bookingLink: { kind: "direct", url: "https://www.botanicgardens.ie" },
     openingHours: "Daily 9:00–17:00",
     whatToBring: ["Camera", "Snacks"],
     parking: "Limited on-site",
@@ -303,7 +359,14 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
     category: "festival",
     indoorOutdoor: "indoor",
     imageEmoji: "🎨",
-    bookingUrl: "https://www.eventbrite.ie/d/ireland--dublin/family/",
+    eventDateLabel: "Workshops this month",
+    bookingLink: {
+      kind: "eventbrite",
+      url: "https://www.eventbrite.ie/d/ireland--dublin/family/",
+      dateWindow: "month",
+      searchQuery: "family workshop kids",
+      label: "Family workshops on Eventbrite",
+    },
     openingHours: "Check event listing",
     whatToBring: ["Booking confirmation"],
     parking: "Varies",
@@ -345,23 +408,23 @@ const BASE_ADVENTURES: Omit<FamilyAdventure, "id" | "providerId" | "distanceKm" 
   },
 ];
 
-function withDistance(
-  adventure: (typeof BASE_ADVENTURES)[number],
-  providerId: string,
-  index: number
-): FamilyAdventure {
+function withDistance(adventure: AdventureSeed, providerId: string, index: number): FamilyAdventure {
   const distanceKm = adventure.location === "At home" ? 0 : 2 + (index % 5) * 2.5;
   const travelMinutes = adventure.location === "At home" ? 0 : Math.round(distanceKm * 3.5);
+  const bookingUrl = resolveBookingUrl(adventure.bookingLink);
+  const bookingLabel = resolveBookingLabel(adventure.bookingLink, adventure.title);
   return {
     ...adventure,
     id: `${providerId}-${index}`,
     providerId,
     distanceKm: Math.round(distanceKm * 10) / 10,
     travelMinutes,
+    bookingUrl,
+    bookingLabel,
   };
 }
 
-function buildProviderAdventures(providerId: string, filter?: (a: (typeof BASE_ADVENTURES)[number]) => boolean) {
+function buildProviderAdventures(providerId: string, filter?: (a: AdventureSeed) => boolean) {
   return BASE_ADVENTURES.filter(filter ?? (() => true)).map((a, i) => withDistance(a, providerId, i));
 }
 

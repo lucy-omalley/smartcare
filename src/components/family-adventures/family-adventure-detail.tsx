@@ -96,6 +96,9 @@ export function FamilyAdventureDetail({ adventureId }: { adventureId: string }) 
               <Clock className="h-3 w-3" />
               {adventure.durationMinutes} min
             </span>
+            {adventure.eventDateLabel && (
+              <span className="rounded-full border px-3 py-1 bg-primary/5">{adventure.eventDateLabel}</span>
+            )}
           </div>
 
           <div className="rounded-2xl bg-primary/5 p-4 space-y-2">
@@ -191,15 +194,20 @@ export function FamilyAdventureDetail({ adventureId }: { adventureId: string }) 
 
       <div className="space-y-3 sticky bottom-4">
         {adventure.bookingUrl && (
-          <Button className="w-full rounded-2xl h-12" asChild>
+          <Button className="w-full rounded-2xl h-12 flex-col gap-0.5 py-2" asChild>
             <a
               href={adventure.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => void action("booking")}
             >
-              Book / Learn More
-              <ExternalLink className="ml-2 h-4 w-4" />
+              <span className="inline-flex items-center">
+                {adventure.bookingLabel ?? "Book / Learn More"}
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </span>
+              {adventure.eventDateLabel && (
+                <span className="text-[11px] font-normal opacity-80">{adventure.eventDateLabel}</span>
+              )}
             </a>
           </Button>
         )}
