@@ -83,6 +83,7 @@ export default function GrowthIntelligencePage() {
   }));
 
   const followUpRows = [
+    ...data.followUp.unverifiedEmail,
     ...data.followUp.registeredInactive,
     ...data.followUp.activatedDisappeared,
     ...data.followUp.powerUsers,
@@ -495,6 +496,7 @@ function FollowUpTab({
   followUp: GrowthIntelligenceDashboard["followUp"];
 }) {
   const sections = [
+    { title: "Email not verified", rows: followUp.unverifiedEmail },
     { title: "Registered but inactive", rows: followUp.registeredInactive },
     { title: "Activated but disappeared", rows: followUp.activatedDisappeared },
     { title: "Power users — recommend Premium", rows: followUp.powerUsers },

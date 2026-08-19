@@ -235,6 +235,7 @@ export function growthReportToCsv(data: GrowthIntelligenceDashboard): string {
   );
 
   const followUpSections = [
+    { title: "Follow-up — email not verified", rows: data.followUp.unverifiedEmail },
     { title: "Follow-up — registered inactive", rows: data.followUp.registeredInactive },
     { title: "Follow-up — activated disappeared", rows: data.followUp.activatedDisappeared },
     { title: "Follow-up — power users", rows: data.followUp.powerUsers },

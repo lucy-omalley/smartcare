@@ -15,6 +15,11 @@ import { looksLikeHumanName } from "@/lib/registration-guard";
 import { createAndSendVerificationEmail } from "@/lib/auth/email-verification";
 import { grantBetaTrial } from "@/lib/beta-trial";
 import { normalizeLocale } from "@/lib/i18n/config";
+import {
+  attachSessionCookie,
+  createSessionToken,
+  isNextAuthSecretConfigured,
+} from "@/lib/auth/session-cookie";
 
 export async function POST(req: Request) {
   const ip = clientIpFromRequest(req);
@@ -162,19 +167,35 @@ export async function POST(req: Request) {
 
     const { password: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json(
-      {
-        message: verification.sent
-          ? "Account created. Check your email to verify before using the app."
-          : "Account created. Please verify your email after signing in.",
-        user: userWithoutPassword,
-        verificationEmailSent: verification.sent,
-        ...(process.env.NODE_ENV === "development" && verification.devVerifyUrl
-          ? { devVerifyUrl: verification.devVerifyUrl }
-          : {}),
-      },
-      { status: 201 }
-    );
+    const payload = {
+      message: verification.sent
+        ? "Account created. Check your email to verify — you're signed in and can resend from the next screen."
+        : "Account created, but we couldn't send the verification email. Use resend on the next screen.",
+      user: userWithoutPassword,
+      verificationEmailSent: verification.sent,
+      redirect: "/auth/verify-email",
+      ...(process.env.NODE_ENV === "development" && verification.devVerifyUrl
+        ? { devVerifyUrl: verification.devVerifyUrl }
+        : {}),
+    };
+
+    if (!isNextAuthSecretConfigured()) {
+      return NextResponse.json(payload, { status: 201 });
+    }
+
+    const sessionToken = await createSessionToken({
+      id: user.id,
+      email: user.email,
+      name: user.name ?? trimmedName,
+      image: user.image,
+      emailVerified: false,
+    });
+
+    const response = NextResponse.json(payload, { status: 201 });
+    if (sessionToken) {
+      return attachSessionCookie(response, sessionToken);
+    }
+    return response;
   } catch (error) {
     console.error("Registration error:", error);
     const message =

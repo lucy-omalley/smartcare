@@ -101,6 +101,28 @@ async function distinctUsers(event: string, since?: Date): Promise<number> {
   return rows.length;
 }
 
+async function countEmailVerifiedUsers(since?: Date): Promise<number> {
+  const dateFilter = since ? { createdAt: { gte: since } } : {};
+  const [eventUsers, dbUsers] = await Promise.all([
+    prisma.analyticsEvent.findMany({
+      where: { event: "email_verified", userId: { not: null }, ...dateFilter },
+      distinct: ["userId"],
+      select: { userId: true },
+    }),
+    prisma.user.findMany({
+      where: {
+        emailVerified: { not: null },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
+      select: { id: true },
+    }),
+  ]);
+  return new Set([
+    ...eventUsers.map((r) => r.userId!),
+    ...dbUsers.map((u) => u.id),
+  ]).size;
+}
+
 /** Growth funnel v1 — last 30 days by default. */
 export async function getGrowthFunnel(since?: Date): Promise<FunnelStage[]> {
   const filter = since ? { createdAt: { gte: since } } : {};
@@ -121,7 +143,7 @@ export async function getGrowthFunnel(since?: Date): Promise<FunnelStage[]> {
     distinctReach("landing_page_viewed", since),
     distinctReach("signup_started", since),
     distinctUsers("signup_completed", since),
-    distinctUsers("email_verified", since),
+    countEmailVerifiedUsers(since),
     distinctUsers("onboarding_completed", since),
     prisma.user.count({
       where: { childBirthday: { not: null }, ...(since ? { createdAt: { gte: since } } : {}) },
@@ -482,11 +504,21 @@ export async function getFollowUpList() {
   const twoWeeksAgo = subDays(new Date(), 14);
   const activatedMap = await getActivatedUserIds();
 
-  const [inactiveRegistered, activatedGone, feedbackUsers] = await Promise.all([
+  const [inactiveRegistered, unverifiedEmail, activatedGone, feedbackUsers] = await Promise.all([
     prisma.user.findMany({
       where: {
         onboardingComplete: false,
         createdAt: { lt: weekAgo },
+      },
+      select: { id: true, email: true, name: true, createdAt: true, referralSource: true },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({
+      where: {
+        emailVerified: null,
+        password: { not: null },
+        createdAt: { lt: subDays(new Date(), 1) },
       },
       select: { id: true, email: true, name: true, createdAt: true, referralSource: true },
       take: 50,
@@ -532,6 +564,11 @@ export async function getFollowUpList() {
       : [];
 
   return {
+    unverifiedEmail: unverifiedEmail.map((u) => ({
+      ...u,
+      referralSource: REFERRAL_SOURCE_LABELS[u.referralSource],
+      reason: "Signed up — email not verified",
+    })),
     registeredInactive: inactiveRegistered.map((u) => ({
       ...u,
       referralSource: REFERRAL_SOURCE_LABELS[u.referralSource],
