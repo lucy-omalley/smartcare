@@ -42,6 +42,8 @@ export type HomeV3Props = {
   onOpenActivity: () => void;
   onOpenStory: () => void;
   onOpenLanguage: () => void;
+  onOpenMilestone?: () => void;
+  onOpenParentTip?: () => void;
   onResumePlan: (type: ContinueDetailType) => void;
   onAskMumbot: (prompt: string) => void;
   onCheckIn: (payload: { feeling: string; win: string; challenge: string }) => Promise<{ encouragement?: string }>;
@@ -64,6 +66,8 @@ export function HomeV3Dashboard({
   onOpenActivity,
   onOpenStory,
   onOpenLanguage,
+  onOpenMilestone,
+  onOpenParentTip,
   onResumePlan,
   onAskMumbot,
   onCheckIn,
@@ -152,7 +156,13 @@ export function HomeV3Dashboard({
 
       <ContinueSectionV3 onResumePlan={onResumePlan} />
 
-      <WeeklyGrowthV3 brief={brief} />
+      <WeeklyGrowthV3
+        brief={brief}
+        childName={childName}
+        onOpenMilestone={onOpenMilestone}
+        onOpenParentTip={onOpenParentTip}
+        onOpenActivity={onOpenActivity}
+      />
 
       <MumbotCopilotV3 onAsk={onAskMumbot} />
 

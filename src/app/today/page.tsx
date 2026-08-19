@@ -759,6 +759,8 @@ export default function TodayPage() {
               trackEvent('language_viewed', { domain: languageSection.domain ?? 'Language' });
               openDetail('language', languageSection.domain ?? 'Language');
             }}
+            onOpenMilestone={() => openDetail('milestone', milestone?.milestone)}
+            onOpenParentTip={() => openDetail('parentTip')}
             onResumePlan={(type) => openDetail(type)}
             onAskMumbot={askMumbot}
             onCheckIn={submitCheckIn}
