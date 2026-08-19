@@ -9,6 +9,12 @@ import {
   recommendFamilyAdventures,
 } from "@/lib/family-adventures/recommender";
 import type { AdventureFilters, FamilyAdventuresView } from "@/lib/family-adventures/types";
+import {
+  isAdventureSaved,
+  listSavedAdventureIds,
+  saveAdventureForUser,
+  unsaveAdventureForUser,
+} from "@/lib/family-adventures/saved-adventures";
 import { fetchWeatherForLocation } from "@/lib/services/weather";
 
 export async function getFamilyAdventuresView(
@@ -33,22 +39,21 @@ export async function getFamilyAdventuresView(
 
   if (!user) throw new Error("User not found");
 
-  const [saved, attendedMemories, weatherResult] = await Promise.all([
-    prisma.savedFamilyAdventure.findMany({
-      where: { userId },
-      select: { adventureId: true },
-    }),
+  const [savedIds, attendedMemories, weatherResult] = await Promise.all([
+    listSavedAdventureIds(userId),
     prisma.familyMemory.findMany({
       where: { userId, category: "LEARNING" },
       select: { content: true },
       take: 20,
       orderBy: { createdAt: "desc" },
     }),
-    fetchWeatherForLocation(user.location ?? user.broadArea ?? "Dublin, IE"),
+    fetchWeatherForLocation(user.location ?? user.broadArea ?? "Dublin, IE").catch(() => ({
+      weather: null,
+    })),
   ]);
 
   const ctx = buildRecommendationContext(user);
-  ctx.savedIds = saved.map((s) => s.adventureId);
+  ctx.savedIds = savedIds;
   ctx.attendedTitles = attendedMemories
     .filter((m) => m.content.startsWith("Family Adventure:"))
     .map((m) => m.content.replace("Family Adventure:", "").trim().split("\n")[0] ?? "");
@@ -95,10 +100,10 @@ export async function getFamilyAdventureDetail(userId: string, adventureId: stri
   if (!user) throw new Error("User not found");
 
   const [saved, weatherResult] = await Promise.all([
-    prisma.savedFamilyAdventure.findUnique({
-      where: { userId_adventureId: { userId, adventureId } },
-    }),
-    fetchWeatherForLocation(user.location ?? user.broadArea ?? "Dublin, IE"),
+    isAdventureSaved(userId, adventureId),
+    fetchWeatherForLocation(user.location ?? user.broadArea ?? "Dublin, IE").catch(() => ({
+      weather: null,
+    })),
   ]);
 
   const ctx = buildRecommendationContext(user);
@@ -117,21 +122,17 @@ export async function getFamilyAdventureDetail(userId: string, adventureId: stri
         whyRecommended: ["A wonderful outing for your family"],
         collectionIds: [],
       } as const),
-    isSaved: Boolean(saved),
+    isSaved: saved,
     childName: ctx.childName,
   };
 }
 
 export async function saveFamilyAdventure(userId: string, adventureId: string) {
-  return prisma.savedFamilyAdventure.upsert({
-    where: { userId_adventureId: { userId, adventureId } },
-    create: { userId, adventureId },
-    update: {},
-  });
+  return saveAdventureForUser(userId, adventureId);
 }
 
 export async function unsaveFamilyAdventure(userId: string, adventureId: string) {
-  await prisma.savedFamilyAdventure.deleteMany({ where: { userId, adventureId } });
+  return unsaveAdventureForUser(userId, adventureId);
 }
 
 export async function markAdventureAttended(userId: string, adventureId: string, note?: string) {
