@@ -120,9 +120,15 @@ export default function GrowthIntelligencePage() {
             Follow-up ({followUpRows.length})
           </Button>
           <Button size="sm" variant="outline" className="rounded-full gap-1" asChild>
+            <a href="/api/admin/founder/growth/report-export">
+              <Download className="h-3.5 w-3.5" />
+              Full report
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full gap-1" asChild>
             <a href="/api/admin/founder/growth/follow-up-export">
               <Download className="h-3.5 w-3.5" />
-              Export CSV
+              Follow-up CSV
             </a>
           </Button>
         </div>
