@@ -11,6 +11,10 @@ const DailyJourneySection = dynamic(
   () => import("@/components/landing/v2/daily-journey-section").then((m) => m.DailyJourneySection),
   { loading: () => <section className="min-h-[200px]" aria-hidden /> }
 );
+const GrowthJourneySection = dynamic(
+  () => import("@/components/landing/v2/growth-journey-section").then((m) => m.GrowthJourneySection),
+  { loading: () => <section className="min-h-[320px]" aria-hidden /> }
+);
 const HeroExperiencesSection = dynamic(
   () => import("@/components/landing/v2/hero-experiences-section").then((m) => m.HeroExperiencesSection),
   { loading: () => <section className="min-h-[280px]" aria-hidden /> }
@@ -52,6 +56,7 @@ export function LandingPageV2() {
       <main className="flex-1">
         <HeroSectionV2 />
         <DailyJourneySection />
+        <GrowthJourneySection />
         <HeroExperiencesSection />
         <SocialProofSection />
         <SupportingFeaturesSection />

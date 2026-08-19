@@ -18,6 +18,7 @@ export function HeroSectionV2() {
     t("landing.valuePlan"),
     t("landing.valuePlay"),
     t("landing.valueRoutine"),
+    t("landing.valueVoice"),
   ].filter(Boolean);
 
   const trustBadges = [t("landing.trustPrivacy")];
