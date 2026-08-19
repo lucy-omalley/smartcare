@@ -11,6 +11,9 @@ const SOURCE_ALIASES: Record<string, ReferralSource> = {
   ig: "INSTAGRAM",
   direct: "DIRECT",
   google: "GOOGLE",
+  reddit: "REFERRAL",
+  email: "DIRECT",
+  friend: "REFERRAL",
   referral: "REFERRAL",
   ref: "REFERRAL",
 };

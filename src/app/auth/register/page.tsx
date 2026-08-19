@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trackEvent } from '@/lib/analytics';
-import { getStoredReferralSource } from '@/lib/analytics/referral-capture';
+import { getStoredReferralSource, getStoredUtmParams } from '@/lib/analytics/referral-capture';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -85,7 +85,15 @@ export default function Register() {
         throw new Error(data.error || data.message || 'Registration failed');
       }
 
-      trackEvent('signup_completed', { method: 'email', locale, is_chinese: locale === 'zh-CN' });
+      const utm = getStoredUtmParams();
+      trackEvent('signup_completed', {
+        method: 'email',
+        locale,
+        is_chinese: locale === 'zh-CN',
+        utm_source: getStoredReferralSource(),
+        utm_medium: utm.medium,
+        utm_campaign: utm.campaign,
+      });
       router.push('/auth/signin?registered=1&verify=1');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');

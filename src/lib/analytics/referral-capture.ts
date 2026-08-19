@@ -1,8 +1,10 @@
 import { REFERRAL_COOKIE, normalizeReferralSource } from "@/lib/analytics-platform/referral";
 
 const STORAGE_KEY = "parenfy_referral_source";
+const UTM_MEDIUM_KEY = "parenfy_utm_medium";
+const UTM_CAMPAIGN_KEY = "parenfy_utm_campaign";
 
-/** Capture ?source= from URL and persist for signup attribution. */
+/** Capture ?source= / utm_* from URL and persist for signup attribution. */
 export function captureReferralFromUrl(searchParams?: URLSearchParams | string): void {
   if (typeof window === "undefined") return;
   const params =
@@ -11,14 +13,31 @@ export function captureReferralFromUrl(searchParams?: URLSearchParams | string):
       : searchParams ?? new URLSearchParams(window.location.search);
 
   const raw = params.get("source") ?? params.get("utm_source");
-  if (!raw) return;
+  const medium = params.get("utm_medium");
+  const campaign = params.get("utm_campaign");
 
-  const normalized = normalizeReferralSource(raw);
   try {
-    localStorage.setItem(STORAGE_KEY, normalized);
-    document.cookie = `${REFERRAL_COOKIE}=${normalized}; path=/; max-age=${60 * 60 * 24 * 90}; SameSite=Lax`;
+    if (raw) {
+      const normalized = normalizeReferralSource(raw);
+      localStorage.setItem(STORAGE_KEY, normalized);
+      document.cookie = `${REFERRAL_COOKIE}=${normalized}; path=/; max-age=${60 * 60 * 24 * 90}; SameSite=Lax`;
+    }
+    if (medium) localStorage.setItem(UTM_MEDIUM_KEY, medium);
+    if (campaign) localStorage.setItem(UTM_CAMPAIGN_KEY, campaign);
   } catch {
     /* ignore */
+  }
+}
+
+export function getStoredUtmParams(): { medium?: string; campaign?: string } {
+  if (typeof window === "undefined") return {};
+  try {
+    return {
+      medium: localStorage.getItem(UTM_MEDIUM_KEY) ?? undefined,
+      campaign: localStorage.getItem(UTM_CAMPAIGN_KEY) ?? undefined,
+    };
+  } catch {
+    return {};
   }
 }
 

@@ -10,6 +10,7 @@ import {
   HERO_FEATURE_EVENTS,
 } from "@/lib/analytics-platform/activation";
 import { REFERRAL_SOURCE_LABELS } from "@/lib/analytics-platform/referral";
+import { getActivationPulse } from "@/lib/activation/time-to-wow";
 import type { ReferralSource } from "@prisma/client";
 
 const HERO_FEATURES = {
@@ -693,6 +694,7 @@ export async function getGrowthIntelligenceDashboard() {
     insights,
     ai,
     registrationsToday,
+    activationPulse,
   ] = await Promise.all([
     getActivationMetrics(),
     getGrowthFunnel(since30),
@@ -707,6 +709,7 @@ export async function getGrowthIntelligenceDashboard() {
     generateFounderInsights(),
     getFounderAiAnalytics(),
     prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
+    getActivationPulse(),
   ]);
 
   const dropOff = findBiggestFunnelDropOff(funnel);
@@ -736,6 +739,14 @@ export async function getGrowthIntelligenceDashboard() {
     });
   }
 
+  if (activationPulse.avgTimeToWowMinutes != null && activationPulse.avgTimeToWowMinutes > activationPulse.wowTargetMinutes) {
+    alerts.push({
+      level: "warning",
+      title: "Time to WOW above target",
+      message: `Average ${activationPulse.avgTimeToWowMinutes} min to first WOW — target under ${activationPulse.wowTargetMinutes} min.`,
+    });
+  }
+
   const returningPct =
     retention.summary.day7 > 0
       ? retention.summary.day7
@@ -743,6 +754,7 @@ export async function getGrowthIntelligenceDashboard() {
 
   return {
     generatedAt: new Date().toISOString(),
+    activationPulse,
     northStar: activation,
     funnel,
     funnelDropOff: dropOff,

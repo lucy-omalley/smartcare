@@ -45,17 +45,22 @@ import {
 } from '@/lib/recipe-illustration-prefetch';
 import { ParentCheckInCard } from '@/components/home/parent-checkin-card';
 import { BetaPremiumWelcomeBanner } from '@/components/beta/beta-premium-welcome-banner';
-import { TodayWowDashboard } from '@/components/today/today-wow-dashboard';
 import { TodayPlanFeedbackWidget } from '@/components/today/today-plan-feedback';
 import { TodayJourneyHero } from '@/components/today/today-journey-hero';
-import { TodayHeroExperiencesRow } from '@/components/today/today-hero-experiences-row';
 import { TodayContinueSection } from '@/components/today/today-continue-section';
+import { FirstJourneyWelcome } from '@/components/activation/first-journey-welcome';
+import { ActivationWowMoment } from '@/components/activation/activation-wow-moment';
+import { RecommendedHeroCard } from '@/components/activation/recommended-hero-card';
+import { ReturningWelcomeBanner } from '@/components/activation/returning-welcome-banner';
+import { recommendHeroFeature } from '@/lib/activation/recommend-hero-feature';
 import { saveContinueState } from '@/components/today/today-continue-state';
 import { TodayQuickAccess } from '@/components/today/today-quick-access';
 import { TodayBetaFeedbackRow } from '@/components/today/today-beta-feedback-row';
 import { useTranslation } from '@/hooks/use-translation';
 
-const WOW_DISMISS_KEY = 'parenfy_today_wow_dismissed';
+const FIRST_SESSION_KEY = 'parenfy_activation_first_done';
+
+type ActivationPhase = 'first' | 'wow' | 'normal';
 
 async function parseApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -103,7 +108,10 @@ export default function TodayPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showWow, setShowWow] = useState(false);
+  const [activationPhase, setActivationPhase] = useState<ActivationPhase>('normal');
+  const [hasToyProfile, setHasToyProfile] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [data, setData] = useState<TodayData | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -117,17 +125,38 @@ export default function TodayPage() {
   const profileRefreshPollRef = useRef(false);
 
   useEffect(() => {
+    const first = searchParams.get('first') === '1';
     const welcome = searchParams.get('welcome') === '1';
-    setShowWow(welcome);
+    if (first) {
+      setActivationPhase('first');
+    } else if (welcome) {
+      setActivationPhase('wow');
+    }
+    try {
+      const hadSession = sessionStorage.getItem(FIRST_SESSION_KEY);
+      if (hadSession && !first) {
+        setIsReturning(true);
+        trackEvent('returning_session_viewed');
+      }
+    } catch {
+      /* ignore */
+    }
     if (welcome) {
       trackEvent('first_session_dashboard_viewed');
     }
   }, [searchParams]);
 
-  const dismissWow = useCallback(() => {
-    localStorage.setItem(WOW_DISMISS_KEY, '1');
-    setShowWow(false);
-  }, []);
+  useEffect(() => {
+    if (activationPhase === 'first' && data?.brief && isValidBriefContent(data.brief)) {
+      setActivationPhase('wow');
+      trackEvent('wow_moment_viewed');
+      try {
+        sessionStorage.setItem(FIRST_SESSION_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [activationPhase, data?.brief]);
 
   const submitCheckIn = useCallback(
     async (payload: { feeling: string; win: string; challenge: string }) => {
@@ -255,9 +284,16 @@ export default function TodayPage() {
         if (!profile?.onboardingComplete) router.push('/onboarding');
       });
 
+    fetch('/api/toy-brain')
+      .then((r) => r.json())
+      .then((json) => setHasToyProfile((json.toys?.length ?? 0) > 0))
+      .catch(() => {});
+
+    if (searchParams.get('first') === '1') return;
+
     loadToday();
     loadConnectData();
-  }, [status, router, loadToday, loadConnectData]);
+  }, [status, router, loadToday, loadConnectData, searchParams]);
 
   useEffect(() => {
     if (!generatingPlan || status !== 'authenticated') return;
@@ -521,7 +557,7 @@ export default function TodayPage() {
     setActiveDetail(type);
   };
 
-  if (status === 'loading' || (planLoading && !data && !loadError)) {
+  if (status === 'loading' || (planLoading && !data && !loadError && activationPhase !== 'first')) {
     return (
       <TabLoadingScreen
         message="What can I do with my child today?"
@@ -557,7 +593,24 @@ export default function TodayPage() {
     trackEvent('activity_opened', { title: brief.play.title, source: 'journey_hero' });
     openDetail('activity', brief.play.title);
     trackEvent('activity_card_opened', { title: brief.play.title });
+    if (activationPhase === 'wow') {
+      setActivationPhase('normal');
+      router.replace('/today', { scroll: false });
+    }
   };
+
+  const createFirstJourney = () => {
+    trackEvent('first_journey_started');
+    setGeneratingPlan(true);
+    setPlanLoading(true);
+    void loadToday({ generate: true });
+  };
+
+  const heroRecommendation = recommendHeroFeature({
+    childAge: data?.profile?.childAge,
+    childBirthday: data?.profile?.childBirthday,
+    hasToyProfile,
+  });
 
   const connectAvailableText =
     data?.connectAvailableCount === 0
@@ -653,11 +706,32 @@ export default function TodayPage() {
 
         <BetaPremiumWelcomeBanner />
 
-        {brief && isValidBriefContent(brief) && showWow && (
-          <TodayWowDashboard brief={brief} childName={childName} onDismiss={dismissWow} />
+        {activationPhase === 'first' && (
+          <FirstJourneyWelcome
+            firstName={firstName}
+            loading={planLoading || generatingPlan}
+            onCreateJourney={createFirstJourney}
+          />
         )}
 
-        {!hasChildProfile && (
+        {activationPhase === 'wow' && brief && isValidBriefContent(brief) && (
+          <ActivationWowMoment
+            brief={brief}
+            childName={childName}
+            recommendation={heroRecommendation}
+            onStartJourney={startTodaysJourney}
+          />
+        )}
+
+        {activationPhase === 'normal' && isReturning && brief && isValidBriefContent(brief) && (
+          <ReturningWelcomeBanner
+            firstName={firstName}
+            childName={childName}
+            onStartToday={startTodaysJourney}
+          />
+        )}
+
+        {activationPhase === 'normal' && !hasChildProfile && (
           <div className="visual-card p-3.5 flex items-center gap-3">
             <UserPlus className="h-5 w-5 text-primary shrink-0" />
             <p className="text-sm flex-1">{t('home.addChildProfile')}</p>
@@ -679,7 +753,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        {brief && isValidBriefContent(brief) && (
+        {activationPhase === 'normal' && brief && isValidBriefContent(brief) && (
           <>
             <TodayJourneyHero
               greeting={greeting}
@@ -690,6 +764,22 @@ export default function TodayPage() {
               onStart={startTodaysJourney}
             />
 
+            <TodayContinueSection onResume={(type) => openDetail(type)} />
+
+            <RecommendedHeroCard recommendation={heroRecommendation} />
+
+            <div className="space-y-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground w-full"
+                onClick={() => setShowMore((v) => !v)}
+              >
+                {showMore ? '− ' : '+ '}{t('activation.everythingElse')}
+              </Button>
+
+              {showMore && (
+                <>
             {(weeklyFocus || todayFocus) && (
               <div className="space-y-2">
                 {weeklyFocus && (
@@ -710,10 +800,6 @@ export default function TodayPage() {
                 )}
               </div>
             )}
-
-            <TodayHeroExperiencesRow childName={childName} />
-
-            <TodayContinueSection onResume={(type) => openDetail(type)} />
 
             <section className="space-y-2.5">
               <TodaySectionHeader emoji="✨" title={t('home.todaysRecommendations')} />
@@ -857,6 +943,9 @@ export default function TodayPage() {
                 href="/connect?tab=events"
               />
             </section>
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

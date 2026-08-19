@@ -119,6 +119,9 @@ export default function GrowthIntelligencePage() {
           >
             Follow-up ({followUpRows.length})
           </Button>
+          <Button size="sm" variant="outline" className="rounded-full" asChild>
+            <a href="/admin/founder/journey">Watch User Journey</a>
+          </Button>
           <Button size="sm" variant="outline" className="rounded-full gap-1" asChild>
             <a href="/api/admin/founder/growth/report-export">
               <Download className="h-3.5 w-3.5" />
@@ -146,6 +149,35 @@ export default function GrowthIntelligencePage() {
         <FollowUpTab followUp={data.followUp} />
       ) : (
         <>
+          <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <MetricCard
+              label="Today's activation rate"
+              value={`${data.activationPulse.activationRateToday}%`}
+              hint={`${data.activationPulse.activatedToday} activated / ${data.activationPulse.signupsToday} signups`}
+            />
+            <MetricCard label="Returning today" value={data.activationPulse.returningUsersToday} />
+            <MetricCard label="Best hero feature" value={data.hero.bestPerforming} />
+            <MetricCard label="Top acquisition" value={data.referral.topSource} />
+            <MetricCard
+              label="Avg time to WOW"
+              value={
+                data.activationPulse.avgTimeToWowMinutes != null
+                  ? `${data.activationPulse.avgTimeToWowMinutes}m`
+                  : "—"
+              }
+              hint={`Target < ${data.activationPulse.wowTargetMinutes}m`}
+            />
+          </section>
+
+          {data.funnelDropOff ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 p-3 text-sm">
+              <p className="font-semibold">Biggest drop-off: {data.funnelDropOff.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {100 - (data.funnelDropOff.conversionFromPrevious ?? 0)}% lost at this step
+              </p>
+            </div>
+          ) : null}
+
           <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricCard
               label="Activated today"

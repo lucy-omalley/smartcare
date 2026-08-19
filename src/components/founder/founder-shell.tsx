@@ -18,11 +18,13 @@ import {
   Printer,
   Brain,
   BarChart3,
+  PlayCircle,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin/founder", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/founder/growth", label: "Growth", icon: BarChart3 },
+  { href: "/admin/founder/journey", label: "Journey", icon: PlayCircle },
   { href: "/admin/founder/users", label: "Users", icon: Users },
   { href: "/admin/founder/funnel", label: "Funnel", icon: Filter },
   { href: "/admin/founder/storytime", label: "Storytime", icon: BookOpen },
