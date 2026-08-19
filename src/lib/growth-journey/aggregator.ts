@@ -163,14 +163,9 @@ export async function getGrowthJourneyView(userId: string): Promise<GrowthJourne
     user.favouriteCharacter,
   ].filter(Boolean) as string[];
 
-  const interestCandidates = [
-    ...new Set([
-      ...profileTags,
-      "Music",
-      "Drawing",
-      "Animals",
-    ]),
-  ].slice(0, 6);
+  const interestCandidates = Array.from(
+    new Set([...profileTags, "Music", "Drawing", "Animals"])
+  ).slice(0, 6);
 
   const interests: GrowthInterest[] = interestCandidates.map((name) => ({
     name,
