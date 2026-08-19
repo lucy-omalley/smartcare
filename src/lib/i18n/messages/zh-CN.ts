@@ -295,6 +295,7 @@ export const zhCN: MessageTree = {
     startActivity: "开始活动",
     readStory: "阅读故事",
     tryWords: "试试词语",
+    tryAnother: "换一个",
     aboutActivity: "了解今日活动",
     anotherMeal: "换个餐食建议",
     adaptStory: "改编今日故事",
