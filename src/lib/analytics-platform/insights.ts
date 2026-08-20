@@ -132,7 +132,7 @@ export async function generateFounderInsights(): Promise<{
   }
   if (dropOff?.id === "email_verified") {
     recommendations.push(
-      "Reduce email verification friction — auto-login after signup, one-click verify link, and reminder emails at 1h / 24h."
+      "Reduce email verification friction — auto-login after signup, one-click verify link, and automated reminder emails at 1h / 24h (cron enabled)."
     );
     recommendations.push(
       "Export unverified signups from Growth → Follow-up and manually nudge users who never clicked the link."

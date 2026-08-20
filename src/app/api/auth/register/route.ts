@@ -163,7 +163,7 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    const verification = await createAndSendVerificationEmail(user.id, user.email);
+    const verification = await createAndSendVerificationEmail(user.id, user.email, trimmedName);
 
     const { password: _, ...userWithoutPassword } = user;
 

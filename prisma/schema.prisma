@@ -262,6 +262,7 @@ model User {
   sentConnectRequests ConnectRequest[] @relation("SentConnectRequests")
   receivedConnectRequests ConnectRequest[] @relation("ReceivedConnectRequests")
   todayPlanFeedback   TodayPlanFeedback[]
+  emailVerificationReminders EmailVerificationReminder[]
   learningPlans       LearningPlan[]
   featureRequests     FeatureRequest[] @relation("SubmittedFeatures")
   featureVotes        FeatureRequestVote[]
@@ -316,6 +317,18 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model EmailVerificationReminder {
+  id     String   @id @default(cuid())
+  userId String
+  kind   String
+  sentAt DateTime @default(now())
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sentAt])
+  @@index([kind])
 }
 
 model FamilyMemory {
