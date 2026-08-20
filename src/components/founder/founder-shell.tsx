@@ -34,6 +34,7 @@ const NAV = [
   { href: "/admin/founder/retention", label: "Retention", icon: TrendingUp },
   { href: "/admin/founder/ai", label: "AI", icon: Sparkles },
   { href: "/admin/founder/errors", label: "Errors", icon: AlertTriangle },
+  { href: "/admin/founder/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/founder/beta", label: "Beta", icon: FlaskConical },
   { href: "/admin/costs", label: "Costs", icon: DollarSign },
 ];

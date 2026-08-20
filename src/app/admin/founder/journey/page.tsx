@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,16 +18,12 @@ type TimelineResponse = {
 export default function FounderJourneyPage() {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState("");
   const [query, setQuery] = useState("");
   const [data, setData] = useState<TimelineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  if (status === "unauthenticated") {
-    router.push("/auth/signin");
-    return null;
-  }
 
   const loadTimeline = async (id: string) => {
     setLoading(true);
@@ -43,6 +39,25 @@ export default function FounderJourneyPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fromQuery = searchParams.get("userId")?.trim();
+    if (fromQuery) {
+      setUserId(fromQuery);
+      setQuery(fromQuery);
+      void loadTimeline(fromQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once when deep-linking
+  }, [searchParams]);
+
+  if (status === "unauthenticated") {
+    router.push("/auth/signin");
+    return null;
+  }
+
+  if (status !== "authenticated") {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
