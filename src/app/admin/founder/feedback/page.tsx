@@ -114,12 +114,16 @@ export default function FounderFeedbackPage() {
                         {row.userEmail ? (
                           <p className="text-muted-foreground">{row.userEmail}</p>
                         ) : null}
-                        {row.userId ? (
+                        {row.userId || row.userEmail ? (
                           <Link
-                            href={`/admin/founder/journey?userId=${row.userId}`}
+                            href={
+                              row.userEmail
+                                ? `/admin/founder/journey?email=${encodeURIComponent(row.userEmail)}`
+                                : `/admin/founder/journey?userId=${row.userId}`
+                            }
                             className="text-primary hover:underline"
                           >
-                            View journey
+                            Watch journey
                           </Link>
                         ) : null}
                       </td>

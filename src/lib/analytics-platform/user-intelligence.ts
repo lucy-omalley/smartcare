@@ -190,3 +190,50 @@ function scoreConversion(planTier: string, aiCalls: number, onboarded: boolean):
   if (aiCalls >= 20) score += 25;
   return Math.min(100, score);
 }
+
+export type FounderTimelineUser = {
+  id: string;
+  email: string;
+  name: string;
+};
+
+const timelineUserSelect = { id: true, email: true, name: true } as const;
+
+/** Resolve a founder journey lookup — email, name, or internal user id. */
+export async function searchFounderTimelineUsers(
+  query: string,
+  limit = 8
+): Promise<FounderTimelineUser[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const byId = await prisma.user.findUnique({ where: { id: trimmed }, select: timelineUserSelect });
+  if (byId) return [byId];
+
+  if (trimmed.includes("@")) {
+    const exactEmail = await prisma.user.findFirst({
+      where: { email: { equals: trimmed, mode: "insensitive" } },
+      select: timelineUserSelect,
+    });
+    if (exactEmail) return [exactEmail];
+  }
+
+  return prisma.user.findMany({
+    where: {
+      OR: [
+        { email: { contains: trimmed, mode: "insensitive" } },
+        { name: { contains: trimmed, mode: "insensitive" } },
+      ],
+    },
+    select: timelineUserSelect,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
+
+export async function resolveFounderTimelineUser(
+  query: string
+): Promise<FounderTimelineUser | null> {
+  const matches = await searchFounderTimelineUsers(query, 1);
+  return matches[0] ?? null;
+}

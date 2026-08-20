@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { UserIntelligenceRow } from "@/lib/analytics-platform/user-intelligence";
 import { LoadingState, ErrorState } from "@/components/founder/founder-ui";
-import { Download, Search } from "lucide-react";
+import { Download, Search, PlayCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function FounderUsersPage() {
   const { status } = useSession();
@@ -107,12 +108,13 @@ export default function FounderUsersPage() {
                   <th className="p-3 font-medium">Retention</th>
                   <th className="p-3 font-medium">Churn</th>
                   <th className="p-3 font-medium">Last active</th>
+                  <th className="p-3 font-medium">Journey</th>
                 </tr>
               </thead>
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-6 text-center text-muted-foreground">
+                    <td colSpan={10} className="p-6 text-center text-muted-foreground">
                       No users found
                     </td>
                   </tr>
@@ -138,6 +140,15 @@ export default function FounderUsersPage() {
                       </td>
                       <td className="p-3 text-muted-foreground whitespace-nowrap">
                         {u.lastActive ? format(new Date(u.lastActive), "d MMM") : "—"}
+                      </td>
+                      <td className="p-3">
+                        <Link
+                          href={`/admin/founder/journey?email=${encodeURIComponent(u.email)}`}
+                          className="inline-flex items-center gap-1 text-primary hover:underline whitespace-nowrap"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          Watch
+                        </Link>
                       </td>
                     </tr>
                   ))
