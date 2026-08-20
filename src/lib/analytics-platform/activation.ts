@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { startOfDay, startOfWeek } from "date-fns";
+import { startOfDay, startOfWeek, subDays } from "date-fns";
 
 /** Hero feature events — at least one required for activation. */
 export const HERO_FEATURE_EVENTS = [
@@ -12,6 +12,23 @@ export const HERO_FEATURE_EVENTS = [
   "family_story_played",
   "family_story_completed",
 ] as const;
+
+/** Real accounts in the User table — source of truth for registration counts. */
+export async function countRegisteredUsers(since?: Date): Promise<number> {
+  return prisma.user.count({
+    where: since ? { createdAt: { gte: since } } : {},
+  });
+}
+
+/** Users who finished onboarding (DB flag). */
+export async function countOnboardedUsers(since?: Date): Promise<number> {
+  return prisma.user.count({
+    where: {
+      onboardingComplete: true,
+      ...(since ? { createdAt: { gte: since } } : {}),
+    },
+  });
+}
 
 export type ActivatedUserCriteria = {
   userId: string;
@@ -69,11 +86,13 @@ export async function getActivatedUserIds(since?: Date): Promise<Map<string, Dat
 export async function getActivationMetrics() {
   const todayStart = startOfDay(new Date());
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const last30Start = subDays(todayStart, 30);
 
-  const [allActivated, signupsTotal, signupsWeek] = await Promise.all([
+  const [allActivated, signupsTotal, signupsWeek, signupsLast30Days] = await Promise.all([
     getActivatedUserIds(),
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: weekStart } } }),
+    countRegisteredUsers(last30Start),
   ]);
 
   let activatedToday = 0;
@@ -93,5 +112,6 @@ export async function getActivationMetrics() {
     activationRate,
     signupsTotal,
     signupsThisWeek: signupsWeek,
+    signupsLast30Days,
   };
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { startOfDay, subDays } from "date-fns";
+import { countOnboardedUsers, countRegisteredUsers } from "@/lib/analytics-platform/activation";
 
 export type FunnelStage = {
   id: string;
@@ -32,10 +33,10 @@ export async function getProductFunnel(since?: Date): Promise<FunnelStage[]> {
     subscribed,
   ] = await Promise.all([
     distinctUsers("landing_page_viewed", dateFilter),
-    distinctUsers("signup_started", dateFilter),
-    distinctUsers("signup_completed", dateFilter),
+    distinctReach("signup_started", dateFilter),
+    countRegisteredUsers(since),
     countEmailVerifiedUsers(since),
-    distinctUsers("onboarding_completed", dateFilter),
+    countOnboardedUsers(since),
     prisma.user.count({ where: { childBirthday: { not: null }, ...(since ? { createdAt: { gte: since } } : {}) } }),
     distinctUsers("today_plan_viewed", dateFilter),
     distinctUsers("first_session_dashboard_viewed", dateFilter),
@@ -56,8 +57,8 @@ export async function getProductFunnel(since?: Date): Promise<FunnelStage[]> {
 
   const stages: Omit<FunnelStage, "conversionFromPrevious" | "conversionFromStart">[] = [
     { id: "landing", label: "Landing page", count: landing },
-    { id: "signup_started", label: "Registration started", count: signupStarted },
-    { id: "signup_completed", label: "Registration completed", count: signupCompleted },
+    { id: "signup_started", label: "Signup form opened (visitors)", count: signupStarted },
+    { id: "signup_completed", label: "Accounts created", count: signupCompleted },
     { id: "email_verified", label: "Email verified", count: emailVerified },
     { id: "onboarding", label: "Onboarding completed", count: onboardingCompleted },
     { id: "child_profile", label: "Child profile (Activated)", count: childProfile },
@@ -95,6 +96,26 @@ async function distinctUsers(
     select: { userId: true },
   });
   return rows.length;
+}
+
+/** Unique visitors who opened signup — includes anonymous sessions (not registrations). */
+async function distinctReach(
+  event: string,
+  dateFilter: { createdAt?: { gte: Date } }
+): Promise<number> {
+  const [users, sessions] = await Promise.all([
+    prisma.analyticsEvent.findMany({
+      where: { event, userId: { not: null }, ...dateFilter },
+      distinct: ["userId"],
+      select: { userId: true },
+    }),
+    prisma.analyticsEvent.findMany({
+      where: { event, userId: null, sessionId: { not: null }, ...dateFilter },
+      distinct: ["sessionId"],
+      select: { sessionId: true },
+    }),
+  ]);
+  return users.length + sessions.length;
 }
 
 /** Users with verified email — merges analytics events and DB flag (covers OAuth). */

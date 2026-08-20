@@ -59,6 +59,7 @@ export function growthReportToCsv(data: GrowthIntelligenceDashboard): string {
           ["Activation rate %", ns.activationRate],
           ["Total signups", ns.signupsTotal],
           ["Signups this week", ns.signupsThisWeek],
+          ["Accounts created (30d)", ns.signupsLast30Days],
         ]
       ),
     ])

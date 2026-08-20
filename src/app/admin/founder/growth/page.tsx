@@ -186,8 +186,9 @@ export default function GrowthIntelligencePage() {
               hint="Onboarding + Journey + hero feature"
             />
             <MetricCard label="Activated this week" value={ns.activatedThisWeek} />
-            <MetricCard label="Activation rate" value={`${ns.activationRate}%`} hint={`${ns.totalActivated} / ${ns.signupsTotal} users`} />
+            <MetricCard label="Activation rate" value={`${ns.activationRate}%`} hint={`${ns.totalActivated} activated · ${ns.signupsTotal} accounts (all time)`} />
             <MetricCard label="Signups this week" value={ns.signupsThisWeek} />
+            <MetricCard label="Accounts (30d)" value={ns.signupsLast30Days} hint="Matches funnel ‘Accounts created’" />
           </section>
 
           <Card className="rounded-2xl border-primary/20 bg-primary/5">
@@ -210,6 +211,10 @@ export default function GrowthIntelligencePage() {
             <Card className="rounded-2xl">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold">Growth funnel · 30 days</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Accounts created counts real users in your database. Signup form opened counts unique
+                  visitors (including people who never finished registering).
+                </p>
                 {data.funnelDropOff ? (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     Biggest drop-off: {data.funnelDropOff.label} (
