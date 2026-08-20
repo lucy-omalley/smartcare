@@ -13,6 +13,7 @@ import {
   RecaptchaWidget,
   isRecaptchaEnabledClient,
   isCaptchaEnabledClient,
+  type RecaptchaWidgetHandle,
 } from '@/components/auth/recaptcha-widget';
 import { TurnstileWidget, isTurnstileEnabledClient } from '@/components/auth/turnstile-widget';
 import { AuthLanguageBar } from '@/components/i18n/auth-language-bar';
@@ -28,6 +29,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const formLoadedAtRef = useRef(Date.now());
+  const recaptchaRef = useRef<RecaptchaWidgetHandle>(null);
   const useRecaptcha = isRecaptchaEnabledClient();
   const useTurnstile = !useRecaptcha && isTurnstileEnabledClient();
   const captchaRequired = isCaptchaEnabledClient();
@@ -114,6 +116,7 @@ export default function Register() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
       setCaptchaToken(null);
+      recaptchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -176,6 +179,7 @@ export default function Register() {
             </div>
             {useRecaptcha ? (
               <RecaptchaWidget
+                ref={recaptchaRef}
                 onVerify={handleCaptchaVerify}
                 onExpire={handleCaptchaExpire}
                 onError={handleCaptchaExpire}
