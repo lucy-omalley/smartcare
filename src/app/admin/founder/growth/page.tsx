@@ -567,7 +567,7 @@ function FollowUpTab({
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
         Verification reminders include a fresh link, deliverability tips (spam folder), and run
-        automatically at 1h and 24h after signup via hourly cron.
+        automatically once daily for signups eligible for 1h or 24h reminders.
       </p>
       {sections.map((section) => (
         <Card key={section.title} className="rounded-2xl overflow-hidden">

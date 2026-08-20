@@ -5,7 +5,7 @@ import { assertCronAuthorized, cronUnauthorizedResponse } from "@/lib/cron-auth"
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Hourly job — send 1h and 24h verification reminders to unverified signups. */
+/** Daily job (Vercel Hobby: max once/day) — send 1h and 24h verification reminders. */
 export async function GET(request: Request) {
   if (!assertCronAuthorized(request)) {
     return cronUnauthorizedResponse();
