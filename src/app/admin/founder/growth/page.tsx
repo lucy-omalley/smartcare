@@ -19,7 +19,8 @@ import {
   FeatureBarChart,
   ReferralPieList,
 } from "@/components/founder/founder-charts";
-import { Download } from "lucide-react";
+import { Download, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 type Tab = "overview" | "follow-up";
 
@@ -495,8 +496,67 @@ function FollowUpTab({
 }: {
   followUp: GrowthIntelligenceDashboard["followUp"];
 }) {
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const sendVerificationReminders = async (dryRun: boolean) => {
+    setSendingReminders(true);
+    try {
+      const res = await fetch("/api/admin/founder/growth/send-verification-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dryRun,
+          userIds: followUp.unverifiedEmail.map((u) => u.id),
+        }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        sent?: number;
+        total?: number;
+        results?: Array<{ email: string; status: string }>;
+      };
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+
+      if (dryRun) {
+        const wouldSend = json.results?.filter((r) => r.status === "would_send").length ?? 0;
+        toast.message(`Preview: ${wouldSend} of ${json.total ?? 0} would receive a reminder`);
+      } else {
+        toast.success(`Sent ${json.sent ?? 0} verification reminder${json.sent === 1 ? "" : "s"}`);
+      }
+    } catch {
+      toast.error("Could not send verification reminders");
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
   const sections = [
-    { title: "Email not verified", rows: followUp.unverifiedEmail },
+    {
+      title: "Email not verified",
+      rows: followUp.unverifiedEmail,
+      actions: followUp.unverifiedEmail.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full h-8 text-xs"
+            disabled={sendingReminders}
+            onClick={() => void sendVerificationReminders(true)}
+          >
+            Preview reminders
+          </Button>
+          <Button
+            size="sm"
+            className="rounded-full h-8 text-xs gap-1"
+            disabled={sendingReminders}
+            onClick={() => void sendVerificationReminders(false)}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            {sendingReminders ? "Sending…" : "Send verification reminders"}
+          </Button>
+        </div>
+      ),
+    },
     { title: "Registered but inactive", rows: followUp.registeredInactive },
     { title: "Activated but disappeared", rows: followUp.activatedDisappeared },
     { title: "Power users — recommend Premium", rows: followUp.powerUsers },
@@ -505,6 +565,10 @@ function FollowUpTab({
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Verification reminders include a fresh link, deliverability tips (spam folder), and run
+        automatically once daily for signups eligible for 1h or 24h reminders.
+      </p>
       {sections.map((section) => (
         <Card key={section.title} className="rounded-2xl overflow-hidden">
           <CardHeader className="pb-2">
@@ -514,6 +578,7 @@ function FollowUpTab({
                 {section.rows.length}
               </Badge>
             </CardTitle>
+            {"actions" in section ? section.actions : null}
           </CardHeader>
           <CardContent className="p-0">
             {section.rows.length === 0 ? (

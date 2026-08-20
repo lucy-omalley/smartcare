@@ -8,6 +8,7 @@ export type AnalyticsEvent =
   | "signup_started"
   | "signup_completed"
   | "email_verified"
+  | "verification_reminder_sent"
   | "login"
   | "login_completed"
   | "logout"
