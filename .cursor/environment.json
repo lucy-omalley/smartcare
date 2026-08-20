@@ -1,0 +1,3 @@
+{
+  "install": "npm ci\nnpm run clean && prisma generate"
+}
