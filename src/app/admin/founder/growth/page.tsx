@@ -532,7 +532,9 @@ function FollowUpTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dryRun,
-          userIds: followUp.unverifiedEmail.map((u) => u.id),
+          userIds: followUp.unverifiedEmail
+            .map((u) => u.id)
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
         }),
       });
       const json = (await res.json()) as {
@@ -546,9 +548,12 @@ function FollowUpTab({
 
       if (json.results) setLastResults(json.results);
 
+      const eligible = json.summary?.would_send ?? json.sent ?? 0;
+
       if (dryRun) {
-        const wouldSend = json.summary?.would_send ?? 0;
-        toast.message(`Preview: ${wouldSend} of ${json.total ?? 0} would receive a reminder`);
+        toast.message(
+          `Preview: ${eligible} of ${json.total ?? 0} in "Email not verified" would receive a reminder`
+        );
       } else if ((json.sent ?? 0) > 0) {
         toast.success(
           `Sent ${json.sent} verification reminder${json.sent === 1 ? "" : "s"} to ${json.total ?? 0} listed`
@@ -604,8 +609,8 @@ function FollowUpTab({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        Verification reminders include a fresh link, deliverability tips (spam folder), and run
-        automatically once daily for signups eligible for 1h or 24h reminders.
+        Verification reminders apply only to the Email not verified section below (not inactive or
+        churned users). Manual send includes spam-pattern signups. Automatic cron runs once daily.
       </p>
       {lastResults && lastResults.length > 0 ? (
         <Card className="rounded-2xl border-dashed">
@@ -656,6 +661,9 @@ function FollowUpTab({
                       <th className="p-3 font-medium">User</th>
                       <th className="p-3 font-medium">Source</th>
                       <th className="p-3 font-medium">Reason</th>
+                      {section.title === "Email not verified" ? (
+                        <th className="p-3 font-medium">Reminder</th>
+                      ) : null}
                       <th className="p-3 font-medium">Last active</th>
                     </tr>
                   </thead>
@@ -668,6 +676,11 @@ function FollowUpTab({
                         </td>
                         <td className="p-3">{u.referralSource}</td>
                         <td className="p-3">{u.reason}</td>
+                        {section.title === "Email not verified" && "reminderLabel" in u ? (
+                          <td className="p-3 text-muted-foreground max-w-[140px]">
+                            {u.reminderLabel as string}
+                          </td>
+                        ) : null}
                         <td className="p-3 text-muted-foreground whitespace-nowrap">
                           {formatLastActive(u)}
                         </td>

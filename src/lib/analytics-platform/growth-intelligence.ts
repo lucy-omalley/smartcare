@@ -9,6 +9,7 @@ import {
   getActivationMetrics,
   HERO_FEATURE_EVENTS,
 } from "@/lib/analytics-platform/activation";
+import { describeVerificationReminderEligibility } from "@/lib/auth/email-verification";
 import { REFERRAL_SOURCE_LABELS } from "@/lib/analytics-platform/referral";
 import { getActivationPulse } from "@/lib/activation/time-to-wow";
 import type { ReferralSource } from "@prisma/client";
@@ -520,7 +521,15 @@ export async function getFollowUpList() {
         password: { not: null },
         createdAt: { lt: subDays(new Date(), 1) },
       },
-      select: { id: true, email: true, name: true, createdAt: true, referralSource: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        referralSource: true,
+        emailVerified: true,
+        password: true,
+      },
       take: 50,
       orderBy: { createdAt: "desc" },
     }),
@@ -564,11 +573,16 @@ export async function getFollowUpList() {
       : [];
 
   return {
-    unverifiedEmail: unverifiedEmail.map((u) => ({
-      ...u,
-      referralSource: REFERRAL_SOURCE_LABELS[u.referralSource],
-      reason: "Signed up — email not verified",
-    })),
+    unverifiedEmail: unverifiedEmail.map((u) => {
+      const reminder = describeVerificationReminderEligibility(u);
+      return {
+        ...u,
+        referralSource: REFERRAL_SOURCE_LABELS[u.referralSource],
+        reason: "Signed up — email not verified",
+        reminderLabel: reminder.label,
+        reminderCanSend: reminder.canSend,
+      };
+    }),
     registeredInactive: inactiveRegistered.map((u) => ({
       ...u,
       referralSource: REFERRAL_SOURCE_LABELS[u.referralSource],

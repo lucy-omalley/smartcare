@@ -127,6 +127,29 @@ function firstNameFromUser(name: string | null | undefined): string | null {
   return trimmed.split(/\s+/)[0] ?? null;
 }
 
+/** What the founder follow-up UI should show for verification reminders. */
+export function describeVerificationReminderEligibility(user: {
+  email: string;
+  name: string | null;
+  emailVerified: Date | null;
+  password: string | null;
+}): { canSend: boolean; label: string; code: string } {
+  if (user.emailVerified) {
+    return { canSend: false, label: "Already verified", code: "already_verified" };
+  }
+  if (!user.password) {
+    return { canSend: false, label: "OAuth signup — no verify email", code: "oauth_skip" };
+  }
+  if (isLikelyBot(user)) {
+    return {
+      canSend: true,
+      label: "Ready — matches spam pattern but will send",
+      code: "would_send",
+    };
+  }
+  return { canSend: true, label: "Ready to send", code: "would_send" };
+}
+
 function isLikelyBot(user: { name: string | null; email: string }): boolean {
   return looksLikeBotRegistration(user.name ?? "", user.email);
 }
