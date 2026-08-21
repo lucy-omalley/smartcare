@@ -127,6 +127,29 @@ function firstNameFromUser(name: string | null | undefined): string | null {
   return trimmed.split(/\s+/)[0] ?? null;
 }
 
+/** What the founder follow-up UI should show for verification reminders. */
+export function describeVerificationReminderEligibility(user: {
+  email: string;
+  name: string | null;
+  emailVerified: Date | null;
+  password: string | null;
+}): { canSend: boolean; label: string; code: string } {
+  if (user.emailVerified) {
+    return { canSend: false, label: "Already verified", code: "already_verified" };
+  }
+  if (!user.password) {
+    return { canSend: false, label: "OAuth signup — no verify email", code: "oauth_skip" };
+  }
+  if (isLikelyBot(user)) {
+    return {
+      canSend: true,
+      label: "Ready — matches spam pattern but will send",
+      code: "would_send",
+    };
+  }
+  return { canSend: true, label: "Ready to send", code: "would_send" };
+}
+
 function isLikelyBot(user: { name: string | null; email: string }): boolean {
   return looksLikeBotRegistration(user.name ?? "", user.email);
 }
@@ -152,7 +175,8 @@ async function hasReminderKind(userId: string, kind: VerificationReminderKind): 
 
 export async function sendVerificationReminderToUser(
   userId: string,
-  kind: VerificationReminderKind
+  kind: VerificationReminderKind,
+  opts?: { skipBotCheck?: boolean; skipCooldown?: boolean }
 ): Promise<{ sent: boolean; skipped?: string; error?: string; devVerifyUrl?: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -169,13 +193,15 @@ export async function sendVerificationReminderToUser(
   if (!user?.email) return { sent: false, skipped: "User not found" };
   if (user.emailVerified) return { sent: false, skipped: "Already verified" };
   if (!user.password) return { sent: false, skipped: "OAuth account — no email verify needed" };
-  if (isLikelyBot(user)) return { sent: false, skipped: "Skipped likely bot account" };
+  if (!opts?.skipBotCheck && isLikelyBot(user)) {
+    return { sent: false, skipped: "Skipped likely bot account" };
+  }
 
   if (kind.startsWith("auto_")) {
     if (await hasReminderKind(userId, kind)) {
       return { sent: false, skipped: `Already sent ${kind}` };
     }
-  } else if (await recentlyReminded(userId)) {
+  } else if (!opts?.skipCooldown && (await recentlyReminded(userId))) {
     return { sent: false, skipped: "Reminder sent recently" };
   }
 
@@ -252,6 +278,8 @@ export async function sendFounderVerificationReminders(opts?: {
   userIds?: string[];
   dryRun?: boolean;
 }) {
+  const founderOpts = { skipBotCheck: true, skipCooldown: true };
+
   const users =
     opts?.userIds?.length ?
       await prisma.user.findMany({
@@ -262,7 +290,6 @@ export async function sendFounderVerificationReminders(opts?: {
         where: {
           emailVerified: null,
           password: { not: null },
-          createdAt: { lt: subHours(new Date(), 1) },
         },
         select: { id: true, email: true, name: true, emailVerified: true, password: true },
         orderBy: { createdAt: "desc" },
@@ -270,34 +297,41 @@ export async function sendFounderVerificationReminders(opts?: {
       });
 
   const results: Array<{ email: string; status: string }> = [];
+  const summary: Record<string, number> = {};
   let sent = 0;
+
+  const bump = (status: string) => {
+    summary[status] = (summary[status] ?? 0) + 1;
+  };
 
   for (const user of users) {
     if (opts?.dryRun) {
       if (user.emailVerified) {
         results.push({ email: user.email, status: "already_verified" });
+        bump("already_verified");
       } else if (!user.password) {
         results.push({ email: user.email, status: "oauth_skip" });
-      } else if (isLikelyBot(user)) {
-        results.push({ email: user.email, status: "bot_skip" });
-      } else if (await recentlyReminded(user.id)) {
-        results.push({ email: user.email, status: "reminded_recently" });
+        bump("oauth_skip");
       } else {
         results.push({ email: user.email, status: "would_send" });
+        bump("would_send");
       }
       continue;
     }
 
-    const result = await sendVerificationReminderToUser(user.id, "founder_batch");
+    const result = await sendVerificationReminderToUser(user.id, "founder_batch", founderOpts);
     if (result.sent) {
       sent += 1;
       results.push({ email: user.email, status: "sent" });
+      bump("sent");
     } else {
-      results.push({ email: user.email, status: result.skipped ?? result.error ?? "failed" });
+      const status = result.skipped ?? result.error ?? "failed";
+      results.push({ email: user.email, status });
+      bump(status);
     }
   }
 
-  return { sent, total: users.length, results };
+  return { sent, total: users.length, results, summary };
 }
 
 export async function listUnverifiedUsersForReminders(limit = 50) {
