@@ -491,12 +491,38 @@ function formatLastActive(u: Record<string, unknown>) {
   return format(new Date(raw), "d MMM yyyy");
 }
 
+function followUpStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    sent: "Sent",
+    would_send: "Ready to send",
+    already_verified: "Already verified",
+    oauth_skip: "OAuth signup — no verify needed",
+    "Skipped likely bot account": "Skipped (bot pattern)",
+    "Reminder sent recently": "Reminded recently",
+    "Email service not configured": "Email not configured (RESEND_API_KEY)",
+    "Failed to send email": "Resend failed",
+    failed: "Failed",
+  };
+  return labels[status] ?? status;
+}
+
+function formatReminderSummary(summary: Record<string, number> | undefined): string {
+  if (!summary) return "";
+  return Object.entries(summary)
+    .filter(([key, count]) => count > 0 && key !== "sent" && key !== "would_send")
+    .map(([key, count]) => `${count} ${followUpStatusLabel(key).toLowerCase()}`)
+    .join(", ");
+}
+
 function FollowUpTab({
   followUp,
 }: {
   followUp: GrowthIntelligenceDashboard["followUp"];
 }) {
   const [sendingReminders, setSendingReminders] = useState(false);
+  const [lastResults, setLastResults] = useState<Array<{ email: string; status: string }> | null>(
+    null
+  );
 
   const sendVerificationReminders = async (dryRun: boolean) => {
     setSendingReminders(true);
@@ -514,14 +540,26 @@ function FollowUpTab({
         sent?: number;
         total?: number;
         results?: Array<{ email: string; status: string }>;
+        summary?: Record<string, number>;
       };
       if (!res.ok) throw new Error(json.error ?? "Failed");
 
+      if (json.results) setLastResults(json.results);
+
       if (dryRun) {
-        const wouldSend = json.results?.filter((r) => r.status === "would_send").length ?? 0;
+        const wouldSend = json.summary?.would_send ?? 0;
         toast.message(`Preview: ${wouldSend} of ${json.total ?? 0} would receive a reminder`);
+      } else if ((json.sent ?? 0) > 0) {
+        toast.success(
+          `Sent ${json.sent} verification reminder${json.sent === 1 ? "" : "s"} to ${json.total ?? 0} listed`
+        );
       } else {
-        toast.success(`Sent ${json.sent ?? 0} verification reminder${json.sent === 1 ? "" : "s"}`);
+        const detail = formatReminderSummary(json.summary);
+        toast.error(
+          detail ?
+            `Sent 0 reminders — ${detail}. See results below.`
+          : `Sent 0 reminders — check RESEND_API_KEY or list may be empty.`
+        );
       }
     } catch {
       toast.error("Could not send verification reminders");
@@ -569,6 +607,33 @@ function FollowUpTab({
         Verification reminders include a fresh link, deliverability tips (spam folder), and run
         automatically once daily for signups eligible for 1h or 24h reminders.
       </p>
+      {lastResults && lastResults.length > 0 ? (
+        <Card className="rounded-2xl border-dashed">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Last send results</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto max-h-48">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                    <th className="p-3 font-medium">Email</th>
+                    <th className="p-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lastResults.map((row) => (
+                    <tr key={row.email} className="border-b last:border-0">
+                      <td className="p-3">{row.email}</td>
+                      <td className="p-3">{followUpStatusLabel(row.status)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       {sections.map((section) => (
         <Card key={section.title} className="rounded-2xl overflow-hidden">
           <CardHeader className="pb-2">
