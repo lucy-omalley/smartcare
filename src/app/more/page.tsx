@@ -79,7 +79,7 @@ export default function MorePage() {
           <Card className="rounded-2xl border-dashed">
             <CardContent className="p-4 flex items-center gap-3">
               <Bookmark className="h-5 w-5 text-primary" />
-              <p className="text-sm text-muted-foreground">View all saved recipes &amp; stories</p>
+              <p className="text-sm text-muted-foreground">View all saved meals, activities &amp; stories</p>
             </CardContent>
           </Card>
         </Link>

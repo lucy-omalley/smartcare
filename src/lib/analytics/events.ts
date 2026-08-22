@@ -80,6 +80,7 @@ export type AnalyticsEvent =
   | "story_started"
   | "story_completed"
   | "story_saved"
+  | "activity_saved"
   | "story_rotated"
   // Family Voice Storytime
   | "family_story_generated"

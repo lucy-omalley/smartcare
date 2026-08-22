@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { User, LogOut, Target, Baby, Star, MapPin, Settings, BookOpen } from 'lucide-react';
+import { User, LogOut, Target, Baby, Star, MapPin, Settings, BookOpen, Bookmark, ChefHat, Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import {
   PARENTING_GOAL_CATEGORIES,
@@ -64,6 +64,15 @@ interface ReflectionContent {
   encouragement?: string;
 }
 
+interface SavedOverview {
+  counts: { recipes: number; stories: number; activities: number };
+  recent: {
+    recipes: Array<{ id: string; title: string; createdAt: string }>;
+    stories: Array<{ id: string; title: string; createdAt: string }>;
+    activities: Array<{ id: string; title: string; createdAt: string; source?: string }>;
+  };
+}
+
 const REFLECTION_SECTIONS = [
   { key: 'parentingWins', label: '⭐ Parenting Wins' },
   { key: 'developmentProgress', label: '🧠 Development Progress' },
@@ -83,6 +92,7 @@ function ProfileContent() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [reflection, setReflection] = useState<ReflectionContent | null>(null);
+  const [savedOverview, setSavedOverview] = useState<SavedOverview | null>(null);
   const [loadingReflection, setLoadingReflection] = useState(false);
   const [editing, setEditing] = useState(
     searchParams.get('edit') === 'child' ||
@@ -140,6 +150,11 @@ function ProfileContent() {
           }
         })
         .finally(() => setProfileLoading(false));
+
+      fetch('/api/saved/overview')
+        .then((r) => r.json())
+        .then((data) => setSavedOverview(data))
+        .catch(() => setSavedOverview(null));
     }
   }, [status, router]);
 
@@ -449,6 +464,82 @@ function ProfileContent() {
                 )}
                 <Button variant="link" className="p-0 h-auto text-primary" onClick={() => setEditing(true)}>
                   {hasStoryPreferences(profile) ? 'Edit story preferences' : 'Set up story preferences'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bookmark className="h-4 w-4" /> Saved Favourites
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="text-xs text-muted-foreground">
+                  Meals, activities, and stories you save from Today appear here.
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Link
+                    href="/saved?tab=recipes"
+                    className="rounded-xl border p-3 text-center hover:bg-muted/50 transition-colors"
+                  >
+                    <ChefHat className="h-4 w-4 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-bold tabular-nums">{savedOverview?.counts.recipes ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Meals</p>
+                  </Link>
+                  <Link
+                    href="/saved?tab=activities"
+                    className="rounded-xl border p-3 text-center hover:bg-muted/50 transition-colors"
+                  >
+                    <Puzzle className="h-4 w-4 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-bold tabular-nums">{savedOverview?.counts.activities ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Activities</p>
+                  </Link>
+                  <Link
+                    href="/saved?tab=stories"
+                    className="rounded-xl border p-3 text-center hover:bg-muted/50 transition-colors"
+                  >
+                    <BookOpen className="h-4 w-4 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-bold tabular-nums">{savedOverview?.counts.stories ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Stories</p>
+                  </Link>
+                </div>
+                {(savedOverview?.recent.recipes.length ||
+                  savedOverview?.recent.activities.length ||
+                  savedOverview?.recent.stories.length) ? (
+                  <ul className="space-y-1.5 text-xs">
+                    {savedOverview?.recent.recipes.map((r) => (
+                      <li key={`recipe-${r.id}`} className="flex justify-between gap-2 border-b py-1">
+                        <span className="truncate">🍽 {r.title}</span>
+                        <Link href="/saved?tab=recipes" className="text-primary shrink-0">
+                          View
+                        </Link>
+                      </li>
+                    ))}
+                    {savedOverview?.recent.activities.map((a) => (
+                      <li key={`activity-${a.id}`} className="flex justify-between gap-2 border-b py-1">
+                        <span className="truncate">🎮 {a.title}</span>
+                        <Link href="/saved?tab=activities" className="text-primary shrink-0">
+                          View
+                        </Link>
+                      </li>
+                    ))}
+                    {savedOverview?.recent.stories.map((s) => (
+                      <li key={`story-${s.id}`} className="flex justify-between gap-2 border-b py-1">
+                        <span className="truncate">📖 {s.title}</span>
+                        <Link href="/saved?tab=stories" className="text-primary shrink-0">
+                          View
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-xs">
+                    Nothing saved yet — open Today and tap Save on a meal or activity.
+                  </p>
+                )}
+                <Button variant="outline" className="w-full rounded-xl" asChild>
+                  <Link href="/saved">View all saved favourites</Link>
                 </Button>
               </CardContent>
             </Card>
