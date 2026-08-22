@@ -405,7 +405,7 @@ export default function TodayPage() {
       trackEvent('story_saved', { title: json.brief?.bedtimeStory?.title ?? data?.brief?.bedtimeStory?.title });
     }
     if (action === 'save-activity') {
-      trackEvent('activity_completed', { title: json.brief?.play?.title ?? data?.brief?.play?.title });
+      trackEvent('activity_saved', { title: json.brief?.play?.title ?? data?.brief?.play?.title });
     }
     return json;
   };

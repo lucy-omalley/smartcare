@@ -98,14 +98,14 @@ export async function PATCH(request: Request) {
     if (action === "save-activity") {
       const brief = await getOrCreateDailyBrief(session.user.id);
       const play = brief.play;
-      await prisma.familyMemory.create({
+      const saved = await prisma.savedActivity.create({
         data: {
           userId: session.user.id,
-          content: `Activity: ${play.title}\n${play.instructions.join(" ")}`,
-          category: "LEARNING",
+          title: play.title,
+          content: play as object,
         },
       });
-      return NextResponse.json({ brief });
+      return NextResponse.json({ saved, brief });
     }
 
     if (action === "save-recipe") {

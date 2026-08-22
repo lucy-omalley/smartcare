@@ -248,6 +248,7 @@ model User {
   dailyBriefs         DailyBrief[]
   savedRecipes        SavedRecipe[]
   savedStories        SavedStory[]
+  savedActivities     SavedActivity[]
   savedFamilyAdventures SavedFamilyAdventure[]
   rotateLibrary       UserRotateLibrary?
   usageQuota          UserUsageQuota?
@@ -516,6 +517,17 @@ model SavedStory {
   audioData       Bytes?
   createdAt       DateTime @default(now())
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SavedActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

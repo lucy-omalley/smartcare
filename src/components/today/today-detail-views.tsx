@@ -407,7 +407,7 @@ export function MealDetailContent() {
                 setSaving(true);
                 try {
                   await onSave();
-                  toast.success('Recipe saved!');
+                  toast.success('Recipe saved! View it in Profile → Saved favourites.');
                 } catch {
                   toast.error('Could not save recipe.');
                 } finally {
@@ -482,7 +482,7 @@ export function MealDetailFooter({
           setSaving(true);
           try {
             await onSave();
-            toast.success('Meal saved!');
+            toast.success('Meal saved! View it in Profile → Saved favourites.');
           } catch {
             toast.error('Could not save meal.');
           } finally {
@@ -540,7 +540,7 @@ export function ActivityDetailView({
           setSaving(true);
           try {
             await onSave();
-            toast.success('Activity saved!');
+            toast.success('Activity saved! View it in Profile → Saved favourites.');
           } catch {
             toast.error('Could not save activity.');
           } finally {

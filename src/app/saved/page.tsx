@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, ChefHat, BookOpen, Trash2,
-  Loader2, ImageIcon, ChevronDown, ChevronUp
+  Loader2, ImageIcon, ChevronDown, ChevronUp, Puzzle
 } from 'lucide-react';
-import type { DailyBriefRecipe } from '@/types/daily-brief';
+import type { DailyBriefRecipe, DailyBriefPlay } from '@/types/daily-brief';
 import { ExternalLink, Youtube, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -42,20 +42,33 @@ interface SavedStory {
   createdAt: string;
 }
 
-type Tab = 'recipes' | 'stories';
+interface SavedActivityItem {
+  id: string;
+  title: string;
+  content: DailyBriefPlay;
+  createdAt: string;
+  source: 'saved' | 'memory';
+}
+
+type Tab = 'recipes' | 'stories' | 'activities';
 
 function SavedPageContent() {
   const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(
-    searchParams.get('tab') === 'stories' ? 'stories' : 'recipes'
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get('tab');
+    if (t === 'stories') return 'stories';
+    if (t === 'activities') return 'activities';
+    return 'recipes';
+  });
   const [recipes, setRecipes] = useState<SavedRecipe[]>([]);
   const [stories, setStories] = useState<SavedStory[]>([]);
+  const [activities, setActivities] = useState<SavedActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRecipe, setExpandedRecipe] = useState<string | null>(null);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
   const [illustratingId, setIllustratingId] = useState<string | null>(null);
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const activeStoryIdRef = useRef<string | null>(null);
@@ -72,9 +85,11 @@ function SavedPageContent() {
     Promise.all([
       fetch('/api/saved/recipes').then((r) => r.json()),
       fetch('/api/saved/stories').then((r) => r.json()),
-    ]).then(([recipesData, storiesData]) => {
+      fetch('/api/saved/activities').then((r) => r.json()),
+    ]).then(([recipesData, storiesData, activitiesData]) => {
       setRecipes(recipesData.recipes || []);
       setStories(storiesData.stories || []);
+      setActivities(activitiesData.activities || []);
     }).finally(() => setLoading(false));
   };
 
@@ -87,8 +102,10 @@ function SavedPageContent() {
   }, [status, router]);
 
   useEffect(() => {
-    const nextTab = searchParams.get('tab') === 'stories' ? 'stories' : 'recipes';
-    setTab(nextTab);
+    const t = searchParams.get('tab');
+    if (t === 'stories') setTab('stories');
+    else if (t === 'activities') setTab('activities');
+    else setTab('recipes');
   }, [searchParams]);
 
   useEffect(() => {
@@ -118,6 +135,13 @@ function SavedPageContent() {
     await fetch(`/api/saved/stories/${id}`, { method: 'DELETE' });
     setStories((prev) => prev.filter((s) => s.id !== id));
     toast.success('Story removed');
+  };
+
+  const deleteActivity = async (item: SavedActivityItem) => {
+    const qs = item.source === 'memory' ? '?source=memory' : '';
+    await fetch(`/api/saved/activities/${item.id}${qs}`, { method: 'DELETE' });
+    setActivities((prev) => prev.filter((a) => a.id !== item.id));
+    toast.success('Activity removed');
   };
 
   const illustrateStory = async (story: SavedStory) => {
@@ -188,7 +212,16 @@ function SavedPageContent() {
             onClick={() => setTab('recipes')}
           >
             <ChefHat className="h-4 w-4 mr-1" />
-            Recipes ({recipes.length})
+            Meals ({recipes.length})
+          </Button>
+          <Button
+            variant={tab === 'activities' ? 'default' : 'ghost'}
+            className="flex-1 rounded-lg"
+            size="sm"
+            onClick={() => setTab('activities')}
+          >
+            <Puzzle className="h-4 w-4 mr-1" />
+            Activities ({activities.length})
           </Button>
           <Button
             variant={tab === 'stories' ? 'default' : 'ghost'}
@@ -271,6 +304,76 @@ function SavedPageContent() {
                             <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
                           </a>
                         ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )
+        )}
+
+        {tab === 'activities' && (
+          activities.length === 0 ? (
+            <Card className="rounded-2xl">
+              <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                No saved activities yet. Save one from today&apos;s activity on Home.
+              </CardContent>
+            </Card>
+          ) : (
+            activities.map((item) => {
+              const play = item.content;
+              const open = expandedActivity === item.id;
+              return (
+                <Card key={`${item.source}-${item.id}`} className="rounded-2xl">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <CardTitle className="text-base">{play.title || item.title}</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Saved {format(new Date(item.createdAt), 'd MMM yyyy')}
+                        </p>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive shrink-0"
+                        onClick={() => void deleteActivity(item)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {play.durationMinutes > 0 ? (
+                      <Badge variant="secondary" className="rounded-full text-xs">
+                        {play.durationMinutes} min
+                      </Badge>
+                    ) : null}
+                    {play.reason ? (
+                      <p className="text-sm text-muted-foreground">{play.reason}</p>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setExpandedActivity(open ? null : item.id)}
+                    >
+                      {open ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+                      {open ? 'Hide' : 'View activity'}
+                    </Button>
+                    {open && (
+                      <div className="text-sm space-y-2">
+                        {play.materials?.length ? (
+                          <ul className="list-disc list-inside text-muted-foreground">
+                            {play.materials.map((m) => <li key={m}>{m}</li>)}
+                          </ul>
+                        ) : null}
+                        <ol className="list-decimal list-inside text-muted-foreground space-y-1">
+                          {(play.detailedInstructions ?? play.instructions)?.map((s, idx) => (
+                            <li key={idx}>{s}</li>
+                          ))}
+                        </ol>
                       </div>
                     )}
                   </CardContent>
