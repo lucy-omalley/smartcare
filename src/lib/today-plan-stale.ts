@@ -34,20 +34,42 @@ export function bodyAffectsTodayPlan(body: Record<string, unknown>): boolean {
 }
 
 export const TODAY_PLAN_STALE_KEY = "today_plan_stale";
+export const GROWTH_JOURNEY_STALE_KEY = "growth_journey_stale";
+
+function setStaleFlag(key: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(key, "1");
+  localStorage.setItem(key, "1");
+}
+
+function consumeStaleFlag(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  const stale =
+    sessionStorage.getItem(key) === "1" || localStorage.getItem(key) === "1";
+  if (!stale) return false;
+  sessionStorage.removeItem(key);
+  localStorage.removeItem(key);
+  return true;
+}
+
+/** Mark Today's Plan and Growth Journey as needing a refresh after profile changes. */
+export function markPersonalizationStale(): void {
+  markTodayPlanStale();
+  markGrowthJourneyStale();
+}
 
 export function markTodayPlanStale(): void {
-  if (typeof window === "undefined") return;
-  sessionStorage.setItem(TODAY_PLAN_STALE_KEY, "1");
-  localStorage.setItem(TODAY_PLAN_STALE_KEY, "1");
+  setStaleFlag(TODAY_PLAN_STALE_KEY);
+}
+
+export function markGrowthJourneyStale(): void {
+  setStaleFlag(GROWTH_JOURNEY_STALE_KEY);
 }
 
 export function consumeTodayPlanStale(): boolean {
-  if (typeof window === "undefined") return false;
-  const stale =
-    sessionStorage.getItem(TODAY_PLAN_STALE_KEY) === "1" ||
-    localStorage.getItem(TODAY_PLAN_STALE_KEY) === "1";
-  if (!stale) return false;
-  sessionStorage.removeItem(TODAY_PLAN_STALE_KEY);
-  localStorage.removeItem(TODAY_PLAN_STALE_KEY);
-  return true;
+  return consumeStaleFlag(TODAY_PLAN_STALE_KEY);
+}
+
+export function consumeGrowthJourneyStale(): boolean {
+  return consumeStaleFlag(GROWTH_JOURNEY_STALE_KEY);
 }
