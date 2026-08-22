@@ -12,6 +12,8 @@ import {
 import { describeVerificationReminderEligibility } from "@/lib/auth/email-verification";
 import { REFERRAL_SOURCE_LABELS } from "@/lib/analytics-platform/referral";
 import { getActivationPulse } from "@/lib/activation/time-to-wow";
+import { getGrowthJourneyFounderMetrics } from "@/lib/analytics-platform/growth-journey-insights";
+import { getFamilyAdventuresFounderMetrics } from "@/lib/analytics-platform/family-adventures-insights";
 import type { ReferralSource } from "@prisma/client";
 
 const HERO_FEATURES = {
@@ -68,6 +70,24 @@ const HERO_FEATURES = {
     saved: ["story_saved"],
     printed: [] as string[],
     shared: [] as string[],
+  },
+  growthJourney: {
+    label: "Growth Journey",
+    views: ["growth_journey_viewed"],
+    started: ["growth_mission_started"],
+    completed: ["growth_mission_completed", "activity_completed", "language_activity_completed"],
+    saved: [] as string[],
+    printed: [] as string[],
+    shared: ["growth_roadmap_opened", "growth_skill_viewed"],
+  },
+  familyAdventures: {
+    label: "Family Adventures",
+    views: ["family_adventures_viewed"],
+    started: ["family_adventure_card_opened", "family_adventure_detail_viewed"],
+    completed: ["family_adventure_attended", "family_adventure_attend_clicked"],
+    saved: ["family_adventure_saved"],
+    printed: [] as string[],
+    shared: ["family_adventure_booking_clicked", "family_adventure_map_opened"],
   },
 } as const;
 
@@ -611,11 +631,25 @@ export async function getFollowUpList() {
 export async function getUserTimeline(userId: string) {
   const milestones = [
     "signup_completed",
+    "login",
     "email_verified",
     "onboarding_completed",
     "child_profile_created",
     "first_plan_generated",
     "today_plan_viewed",
+    "growth_journey_viewed",
+    "growth_mission_started",
+    "growth_mission_completed",
+    "growth_roadmap_opened",
+    "growth_skill_viewed",
+    "family_adventures_viewed",
+    "family_adventures_hero_clicked",
+    "family_adventure_card_opened",
+    "family_adventure_detail_viewed",
+    "family_adventure_saved",
+    "family_adventure_booking_clicked",
+    "family_adventure_attended",
+    "family_adventure_attend_clicked",
     "toy_brain_scanned",
     "family_story_generated",
     "adventure_generated",
@@ -628,7 +662,7 @@ export async function getUserTimeline(userId: string) {
   const events = await prisma.analyticsEvent.findMany({
     where: { userId, event: { in: [...milestones] } },
     orderBy: { createdAt: "asc" },
-    select: { event: true, createdAt: true, feature: true },
+    select: { event: true, createdAt: true, feature: true, properties: true },
   });
 
   const user = await prisma.user.findUnique({
@@ -638,11 +672,25 @@ export async function getUserTimeline(userId: string) {
 
   const labels: Record<string, string> = {
     signup_completed: "Registered",
+    login: "Logged in",
     email_verified: "Email verified",
     onboarding_completed: "Completed onboarding",
     child_profile_created: "Created child profile",
     first_plan_generated: "Generated Today's Journey",
     today_plan_viewed: "Opened Today's Plan",
+    growth_journey_viewed: "Opened Growth Journey",
+    growth_mission_started: "Started growth mission",
+    growth_mission_completed: "Completed growth mission",
+    growth_roadmap_opened: "Opened growth roadmap",
+    growth_skill_viewed: "Viewed growth skill",
+    family_adventures_viewed: "Opened Family Adventures",
+    family_adventures_hero_clicked: "Clicked Family Adventures (Today)",
+    family_adventure_card_opened: "Opened adventure card",
+    family_adventure_detail_viewed: "Viewed adventure detail",
+    family_adventure_saved: "Saved adventure",
+    family_adventure_booking_clicked: "Clicked booking link",
+    family_adventure_attended: "Marked adventure attended",
+    family_adventure_attend_clicked: "Clicked attend",
     toy_brain_scanned: "Used Toy Brain",
     family_story_generated: "Generated story",
     adventure_generated: "Created adventure",
@@ -652,11 +700,19 @@ export async function getUserTimeline(userId: string) {
     day_7_return: "Returned within 7 days",
   };
 
-  const timeline = events.map((e) => ({
-    label: labels[e.event] ?? e.event,
-    at: e.createdAt.toISOString(),
-    feature: e.feature,
-  }));
+  const timeline = events.map((e) => {
+    const props = e.properties as Record<string, unknown> | null;
+    const detail =
+      (typeof props?.title === "string" && props.title.trim()) ||
+      (typeof props?.adventureId === "string" && props.adventureId.trim()) ||
+      null;
+    const base = labels[e.event] ?? e.event;
+    return {
+      label: detail ? `${base}: ${detail}` : base,
+      at: e.createdAt.toISOString(),
+      feature: e.feature,
+    };
+  });
 
   if (user && !timeline.some((t) => t.label === "Registered")) {
     timeline.unshift({
@@ -746,6 +802,8 @@ export async function getGrowthIntelligenceDashboard() {
     ai,
     registrationsToday,
     activationPulse,
+    growthJourney,
+    familyAdventures,
   ] = await Promise.all([
     getActivationMetrics(),
     getGrowthFunnel(since30),
@@ -761,6 +819,8 @@ export async function getGrowthIntelligenceDashboard() {
     getFounderAiAnalytics(),
     prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
     getActivationPulse(),
+    getGrowthJourneyFounderMetrics(),
+    getFamilyAdventuresFounderMetrics(),
   ]);
 
   const dropOff = findBiggestFunnelDropOff(funnel);
@@ -824,6 +884,8 @@ export async function getGrowthIntelligenceDashboard() {
     weeklyInsights,
     alerts,
     ai: { todayCost: ai.today.cost, cacheHitPct: ai.today.cacheHitPct },
+    growthJourney,
+    familyAdventures,
   };
 }
 

@@ -161,7 +161,10 @@ export default function FounderJourneyPage() {
             </CardTitle>
             {data.user?.lastActive ? (
               <p className="text-xs text-muted-foreground">
-                Last active {format(new Date(data.user.lastActive), "d MMM yyyy HH:mm")}
+                Last seen in app{" "}
+                {format(new Date(data.user.lastActive), "d MMM yyyy HH:mm")}
+                {" — "}
+                includes login and browsing; milestones below are product actions only.
               </p>
             ) : null}
           </CardHeader>
