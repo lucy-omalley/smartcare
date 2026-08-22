@@ -22,7 +22,7 @@ import {
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
-import { bodyAffectsTodayPlan, markTodayPlanStale } from '@/lib/today-plan-stale';
+import { bodyAffectsTodayPlan, markPersonalizationStale } from '@/lib/today-plan-stale';
 import { toast } from 'sonner';
 import { ChildBirthdayPicker } from '@/components/profile/child-birthday-picker';
 import { formatBirthdayDisplay, resolveChildAgeDisplay } from '@/lib/child-age';
@@ -232,8 +232,10 @@ function ProfileContent() {
       setProfile(data.profile);
       setEditing(false);
       if (affectsTodayPlan || data.todayPlanRegenerated) {
-        markTodayPlanStale();
-        toast.success('Profile saved — updating Today\'s Plan with your changes.');
+        markPersonalizationStale();
+        toast.success(
+          "Profile saved — open Home or Growth to see your updated plan and journey."
+        );
       } else {
         toast.success('Profile saved.');
       }

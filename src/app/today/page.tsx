@@ -221,17 +221,20 @@ export default function TodayPage() {
         setGeneratingPlan(Boolean(briefData.generating));
         if (!briefData.generating) setPlanRefreshSlow(false);
         setData((prev) => {
-          if (options?.silent && rotatingRef.current) {
+          const profileRefresh = options?.profileRefresh === true;
+          if (options?.silent && !profileRefresh && rotatingRef.current) {
             return prev;
           }
           if (
             options?.silent &&
+            !profileRefresh &&
             Date.now() - lastRotateAtRef.current < 20000
           ) {
             return prev;
           }
           if (
             options?.silent &&
+            !profileRefresh &&
             briefData.briefUpdatedAt &&
             lastBriefUpdatedAtRef.current &&
             new Date(briefData.briefUpdatedAt).getTime() <
@@ -241,6 +244,7 @@ export default function TodayPage() {
           }
           if (
             options?.silent &&
+            !profileRefresh &&
             prev?.brief &&
             isValidBriefContent(prev.brief) &&
             !isValidBriefContent(briefData.brief)
@@ -364,7 +368,7 @@ export default function TodayPage() {
       window.removeEventListener('focus', refreshIfStale);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [status, reloadTodayPlan]);
+  }, [status, loadToday]);
 
   useEffect(() => {
     if (!data?.brief?.bedtimeStory?.story) return;
