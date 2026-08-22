@@ -7,6 +7,8 @@ import { generateFounderInsights, type FounderAlert } from "@/lib/analytics-plat
 import {
   getActivatedUserIds,
   getActivationMetrics,
+  countOnboardedUsers,
+  countRegisteredUsers,
   HERO_FEATURE_EVENTS,
 } from "@/lib/analytics-platform/activation";
 import { describeVerificationReminderEligibility } from "@/lib/auth/email-verification";
@@ -126,8 +128,6 @@ async function countEmailVerifiedUsers(since?: Date): Promise<number> {
 
 /** Growth funnel v1 — last 30 days by default. */
 export async function getGrowthFunnel(since?: Date): Promise<FunnelStage[]> {
-  const filter = since ? { createdAt: { gte: since } } : {};
-
   const [
     landing,
     signupStarted,
@@ -143,9 +143,9 @@ export async function getGrowthFunnel(since?: Date): Promise<FunnelStage[]> {
   ] = await Promise.all([
     distinctReach("landing_page_viewed", since),
     distinctReach("signup_started", since),
-    distinctUsers("signup_completed", since),
+    countRegisteredUsers(since),
     countEmailVerifiedUsers(since),
-    distinctUsers("onboarding_completed", since),
+    countOnboardedUsers(since),
     prisma.user.count({
       where: { childBirthday: { not: null }, ...(since ? { createdAt: { gte: since } } : {}) },
     }),
@@ -166,8 +166,8 @@ export async function getGrowthFunnel(since?: Date): Promise<FunnelStage[]> {
 
   const stages = [
     { id: "landing", label: "Landing page views", count: landing },
-    { id: "signup_started", label: "Signup started", count: signupStarted },
-    { id: "signup_completed", label: "Signup completed", count: signupCompleted },
+    { id: "signup_started", label: "Signup form opened (visitors)", count: signupStarted },
+    { id: "signup_completed", label: "Accounts created", count: signupCompleted },
     { id: "email_verified", label: "Email verified", count: emailVerified },
     { id: "onboarding", label: "Onboarding completed", count: onboardingCompleted },
     { id: "child_profile", label: "Child profile created", count: childProfile },
